@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Times Stock IMS</title>
+  <link rel="stylesheet" href="../css/Customer.css?v=2" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+<style>
+.container {
+    display: grid;
+    width: 100%;
+    gap: 1.8rem;
+    grid-template-columns: 14rem auto;
+    padding: 0 1.5rem;
+}
+</style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png" alt="Logo" />
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+      </div>
+      <div class="sidebar">
+        <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
+        <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
+        <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
+        <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
+        <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
+        <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
+        <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
+        <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
+        <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
+        <a href="/logout">
+          <span class="material-symbols-sharp">logout</span>    
+          <h3>Sign-out</h3>
+        </a>
+      </div>
+    </aside>
+    <main>
+      <div class="header-bar">
+        <h1>Customer Management</h1>
+        <div class="top-bar">
+
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+      </div>
+
+
+        <!-- Order/Project History Table -->
+  <div class="table-container">
+<h2><span class="material-symbols-sharp">history</span> Customer History</h2>
+  <div class="filters">
+    <input type="text" placeholder="Search..." oninput="filterTable('stockTable', this.value)">
+    
+    <input type="date" onchange="filterDate('stockTable', 0, this.value)">
+    <button onclick="openModal()">
+  <span class="material-symbols-sharp">add</span> New Entry
+  </button>
+  </div>
+
+  <div class="table-wrapper">
+  <div class="table-scroll">
+  <table id="customerTable">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Transaction ID</th>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Email</th>
+        <th>Address</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody id="customerTableBody">
+  <!-- data will be inserted here -->
+  </tbody>
+  </table>
+   </tbody>
+        
+
+  <div class="pagination" id="pagination">
+    <button>&laquo; Prev</button>
+    <button>1</button>
+    <button>2</button>
+    <button>3</button>
+    <button>Next &raquo;</button>
+  </div>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", fetchCustomers);
+
+async function fetchCustomers() {
+  try {
+    const res = await fetch("/api/customers");
+    const data = await res.json();
+    const tbody = document.getElementById("customerTableBody");
+    tbody.innerHTML = ""; // Clear existing
+
+    if (!Array.isArray(data) || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7">No customer records found.</td></tr>`;
+      return;
+    }
+
+    data.forEach(row => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${formatDate(row.date_created)}</td>
+          <td>CUS-${String(row.id).padStart(3, '0')}</td>
+          <td>${row.firstname}</td>
+          <td>${row.lastname}</td>
+          <td>${row.email}</td>
+          <td>${row.address}</td>
+          <td>₱0.00</td> <!-- Placeholder amount -->
+        </tr>
+      `;
+    });
+  } catch (err) {
+    console.error("Error loading customers:", err);
+  }
+}
+
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toISOString().split("T")[0];
+}
+</script>
+
+</body>
+</html>

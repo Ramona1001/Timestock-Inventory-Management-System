@@ -1,0 +1,539 @@
+from typing import List, Any, Optional
+from fastapi import APIRouter, HTTPException, Header,Request
+from fastapi.responses import JSONResponse, FileResponse
+from tempfile import NamedTemporaryFile
+from datetime import datetime, timedelta
+import pandas as pd
+import uuid
+import os
+
+from backend.auth import verify_token
+from .app_schemas import (
+    ProductCategoryCreate, ProductCategoryUpdate, EmployeeStatusUpdate,
+    MaterialCategoryCreate, MaterialCategoryUpdate, ChangeEmployeePassword,
+    MaterialCreate, MaterialUpdate, OrderStatusUpdate, EmployeeCreate,
+    CustomerCreate, CustomerUpdate, ReceiptRequest, QuotationRequest,
+    ProductCreate, ProductUpdate,StockTransactionCreate,ProductMaterialBulkCreate,
+    SupplierCreate, SupplierUpdate, ProductMaterialCreate, OrderTransactionCreate
+)
+
+from backend import database, reciept, graphs, analytics
+router = APIRouter()
+
+    
+@router.put("/products/update")
+def update_product_data(product: ProductUpdate):
+    try:
+        database.update_product(
+            con=database.con,
+            product_id=product.id,
+            unit_price=product.unit_price,
+            materials_cost=product.materials_cost,
+            status=product.status,
+            category_id=product.category_id,
+            item_name=product.item_name,
+            item_description=product.item_description
+        )
+        return {"message": "Product updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/material/update")
+def update_material_api(material: MaterialUpdate) -> Any:
+    try:
+        database.update_materials(
+            con=database.con,
+            material_id=material.material_id,
+            item_name=material.item_name,
+            item_description=material.item_description,
+            category_id=material.category_id,
+            unit_measurement=material.unit_measurement,
+            material_cost=material.material_cost,
+            current_stock=material.current_stock,
+            minimum_stock=material.minimum_stock,
+            maximum_stock=material.maximum_stock,
+            supplier_id=material.supplier_id
+        )
+        return {"message": "Material updated successfully"}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error: " + str(e))
+
+
+
+# ---- Alerts ---
+@router.get("/all-alerts")
+def get_all_alerts():
+    alerts = []
+
+    # Turnover Alerts (sorted by label_date descending)
+    _, turnover_df, _ = graphs.get_turnover_combined_graph()
+    turnover_df['label_date'] = pd.to_datetime(turnover_df['label'], format='%Y-%m')
+    three_months_ago = pd.Timestamp.now() - pd.DateOffset(months=1)
+    recent_df = turnover_df[turnover_df['label_date'] >= three_months_ago]
+
+    for _, row in recent_df.iterrows():
+        label = row['label']
+        rate = row['turnover_rate']
+        date = pd.Timestamp.now()
+
+        if rate < 1:
+            msg = f"⚠️ {label}: Low turnover rate ({rate}) – Review excess stock."
+        elif rate > 5:
+            msg = f"⚠️ {label}: High turnover rate ({rate}) – Stock might run out fast."
+        else:
+            msg = f"✅ {label}: Turnover rate is normal ({rate})."
+        alerts.append((date, msg))
+
+    # Reorder Point Alerts (assume these are current and use today as the timestamp)
+    reorder_df = graphs.get_reorder_point_chart(return_df=True)
+    if reorder_df is not None:
+        today = pd.Timestamp.now()
+        for _, row in reorder_df.iterrows():
+            if row['reorder_status'] == '⚠️ Reorder Needed':
+                msg = f"⚠️ {row['item_name']}: Stock is low ({row['current_stock']}) – Reorder point is {row['reorder_point']}"
+                alerts.append((today, msg))
+
+    # Minimum Stock Alerts (assume analytics returns list of tuples: (date, message))
+    min_stock_alerts = analytics.get_minimum_stock_alerts()
+    for item in min_stock_alerts:
+        if isinstance(item, tuple) and len(item) == 2:
+            alerts.append(item)
+        else:
+            # fallback in case it's just a string, use today
+            alerts.append((pd.Timestamp.now(), item))
+
+    # Sort all alerts by date (newest first)
+    sorted_alerts = sorted(alerts, key=lambda x: x[0], reverse=True)
+
+    # Return just the messages
+    return {"alerts": [msg for _, msg in sorted_alerts]}
+
+
+@router.get("/low-stock-alerts")
+def low_stock_alerts():
+    alerts = analytics.get_low_stock_alerts()
+    return {"alerts": alerts}
+# ---- Dashboard Summary ---
+@router.get("/dashboard/summary")
+def get_inventory_dashboard_summary():
+    return analytics.get_inventory_summary()
+
+@router.get("/sales-summary")
+def sales_summary():
+    return analytics.get_sales_summary()
+#---- Product Materials ---
+
+@router.get("/product-materials")
+def read_product_materials():
+    return database.get_product_materials_grouped()
+
+@router.post("/product-materials/add")
+def create_product_materials(data: ProductMaterialBulkCreate):
+    try:
+        database.add_product_materials(data.dict())
+        return {"message": "Product materials added successfully."}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error.")
+    
+@router.get("/product-materials/{product_id}")
+def api_get_product_materials(product_id: str):
+    return database.get_product_materials_by_product_id(product_id)
+
+@router.put("/product-materials/update")
+def api_update_product_material(data: dict):
+    try:
+        database.update_product_material(
+            product_id=data['product_id'],
+            material_id=data['material_id'],
+            used_quantity=data['used_quantity'],
+            unit_cost=data['unit_cost']
+        )
+        return {"message": "Material updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/product-materials/delete")
+def api_delete_product_material(request: Request):
+    data = request.query_params
+    try:
+        database.delete_product_material(
+            product_id=data['product_id'],
+            material_id=data['material_id']
+        )
+        return {"message": "Material deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Product Categories ---
+@router.get("/product-categories")
+def get_categories():
+    try:
+        categories = database.get_product_categories()
+        return categories.to_dict(orient="records")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/product-categories")
+def create_product_category(data: ProductCategoryCreate):
+    new_id = database.add_product_category(data.dict())
+    if new_id is None:
+        raise HTTPException(status_code=400, detail="Product Category already exists")
+    return {"id": new_id}
+
+
+# --- Material Categories ---
+@router.get("/material-categories")
+def get_material_categories():
+    return database.get_material_categories().to_dict(orient="records")
+
+@router.post("/material-categories")
+def create_material_category(data: MaterialCategoryCreate):
+    new_id = database.add_material_category(data.dict())
+    if new_id is None:
+        raise HTTPException(status_code=400, detail="Category already exists")
+    return {"id": new_id}
+
+@router.put("/material-categories/{id}")
+def update_material_category(id: str, data: MaterialCategoryUpdate):
+    database.update_material_category(id, data.dict())
+    return {"message": "Updated successfully"}
+
+@router.delete("/material-categories/{id}")
+def delete_material_category(id: str):
+    database.delete_material_category(id)
+    return {"message": "Deleted successfully"}
+
+
+# --- Materials ---
+
+@router.post("/stock-materials")
+def stock_materials_endpoint(
+    request: Request,
+    data: StockTransactionCreate,
+    authorization: Optional[str] = Header(default=None)
+):
+    # Try JWT first
+    user = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        user = verify_token(token)
+
+    # Fallback to session
+    if not user:
+        user = request.session.get("user")
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    data_dict = data.dict()
+    if user['role'] == 'admin':
+        data_dict['admin_id'] = user['id']
+    elif user['role'] == 'employee':
+        data_dict['employee_id'] = user['id']
+    else:
+        raise HTTPException(status_code=403, detail="Invalid user role")
+
+    return database.stock_materials(data_dict)
+
+
+
+
+@router.get("/stock-transactions")
+def read_stock_transactions():
+    return database.get_stock_transactions_detailed().to_dict(orient="records")
+
+@router.get("/materials")
+def get_materials():
+    # Get materials as a list of dicts
+    materials_df = database.get_material()
+    materials = materials_df.to_dict(orient="records")
+
+    # Get the fast moving ratings by item_name
+    ratings_map = analytics.get_fast_moving_ratings_map()  # function defined below
+
+    # Add the rating to each material
+    for mat in materials:
+        item_name = mat.get("item_name")
+        mat["fast_moving_rating"] = ratings_map.get(item_name, 0.0)
+
+    return materials
+ 
+
+@router.post("/materials")
+def create_material(data: MaterialCreate):
+    try:
+        item_id = database.add_material(data.dict())
+        return {"message": "Material and item added", "item_id": item_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+
+
+
+@router.delete("/materials/{id}")
+def delete_material(id: str):
+    database.delete_material(id)
+    return {"message": "Deleted successfully"}
+
+
+# --- Customers ---
+@router.get("/customers")
+def get_customers():
+    return database.get_customers().to_dict(orient="records")
+
+@router.post("/customers")
+def create_customer(data: CustomerCreate):
+    result = database.add_customer(data.dict())
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return {"message": result["message"]}
+
+@router.put("/customers/{id}")
+def update_customer(id: str, data: CustomerUpdate):
+    database.update_customer(id, data.dict())
+    return {"message": "Updated successfully"}
+
+@router.delete("/customers/{id}")
+def delete_customer(id: str):
+    database.delete_customer(id)
+    return {"message": "Deleted successfully"}
+
+
+# --- Products ---
+@router.get("/products/{product_id}/quote")
+def get_product_quote(product_id: str):
+    try:
+        quote = database.calculate_quote(product_id)
+        return quote
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
+@router.get("/products")
+def get_products():
+    return database.get_products().to_dict(orient="records")
+
+@router.post("/products")
+def create_product(data: ProductCreate):
+    result = database.add_product(data.dict())
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return result
+
+@router.delete("/products/{id}")
+def delete_product(id: str):
+    return database.delete_product(id)
+
+
+# --- Suppliers ---
+@router.get("/suppliers")
+def get_suppliers():
+    return database.get_suppliers().to_dict(orient="records")
+
+@router.post("/suppliers")
+def create_supplier(data: SupplierCreate):
+    result = database.add_supplier(data.dict())
+    if not result["success"]:
+        raise HTTPException(status_code=400, detail=result["message"])
+    return {"message": result["message"]}
+
+
+@router.put("/suppliers/{id}")
+def update_supplier(id: str, data: SupplierUpdate):
+    database.update_supplier(id, data.dict())
+    return {"message": "Updated successfully"}
+
+@router.delete("/suppliers/{id}")
+def delete_supplier(id: str):
+    database.delete_supplier(id)
+    return {"message": "Deleted successfully"}
+
+# ----- Ordering Transaction ----
+
+@router.post("/orders")
+def place_order(request: Request, order: OrderTransactionCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    admin_id = user["id"]
+
+    # Include admin_id in the order object before saving
+    order_data = order.dict()
+    order_data["admin_id"] = admin_id
+    
+
+    result = database.create_order_transaction(order_data)
+    return result
+
+@router.get("/order-statuses")
+def order_statuses():
+    result = database.get_order_statuses()
+    return result.to_dict(orient="records")
+
+@router.put("/orders/update-status")
+def update_order_transaction_status(data: OrderStatusUpdate):
+    result = database.update_order_status(data.transaction_id, data.status_code, database.con)
+
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    
+    return {"message": "Order status updated successfully."}
+
+@router.get("/order-transactions")
+def read_order_transactions():
+    return database.get_order_transactions_detailed().to_dict(orient="records")
+
+# ----- Other Read/Get -----
+
+@router.get("/unit-measurements")
+def read_unit_measurements():
+    return database.get_unit_measurements().to_dict(orient="records")
+
+@router.get("/stock-transaction-types")
+def read_stock_transaction_types():
+    return database.get_stock_transaction_types().to_dict(orient="records")
+
+@router.get("/order-statuses")
+def read_order_statuses():
+    return database.get_order_statuses().to_dict(orient="records")
+
+@router.get("/employees")
+def read_employees():
+    return database.get_employees().to_dict(orient="records")
+
+@router.get("/admins")
+def read_admins():
+    return database.get_admins().to_dict(orient="records")
+
+
+# ---------- ANALYTICS -----------
+
+@router.get("/analytics/order-rev-sales")
+def get_inventory_dashboard_summary(request: Request, period: str = "week"):
+    summary = analytics.get_summary_cards(period)
+    return JSONResponse(content=summary)
+
+@router.get("/summary/products")
+def product_summary():
+    return analytics.get_product_usage_summary()
+
+@router.get("/summary/materials")
+def material_summary():
+    return analytics.get_material_usage_summary()
+
+@router.get("/recent-transactions")
+def recent_transactions_api():
+    try:
+        data = analytics.get_recent_order_transactions()
+        return JSONResponse(content={"transactions": data})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+    
+@router.get("/dashboard/metrics")
+def dashboard_metrics():
+    return analytics.get_all_time_metrics()
+
+@router.post("/generate-receipt")
+def generate_receipt(req: ReceiptRequest):
+    # Ensure pdf_container exists
+    output_dir = os.path.join(os.path.dirname(__file__), "..", "pdf_container")
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Clean old files
+    reciept.cleanup_old_pdfs(output_dir, max_age_minutes=10)
+
+    # Validate down payment
+    grand_total = sum(item.quantity * item.unit_price for item in req.items)
+    if req.down_payment > grand_total:
+        return {"error": "Down payment cannot exceed the total product cost."}
+
+    # Create receipt filename
+    filename = os.path.join(output_dir, f"receipt_{uuid.uuid4().hex}.pdf")
+
+    # Generate PDF
+    reciept.generate_unofficial_receipt(
+        filename=filename,
+        company_name="Times Stock Aluminum & Glass",
+        customer_name=req.customer_name,
+        address=req.address,
+        phone=req.phone,
+        items=[item.dict() for item in req.items],
+        down_payment=req.down_payment
+    )
+
+    return FileResponse(filename, media_type="application/pdf", filename="receipt.pdf")
+
+@router.post("/generate-quotation")
+def generate_quotation(data: QuotationRequest):
+    temp_file = NamedTemporaryFile(delete=False, suffix=".pdf")
+    filename = temp_file.name
+
+    reciept.generate_modern_quotation_pdf(
+        filename=filename,
+        client_name=data.client_name,
+        client_address=data.client_address,
+        items_quote=[item.dict() for item in data.items_quote]
+    )
+
+    return FileResponse(filename, media_type="application/pdf", filename="quotation.pdf")
+
+
+# ------------ SETTINGS -------------
+
+@router.post("/settings/add-employees", status_code=201)
+def api_add_employee(
+    payload: EmployeeCreate,
+):
+    result = database.add_employee(payload.model_dump())
+
+    if not result.get("success", False):
+        raise HTTPException(status_code=400, detail=result["message"])
+
+    return result
+
+@router.put("/settings/{id}/status")
+def api_update_employee_status(
+    id: str,
+    payload: EmployeeStatusUpdate
+):
+    return database.update_account_status(id, payload.is_active)
+
+@router.post("/settings/change-employee-password", status_code=200)
+def api_change_employee_password(
+    payload: ChangeEmployeePassword,
+    request: Request
+):
+    # Pull current user from session
+    user = request.session.get("user")
+
+    # If no session or not admin, block access
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Call DB function using session admin ID
+    result = database.change_employee_password(
+        user["id"],  # taken from logged-in admin session
+        payload.target_employee_id,
+        payload.new_password
+    )
+
+    if not result.get("success", False):
+        raise HTTPException(status_code=400, detail=result["message"])
+
+    return result
+
+
+
+
+@router.post("/settings/migrate-hashes")    
+def api_migrate_password_hashes():
+    return database.migrate_plaintext_passwords_to_hash()

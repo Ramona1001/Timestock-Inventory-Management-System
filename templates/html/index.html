@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html" class="active">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html" class="transition-link">
+      <span class="material-symbols-sharp">package_2</span>    
+      <h3>Product</h3>
+      </a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  </a>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Overview</h1>
+ <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+
+<div class="row" id="summary-cards">
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card total-sales h-100 p-4 shadow-sm">
+      <div class="middle">
+        <div class="left">
+          <h3>All Time Sales</h3>
+          <h1 id="total-sales">0</h1>
+        </div>
+      </div>
+      <small class="text-muted">All Time</small>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card total-orders h-100 p-4 shadow-sm">
+      <div class="middle">
+        <div class="left">
+          <h3>All Time Orders</h3>
+          <h1 id="total-orders">0</h1>
+        </div>
+      </div>
+      <small class="text-muted">All Time</small>
+    </div>
+  </div>
+
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card total-revenue h-100 p-4 shadow-sm">
+      <div class="middle">
+        <div class="left">
+          <h3>All Time Revenue</h3>
+          <h1 id="total-revenue">₱0.00</h1>
+        </div>
+      </div>
+      <small class="text-muted">All Time</small>
+    </div>
+  </div>
+</div>
+
+    
+<!--------END OF THE OUT OF STOCKS---------->
+
+
+    <div class="chart-row">
+        <!-- Fastest-Moving Materials Chart -->
+        <div class="chart-box">
+          <h2 class="chart-title">Top 10 Fastest-Moving Materials</h2>
+          {{ fastest_moving_html | safe }}
+        </div>
+
+        <!-- Reorder Point Chart -->
+        <div class="chart-box">
+          <h2 class="chart-title">Reorder Point Chart</h2>
+          {{ reorder_point_html | safe }}
+        </div>
+    </div>
+
+
+        <!-- Recent Transactions -->
+        <div class="recent-transaction">
+          <h2>Recent Transactions</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Price</th>
+                <th>Product</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recent-transactions-body">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+  </div>
+
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+
+   // Fade transition effect for navigation
+  document.querySelectorAll('.transition-link').forEach(link => {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      const href = this.getAttribute('href');
+
+      // Add fade-out class
+      document.body.classList.add('fade-out');
+
+      // After the animation ends, go to the next page
+      setTimeout(() => {
+        window.location.href = href;
+      }, 500); // match transition duration
+    });
+  });
+
+  document.getElementById("notifIcon").addEventListener("click", () => {
+  const box = document.getElementById("notificationBox");
+  box.style.display = box.style.display === "block" ? "none" : "block";
+
+  // Save alerts to localStorage as seen
+  const listItems = document.querySelectorAll("#notificationBoxList li");
+  const alerts = Array.from(listItems).map(li => li.textContent);
+  localStorage.setItem("seenAlerts", JSON.stringify(alerts));
+  document.getElementById("notifPing").style.display = "none";
+});
+
+// Optional: hide alert box when clicking outside
+window.addEventListener("click", (e) => {
+  const box = document.getElementById("notificationBox");
+  const icon = document.getElementById("notifIcon");
+  if (!box.contains(e.target) && !icon.contains(e.target)) {
+    box.style.display = "none";
+  }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  fetch('/api/recent-transactions')
+    .then(response => response.json())
+    .then(data => {
+      const tbody = document.getElementById("recent-transactions-body");
+      tbody.innerHTML = ""; // Clear current content
+
+      data.transactions.forEach(tx => {
+        const row = document.createElement("tr");
+
+        const statusClass = tx.status_code.toLowerCase();
+        const statusText = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+
+        row.innerHTML = `
+          <td>${new Date(tx.date_created).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric'
+          })}</td>
+          <td>${tx.customer_name}</td>
+          <td>₱${parseFloat(tx.total_amount).toLocaleString()}</td>
+          <td>${tx.product_names}</td>
+          <td class="${statusClass}">${statusText}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    })
+    .catch(error => {
+      console.error("Error loading recent transactions:", error);
+    });
+});
+</script>
+
+<script>
+  async function loadDashboardMetrics() {
+    try {
+      const response = await fetch('/api/dashboard/metrics');
+      const data = await response.json();
+
+      document.getElementById("total-sales").textContent = data.total_sales.toLocaleString();
+      document.getElementById("total-orders").textContent = data.total_orders.toLocaleString();
+      document.getElementById("total-revenue").textContent = "₱" + Number(data.total_revenue).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    } catch (error) {
+      console.error("Error loading dashboard metrics:", error);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadDashboardMetrics);
+</script>
+
+</body>
+</html>

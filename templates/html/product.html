@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/product.css?v=2">
+  <style>
+.clear-filters-btn {
+  align-self: flex-end;   
+  height: 34px;           
+  padding: 0 12px;        
+  border: none;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+
+.clear-filters-btn:hover {
+  background-color: #b02a37;
+}
+
+
+/* Filter Bar Container */
+.filters {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 15px;
+  background: #f9fafb;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  align-items: flex-end;
+}
+.filter-left {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* Individual filter group */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Range group */
+.range-group .range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.range-group input {
+  width: 80px;
+}
+
+/* Labels */
+.filters label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Inputs & Selects */
+.filters input,
+.filters select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+/* Wider search field */
+#searchInput {
+  width: 220px;
+}
+
+/* Hover & Focus */
+.filters input:focus,
+.filters select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.25);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .range-group .range-inputs {
+    flex-wrap: nowrap;
+  }
+
+  .range-group input {
+    flex: 1;
+  }
+}
+.table-scroll {
+  height: calc(100vh - (65px + 90px)); /* header + filters */
+  width: 100%;
+  overflow-y: auto;
+}
+
+#productTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Makes columns scale properly */
+}
+
+#productTable th, #productTable td {
+  padding: 8px;
+  word-wrap: break-word; /* Prevents overflow text */
+}
+/* Pagination styling remains the same */
+.pagination {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  flex-shrink: 0;          /* Prevent from shrinking */
+}
+
+.pagination button {
+  padding: 6px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.2s;
+}
+
+.pagination button:hover {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.edit-btn {
+  background-color: #007bff; /* Bootstrap green */
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3; /* Darker green on hover */
+}
+
+.edit-btn:active {
+  background-color: #1e7e34; /* Even darker when clicked */
+  transform: scale(0.97);
+}/* Make table container take remaining screen space */
+
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Product Management</h1>
+ <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+<div class="row" id="summary-cards">
+  <!-- Card 1 -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-products flex-fill p-4 shadow-sm d-flex flex-column">
+      <h3>Total Products</h3>
+      <h1 id="total-products" class="mt-auto">Loading...</h1>
+    </div>
+  </div>
+
+<!-- Card 2 -->
+<div class="col-lg-4 col-md-6 mb-3 d-flex">
+  <div class="card top-product flex-fill p-4 shadow-sm d-flex flex-column">
+    <h3>Most Used Product</h3>
+    <div class="inline-pair align-items-center">
+      <h1 id="top-product-name" class="mb-0">Loading...</h1>
+      <h1 id="top-product-count" class="text-muted mb-0 ms-3" >-</h1>
+    </div>
+    <small class="text-muted mt-2">Last 30 Days</small>
+  </div>
+</div>
+
+<!-- Card 3 -->
+<div class="col-lg-4 col-md-6 mb-3 d-flex">
+  <div class="card highest-revenue flex-fill p-4 shadow-sm d-flex flex-column">
+    <h3>Highest Revenue Product</h3>
+    <div class="inline-pair align-items-center">
+      <h1 id="highest-revenue-product" class="mb-0">Loading...</h1>
+    </div>
+    <small class="text-muted mt-2">Last 30 Days</small>
+  </div>
+</div>
+
+
+  <!-- Card 4 -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-in-production flex-fill p-4 shadow-sm d-flex flex-column">
+      <h3>Total In-Production</h3>
+      <h1 id="total-in-production" class="mt-auto">Loading...</h1>
+    </div>
+  </div>
+</div>
+
+
+<!--------END OF THE OUT OF STOCKS---------->
+
+
+<div class="products-header">
+<div class="Products">
+  <h2>Product Inventory</h2>
+    <div class="crud-buttons">
+  <button class="create-btn" onclick="openModal('createModal')">Add a Product</button>
+  <button class="unavailable-btn" id="toggleUnavailableBtn" style="background-color: #007bff;">Show Unavailable Products</button>
+  <button class="delete-btn" onclick="openModal('deleteModal')" style="background-color: #ff0000;">Delete Product</button>
+</div>
+
+<!-- Delete Product Modal -->
+<div id="deleteModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+    <h3>Delete a Product</h3>
+    <label for="deleteProductSelector">Select Product:</label>
+    <select id="deleteProductSelector">
+      <!-- Populated by JS -->
+    </select>
+    <button onclick="deleteSelectedProduct()">Delete</button>
+  </div>
+</div>
+
+
+<!-- Create Product Modal -->
+<div id="createModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('createModal')">&times;</span>
+    <h3>Add a Product</h3>
+    <input type="datetime" id="createDate" readonly>
+    <input type="text" id="createName" placeholder="Product Name">
+    <textarea id="createDescription" placeholder="Product Description"></textarea>
+    <select id="createCategory">
+      <!-- Categories will be populated dynamically -->
+    </select>
+    <input type="number" id="createPrice" placeholder="Unit Price">
+    <input type="number" id="createCost" placeholder="Materials Cost">
+    <select id="createStatus">
+      <option value="Available">Available</option>
+      <option value="Unavailable">Unavailable</option>
+    </select>
+    <button class="create-btn" onclick="addProduct()">Save Product</button>
+  </div>
+</div>
+
+
+<!-- Edit Product Modal -->
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditModal()">&times;</span>
+    <h2>Edit Product</h2>
+    <form id="editProductForm">
+      <!-- Hidden product ID -->
+      <input type="hidden" id="edit-item-id">
+
+      <label for="edit-item-name">Item Name:</label>
+      <input type="text" id="edit-item-name" required>
+
+      <label for="edit-item-description">Item Description:</label>
+      <input type="text" id="edit-item-description" required>
+
+      <label for="edit-category-id">Category:</label>
+      <select id="edit-category-id" required></select>
+
+      <label for="edit-unit-price">Unit Price:</label>
+      <input type="number" id="edit-unit-price" step="0.01" required>
+
+      <label for="edit-materials-cost">Materials Cost:</label>
+      <input type="number" id="edit-materials-cost" step="0.01" required>
+
+      <label for="edit-status">Status:</label>
+      <select id="edit-status" required>
+        <option value="Available">Available</option>
+        <option value="Unavailable">Unavailable</option>
+      </select>
+
+      <button type="submit">Save Changes</button>
+      <button type="button" onclick="closeEditModal()">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+    
+    <!-- Search -->      
+  <div class="filter-left">
+    <div class="filter-group">
+      <label for="searchInput">Search</label>
+      <input type="text" id="searchInput" placeholder="Search products..." onkeyup="filterTable()">
+    </div>
+        <button class="clear-filters-btn" type="button" onclick="clearFilters()">Clear Filters</button>
+  </div>
+
+  <div class="filter-right">
+    <!-- Category -->
+    <div class="filter-group">
+      <label for="categoryFilter">Category</label>
+      <select id="categoryFilter" onchange="filterTable()">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+
+    <!-- Price Range -->
+    <div class="filter-group range-group">
+      <label>Price</label>
+      <div class="range-inputs">
+        <input type="number" id="minPrice" placeholder="Min" oninput="filterTable()">
+        <span>-</span>
+        <input type="number" id="maxPrice" placeholder="Max" oninput="filterTable()">
+      </div>
+    </div>
+
+    <!-- Sorting -->
+    <div class="filter-group">
+      <label for="sortFilter">Sort By</label>
+      <select id="sortFilter" onchange="filterTable()">
+        <option value="">Default</option>
+        <option value="nameAsc">Name A–Z</option>
+        <option value="nameDesc">Name Z–A</option>
+        <option value="priceAsc">Price ↑</option>
+        <option value="priceDesc">Price ↓</option>
+        <option value="dateNew">Newest</option>
+        <option value="dateOld">Oldest</option>
+      </select>
+    </div>
+
+  </div>
+</div>
+
+
+<div id="unavailableSection" style="display: none; margin-bottom: 20px;">
+  <h2>Unavailable Products</h2>
+  <table id="unavalTableProducts">
+    <thead>
+      <tr>
+        <th>Product ID</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Unit Price</th>
+        <th>Materials Cost</th>
+        <th>Date Added</th>
+        <th>Status</th>
+        <th>Edit</th>
+      </tr>
+    </thead>
+    <tbody id="unavailableProductTableBody">
+      <!-- JavaScript will populate -->
+    </tbody>
+  </table>
+  <div class="pagination" id="unavailablePagination">
+    <button onclick="changePage('stock', -1)">« Prev</button>
+    <span id="stockPageNumber">Page 1</span>
+    <button onclick="changePage('stock', 1)">Next »</button>
+</div>
+</div>
+
+
+<div class="table-scroll">
+<table id="productTable">
+      <thead>
+        <tr>
+          <th>Product ID</th>
+          <th>Product Name</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Materials Cost</th>
+          <th>Date Added</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="productTableBody">
+        <!-- Dynamically populated rows -->
+      </tbody>
+</table>  
+<div class="pagination" id="availablePagination">
+    <button onclick="changePage('stock', -1)">« Prev</button>
+    <span id="stockPageNumber">Page 1</span>
+    <button onclick="changePage('stock', 1)">Next »</button>
+</div>
+  </div>
+        <div>
+          <main>
+                 <!----------END OF MAIN------------->
+              </div>
+              <div>
+          <div>
+                  
+                </div>
+            </div>
+      </div>
+</main>
+  </div>
+
+<!-- Other Api -->  
+<script>
+let availableFilteredData = [];
+let unavailableFilteredData = [];
+let rowsPerPage = 5;
+let currentAvailablePage = 1;
+let currentUnavailablePage = 1;
+let originalAvailableData = [];
+let originalUnavailableData = [];
+
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+
+function filterTable() {
+  const searchValue = document.getElementById("searchInput").value.toLowerCase();
+  const categoryValue = document.getElementById("categoryFilter").value;
+  const minPrice = parseFloat(document.getElementById("minPrice").value) || 0;
+  const maxPrice = parseFloat(document.getElementById("maxPrice").value) || Infinity;
+  const sortValue = document.getElementById("sortFilter").value;
+
+  function matchesFilters(item) {
+    const matchesSearch = !searchValue ||
+      Object.values(item).some(val =>
+        String(val).toLowerCase().includes(searchValue)
+      );
+
+    const matchesCategory = !categoryValue || item.item_category_name === categoryValue;
+    const matchesPrice = item.unit_price >= minPrice && item.unit_price <= maxPrice;
+
+    return matchesSearch && matchesCategory && matchesPrice;
+  }
+
+  // Filter original arrays
+  availableFilteredData = originalAvailableData.filter(matchesFilters);
+  unavailableFilteredData = originalUnavailableData.filter(matchesFilters);
+
+  // Sorting for available table
+  if (sortValue) {
+    availableFilteredData.sort((a, b) => {
+      const aDate = new Date(a.date_created);
+      const bDate = new Date(b.date_created);
+      switch (sortValue) {
+        case "nameAsc": return a.item_name.localeCompare(b.item_name);
+        case "nameDesc": return b.item_name.localeCompare(a.item_name);
+        case "priceAsc": return a.unit_price - b.unit_price;
+        case "priceDesc": return b.unit_price - a.unit_price;
+        case "dateNew": return bDate - aDate;
+        case "dateOld": return aDate - bDate;
+      }
+    });
+  }
+
+  // Reset to first page after filter
+  currentAvailablePage = 1;
+  currentUnavailablePage = 1;
+
+  // Render tables
+  renderTablePage("available", currentAvailablePage);
+  renderPagination("available");
+  renderTablePage("unavailable", currentUnavailablePage);
+  renderPagination("unavailable");
+}
+
+function populateCategoryFilter(products) {
+  const categorySet = new Set(products.map(p => p.item_category_name));
+  const categoryFilter = document.getElementById("categoryFilter");
+
+  categoryFilter.innerHTML = '<option value="">All Categories</option>';
+
+  categorySet.forEach(category => {
+    const opt = document.createElement("option");
+    opt.value = category;
+    opt.textContent = category;
+    categoryFilter.appendChild(opt);
+  });
+}
+
+
+
+function openModal(modalId) {
+document.getElementById(modalId).style.display = "block";
+const today = new Date().toISOString().split('T')[0];
+  if (modalId === 'createModal') {
+    document.getElementById('createDate').value = today;
+  } else if (modalId === 'updateModal') {
+    document.getElementById('updateDate').value = today;
+  }
+}
+
+
+
+
+document.getElementById("toggleUnavailableBtn").addEventListener("click", () => {
+  const table = document.getElementById("unavailableProductTable");
+  const isHidden = table.style.display === "none";
+  table.style.display = isHidden ? "table" : "none";
+  document.getElementById("toggleUnavailableBtn").textContent = isHidden
+    ? "Hide Unavailable Products"
+    : "Show Unavailable Products";
+});
+
+document.querySelectorAll("#searchInput, #categoryFilter, #minPrice, #maxPrice, #sortFilter")
+  .forEach(el => el.addEventListener("input", filterTable));
+
+</script>
+
+<!-- GET Api -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  fetchProducts();
+
+  const toggleUnavailableBtn = document.getElementById("toggleUnavailableBtn");
+  const unavailableSection = document.getElementById("unavailableSection");
+  let isUnavailableVisible = false;
+
+  toggleUnavailableBtn.addEventListener("click", () => {
+    isUnavailableVisible = !isUnavailableVisible;
+    unavailableSection.style.display = isUnavailableVisible ? "block" : "none";
+    toggleUnavailableBtn.textContent = isUnavailableVisible
+      ? "Hide Unavailable Products"
+      : "Show Unavailable Products";
+  });
+});
+async function fetchProducts() {
+  try {
+    const response = await fetch("/api/products");
+    const products = await response.json();
+
+    const availableProducts = products.filter(p => p.status === "Available");
+    const unavailableProducts = products.filter(p => p.status !== "Available");
+
+    // Save originals for re-filtering
+    originalAvailableData = [...availableProducts];
+    originalUnavailableData = [...unavailableProducts];
+
+    // Initialize filtered data
+    availableFilteredData = [...originalAvailableData];
+    unavailableFilteredData = [...originalUnavailableData];
+
+    renderTablePage("available", currentAvailablePage);
+    renderPagination("available");
+
+    renderTablePage("unavailable", currentUnavailablePage);
+    renderPagination("unavailable");
+
+    populateCategoryFilter(products);
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+  }
+}
+function renderTablePage(type, page) {
+  let data, tbodyId;
+
+  if (type === "available") {
+    data = availableFilteredData;
+    tbodyId = "productTableBody";
+  } else {
+    data = unavailableFilteredData;
+    tbodyId = "unavailableProductTableBody";
+  }
+
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = "";
+
+  const start = (page - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = data.slice(start, end);
+
+  pageData.forEach(product => {
+    const row = document.createElement("tr");
+    const statusClass = product.status === "Available" ? "success" : "danger";
+
+    row.innerHTML = `
+      <td>${product.product_id}</td>
+      <td>${product.item_name}</td>
+      <td>${product.item_decription}</td>
+      <td>${product.item_category_name}</td>
+      <td>${product.unit_price}</td>
+      <td>${product.materials_cost}</td>
+      <td>${formatDate(product.date_created)}</td>
+      <td class="${statusClass}">${product.status}</td>
+      <td><button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function renderPagination(type) {
+  let data, currentPage, paginationId;
+
+  if (type === "available") {
+    data = availableFilteredData;
+    currentPage = currentAvailablePage;
+    paginationId = "availablePagination";
+  } else {
+    data = unavailableFilteredData;
+    currentPage = currentUnavailablePage;
+    paginationId = "unavailablePagination";
+  }
+
+  const totalPages = Math.ceil(data.length / rowsPerPage);
+  const paginationDiv = document.getElementById(paginationId);
+  paginationDiv.innerHTML = "";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.textContent = "Prev";
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => {
+    if (type === "available" && currentAvailablePage > 1) {
+      currentAvailablePage--;
+      renderTablePage(type, currentAvailablePage);
+      renderPagination(type);
+    } else if (type === "unavailable" && currentUnavailablePage > 1) {
+      currentUnavailablePage--;
+      renderTablePage(type, currentUnavailablePage);
+      renderPagination(type);
+    }
+  };
+  paginationDiv.appendChild(prevBtn);
+
+  for (let i = 1; i <= totalPages; i++) {
+    const pageBtn = document.createElement("button");
+    pageBtn.textContent = i;
+    if (i === currentPage) {
+      pageBtn.disabled = true;
+      pageBtn.style.fontWeight = "bold";
+    }
+    pageBtn.onclick = () => {
+      if (type === "available") currentAvailablePage = i;
+      else currentUnavailablePage = i;
+      renderTablePage(type, i);
+      renderPagination(type);
+    };
+    paginationDiv.appendChild(pageBtn);
+  }
+
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "Next";
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => {
+    if (type === "available" && currentAvailablePage < totalPages) {
+      currentAvailablePage++;
+      renderTablePage(type, currentAvailablePage);
+      renderPagination(type);
+    } else if (type === "unavailable" && currentUnavailablePage < totalPages) {
+      currentUnavailablePage++;
+      renderTablePage(type, currentUnavailablePage);
+      renderPagination(type);
+    }
+  };
+  paginationDiv.appendChild(nextBtn);
+}
+
+function clearFilters() {
+  // Reset input fields
+  document.getElementById("searchInput").value = "";
+  document.getElementById("categoryFilter").value = "";
+  document.getElementById("minPrice").value = "";
+  document.getElementById("maxPrice").value = "";
+  document.getElementById("sortFilter").value = "";
+
+  // Reset filtered data to originals
+  availableFilteredData = [...originalAvailableData];
+  unavailableFilteredData = [...originalUnavailableData];
+
+  // Reset pagination
+  currentAvailablePage = 1;
+  currentUnavailablePage = 1;
+
+  // Render tables
+  renderTablePage("available", currentAvailablePage);
+  renderPagination("available");
+
+  renderTablePage("unavailable", currentUnavailablePage);
+  renderPagination("unavailable");
+}
+
+function formatDate(dateString) {
+  return new Date(dateString).toLocaleDateString(undefined, {
+    year: "numeric", month: "short", day: "numeric"
+  });
+}
+
+</script>
+
+<!-- Create API -->
+<script>
+
+async function fetchCategories() {
+  try {
+    const response = await fetch("/api/product-categories"); // You must have this endpoint
+    const categories = await response.json();
+
+    const categorySelect = document.getElementById("createCategory");
+    categorySelect.innerHTML = ""; // Clear old options
+
+    categories.forEach(cat => {
+      const option = document.createElement("option");
+      option.value = cat.id;
+      option.textContent = cat.category_name;
+      categorySelect.appendChild(option);
+    });
+
+  } catch (error) {
+    console.error("Failed to load categories", error);
+  }
+}
+
+async function addProduct() {
+  // Get input values and trim strings
+  const item_name = document.getElementById("createName").value.trim();
+  const item_decription = document.getElementById("createDescription").value.trim();
+  const category_id = document.getElementById("createCategory").value;
+  const unit_price = parseFloat(document.getElementById("createPrice").value);
+  const materials_cost = parseFloat(document.getElementById("createCost").value);
+  const status = document.getElementById("createStatus").value;
+  const date_created = document.getElementById("createDate").value;
+
+  // --- Validation ---
+
+  // Name validation
+  if (!item_name) {
+    alert("Product name is required.");
+    return;
+  }
+  if (item_name.length > 100) {
+    alert("Product name cannot exceed 100 characters.");
+    return;
+  }
+
+  // Description validation (optional, max 500 chars)
+  if (item_decription.length > 500) {
+    alert("Description cannot exceed 500 characters.");
+    return;
+  }
+
+  // Category validation
+  if (!category_id) {
+    alert("Please select a category.");
+    return;
+  }
+
+  // Price validation
+  if (isNaN(unit_price) || unit_price < 0) {
+    alert("Unit price must be a number greater than or equal to 0.");
+    return;
+  }
+
+  // Materials cost validation
+  if (isNaN(materials_cost) || materials_cost < 0) {
+    alert("Materials cost must be a number greater than or equal to 0.");
+    return;
+  }
+  if (materials_cost > unit_price) {
+    alert("Materials cost cannot exceed unit price.");
+    return;
+  }
+
+  // Status validation
+  if (!["Available", "Unavailable"].includes(status)) {
+    alert("Invalid status selected.");
+    return;
+  }
+
+  // Date validation
+  if (!date_created) {
+    alert("Date is required.");
+    return;
+  }
+  const today = new Date().toISOString().split("T")[0];
+  if (date_created > today) {
+    alert("Date cannot be in the future.");
+    return;
+  }
+
+  // --- Prepare product data ---
+  const productData = {
+    item_name,
+    item_decription,
+    category_id,
+    unit_price,
+    materials_cost,
+    status,
+    date_created
+  };
+
+  // --- Send request ---
+  try {
+    const response = await fetch("/api/products", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(productData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      alert("Error: " + error.detail);
+      return;
+    }
+
+    const result = await response.json();
+    alert(result.message);
+
+        // --- Reset modal inputs ---
+    document.getElementById("createName").value = "";
+    document.getElementById("createDescription").value = "";
+    document.getElementById("createCategory").selectedIndex = 0;
+    document.getElementById("createPrice").value = "";
+    document.getElementById("createCost").value = "";
+    document.getElementById("createStatus").selectedIndex = 0;
+
+    closeModal("createModal");
+    fetchProducts(); // Refresh table
+  } catch (error) {
+    console.error("Error creating product", error);
+    alert("Failed to create product");
+  }
+}
+
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = "block";
+  const today = new Date().toISOString().split("T")[0];
+  if (modalId === "createModal") {
+    document.getElementById("createDate").value = today;
+    fetchCategories(); // Load categories when opening modal
+  } else if (modalId === "updateModal") {
+    document.getElementById("updateDate").value = today;
+  }
+}
+</script>
+
+<!-- Edit API -->
+ <script>
+async function loadCategoryOptions(selectedCategoryId) {
+  try {
+    const response = await fetch("/api/product-categories");
+    const categories = await response.json();
+
+    const select = document.getElementById("edit-category-id");
+    select.innerHTML = "";
+
+    categories.forEach(category => {
+      const option = document.createElement("option");
+      option.value = String(category.id);
+      option.textContent = category.category_name;
+      if (String(category.id) === String(selectedCategoryId)) {
+        option.selected = true; 
+      }
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Failed to load categories:", error);
+  }
+}
+
+async function openEditModal(product) {
+  document.getElementById("editModal").style.display = "block";
+
+  document.getElementById("edit-item-id").value = product.product_id;
+  document.getElementById("edit-item-name").value = product.item_name;
+  document.getElementById("edit-item-description").value = product.item_decription;
+  document.getElementById("edit-materials-cost").value = product.materials_cost;
+  document.getElementById("edit-unit-price").value = product.unit_price;
+  document.getElementById("edit-status").value = product.status;
+
+  await loadCategoryOptions(product.category_id);
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").style.display = "none";
+}
+
+</script>
+
+<script>
+document.getElementById("editProductForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  // --- Get input values ---
+  const id = document.getElementById("edit-item-id").value.trim();
+  const item_name = document.getElementById("edit-item-name").value.trim();
+  const item_description = document.getElementById("edit-item-description").value.trim();
+  const category_id = document.getElementById("edit-category-id").value;
+  const unit_price = parseFloat(document.getElementById("edit-unit-price").value);
+  const materials_cost = parseFloat(document.getElementById("edit-materials-cost").value);
+  const status = document.getElementById("edit-status").value;
+
+  // --- Validation ---
+  if (!id) {
+    alert("Product ID is missing.");
+    return;
+  }
+
+  if (!item_name) {
+    alert("Product name is required.");
+    return;
+  }
+  if (item_name.length > 100) {
+    alert("Product name cannot exceed 100 characters.");
+    return;
+  }
+
+  if (item_description.length > 500) {
+    alert("Description cannot exceed 500 characters.");
+    return;
+  }
+
+  if (!category_id) {
+    alert("Please select a category.");
+    return;
+  }
+
+  if (isNaN(unit_price) || unit_price < 0) {
+    alert("Unit price must be a number greater than or equal to 0.");
+    return;
+  }
+
+  if (isNaN(materials_cost) || materials_cost < 0) {
+    alert("Materials cost must be a number greater than or equal to 0.");
+    return;
+  }
+
+  if (materials_cost > unit_price) {
+    alert("Materials cost cannot exceed unit price.");
+    return;
+  }
+
+  if (!["Available", "Unavailable"].includes(status)) {
+    alert("Invalid status selected.");
+    return;
+  }
+
+  // --- Prepare product data ---
+  const updatedProduct = {
+    id,
+    item_name,
+    item_description,
+    category_id,
+    unit_price,
+    materials_cost,
+    status
+  };
+
+  // --- Send update request ---
+  try {
+    const response = await fetch(`/api/products/update`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedProduct)
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      alert("Error: " + err.detail);
+      return;
+    }
+
+    alert("Product updated successfully!");
+
+    closeEditModal();   // Close modal
+    fetchProducts();    // Refresh list
+  } catch (err) {
+    console.error("Failed to update product", err);
+    alert("Failed to update product.");
+  }
+});
+</script>
+
+<!-- Delete API -->
+<script>
+async function loadProductSelector() {
+  try {
+    const response = await fetch("/api/products");
+    const products = await response.json();
+
+    const selector = document.getElementById("deleteProductSelector");
+    selector.innerHTML = ""; // Clear previous options
+
+    products.forEach(product => {
+      const option = document.createElement("option");
+      option.value = product.product_id;
+      option.textContent = product.item_name;
+      selector.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Failed to load products for deletion", error);
+  }
+}
+
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = "block";
+  const today = new Date().toISOString().split("T")[0];
+
+  if (modalId === "createModal") {
+    document.getElementById("createDate").value = today;
+    fetchCategories(); // Load categories
+  } else if (modalId === "deleteModal") {
+    loadProductSelector(); // Load product names for deletion
+  }
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = "none";
+}
+
+async function deleteSelectedProduct() {
+  const selector = document.getElementById("deleteProductSelector");
+  const productId = selector.value;
+
+  if (!productId) {
+    alert("Please select a product to delete.");
+    return;
+  }
+
+  const confirmDelete = confirm("Are you sure you want to delete this product?");
+  if (!confirmDelete) return;
+
+  try {
+    const response = await fetch(`/api/products/${productId}`, {
+      method: "DELETE"
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert("Error: " + result.message || result.detail);
+      return;
+    }
+
+    alert(result.message);
+    closeModal("deleteModal");
+    fetchProducts(); // Refresh product list
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+    alert("Deletion failed.");
+  }
+}
+</script>
+
+<!-- Card Summary API -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  fetch('/api/summary/products')
+    .then(response => response.json())
+    .then(data => {
+      // Card 1: Total Products
+      document.getElementById('total-products').textContent = data.total_product_quantity ?? 0;
+
+      // Card 2: Most Used Product
+      const topProduct = data.most_used_product;
+      document.getElementById('top-product-name').textContent = topProduct.item_name || 'N/A';
+      document.getElementById('top-product-count').textContent = topProduct.total_sold ?? '-';
+
+      // Card 3: Highest Generating Revenue Product
+      const high = data.highest_revenue_product;
+      document.getElementById('highest-revenue-product').textContent =
+        high.item_name || 'N/A';
+
+      // Card 4: Total In-Production
+      document.getElementById('total-in-production').textContent = data.in_production_count ?? 0;
+
+    })
+    .catch(error => {
+      console.error('Error fetching product summary:', error);
+    });
+});
+</script>
+
+<script>
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = "none";
+
+  if (modalId === "createModal") {
+    document.getElementById("createName").value = "";
+    document.getElementById("createDescription").value = "";
+    document.getElementById("createCategory").selectedIndex = 0;
+    document.getElementById("createPrice").value = "";
+    document.getElementById("createCost").value = "";
+    document.getElementById("createStatus").selectedIndex = 0;
+  }
+}
+
+// Close "Create" modal on outside click and clear inputs
+document.getElementById("createModal").addEventListener("click", function(event) {
+  if (event.target === this) {
+    this.style.display = "none";
+  }
+});
+
+
+// Close "Edit" modal on outside click
+document.getElementById("editModal").addEventListener("click", function(event) {
+  if (event.target === this) {
+    this.style.display = "none";
+  }
+});
+
+// Close "Delete" modal on outside click
+document.getElementById("deleteModal").addEventListener("click", function(event) {
+  if (event.target === this) {
+    this.style.display = "none";
+  }
+});
+</script>
+
+
+</body>
+</html>

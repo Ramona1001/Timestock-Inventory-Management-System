@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/Transactions.css?v=6">
+  <style>
+.update-btn {
+  background-color: #28a745; /* Bootstrap green */
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.update-btn:hover {
+  background-color: #218838; /* Darker green on hover */
+}
+
+.update-btn:active {
+  background-color: #1e7e34; /* Even darker when clicked */
+  transform: scale(0.97);
+}
+
+  .filters {
+  display: flex;
+  justify-content: space-between; /* Pushes first group left, second group right */
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-left {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-right {
+  display: flex;
+  gap: 10px;
+}
+   /* Stack date filters vertically */
+  .date-filter-group {
+    display: flex;
+    flex-direction: column;
+    margin-right: 10px;
+  }
+
+  /* Table header clickable sorting */
+  th {
+    cursor: pointer;
+  }
+  th:hover {
+    background-color: #606ddd !important; /* Force override */
+  }
+#orderMinPrice,#productionMinPrice,
+#orderMaxPrice,#productionMaxPrice {
+  width: 80px;         /* Smaller width */
+  padding: 4px 6px;    /* Compact padding */
+  font-size: 0.9rem;   /* Slightly smaller text */
+  box-sizing: border-box;
+}
+.clear-filters-btn {
+  padding: 6px 12px;
+  border: none;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.clear-filters-btn:hover {
+  background-color: #b02a37;
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html" class="active">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html" class="transition-link">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Transaction and Order Stocks Management</h1>
+  <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+  <section class="table-section">
+
+
+<!-- Tabs Navigation -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="openTab(event, 'stockTab')">Stock Transactions</button>
+  <button class="tab-btn" onclick="openTab(event, 'productionTab')">Orders In Production</button>
+  <button class="tab-btn" onclick="openTab(event, 'orderTab')">Order Transactions</button>
+</div>
+
+<!-- Stock Transactions Tab -->
+<div id="stockTab" class="tab-content" style="display:block;">
+  <div class="table-container">
+    <h2>Stock Transactions</h2>
+    <div class="filters">
+      <div class="filter-left">
+        <input type="text" placeholder="Search..." oninput="filterTable('stockTable', this.value)">
+        <button class="clear-filters-btn" onclick="clearAllFilters('stockTable')">Clear Filters</button>
+
+      </div>
+      <div class="filter-right">
+      <select onchange="filterDropdown('stockTable', 2, this.value)">
+        <option value="">All Types</option>
+        <option>stock-in</option>
+        <option>stock-out</option>
+      </select>
+      <label for="stockStartDate">Start Date:</label>
+      <input type="date" id="stockStartDate" onchange="validateAndFilter('stockTable')">
+
+      <label for="stockEndDate">End Date:</label>
+      <input type="date" id="stockEndDate" onchange="validateAndFilter('stockTable')">
+      </div>
+    </div>
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('stockTable', 0)">Date</th>
+          <th onclick="sortTable('stockTable', 1)">Transaction ID</th>
+          <th onclick="sortTable('stockTable', 2)">Stock Type</th>
+          <th onclick="sortTable('stockTable', 3)">Type Code</th>
+          <th onclick="sortTable('stockTable', 4)">Material</th>
+          <th onclick="sortTable('stockTable', 5)">Description</th>
+          <th onclick="sortTable('stockTable', 6)">Quantity</th>
+          <th onclick="sortTable('stockTable', 7)">Unit</th>
+          <th onclick="sortTable('stockTable', 8)">Supplier</th>
+          <th onclick="sortTable('stockTable', 9)">Contact</th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+    </table>
+    <div class="pagination" id="stockPagination"></div>
+  </div>
+</div>
+
+<!-- Orders In Production Tab -->
+<div id="productionTab" class="tab-content">
+  <div id="productionTableContainer" class="productionTableContainer">
+    <h2>Orders In Production</h2>
+    <div class="filters">
+      <div class="filter-left">
+        <input type="text" placeholder="Search..." oninput="filterTable('productionTable', this.value)" />
+        <button class="clear-filters-btn" onclick="clearAllFilters('productionTable')">Clear Filters</button>
+      </div>
+      <div class="filter-right">
+        <label for="stockStartDate">Start Date:</label>
+        <input type="date" id="productionStartDate" onchange="validateAndFilter('productionTable')">
+
+        <label for="productionEndDate">End Date:</label>
+        <input type="date" id="productionEndDate" onchange="validateAndFilter('productionTable')">
+
+        <label for="productionMinPrice">Min Price:</label>
+        <input type="number" id="productionMinPrice" placeholder="0" oninput="validateAndFilter('productionTable')">
+
+        <label for="productionMaxPrice">Max Price:</label>
+        <input type="number" id="productionMaxPrice" placeholder="99999" oninput="validateAndFilter('productionTable')">
+      </div>
+    </div>
+    <table id="productionTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('productionTable', 0)">Date</th>
+          <th onclick="sortTable('productionTable', 1)">Transaction ID</th>
+          <th onclick="sortTable('productionTable', 2)">Product Ordered</th>
+          <th onclick="sortTable('productionTable', 3)">Customer Name</th>
+          <th onclick="sortTable('productionTable', 4)">Contact</th>
+          <th onclick="sortTable('productionTable', 5)">Email</th>
+          <th onclick="sortTable('productionTable', 6)">Address</th>
+          <th onclick="sortTable('productionTable', 7)">Status</th>
+          <th>Action</th>
+          <th onclick="sortTable('productionTable', 9)">Total Amount</th>
+        </tr>
+      </thead>
+      <tbody id="productionTableBody"></tbody>
+    </table>
+    <div class="pagination" id="productionPagination"></div>
+  </div>
+</div>
+
+
+
+<div id="statusModal" class="modal-overlay">
+  <div class="modal-box">
+    <h2>Update Order Status</h2>
+    <input type="hidden" id="statusTransactionId">
+    <div class="form-group">
+      <label for="statusSelect">Select New Status:</label>
+      <select id="statusSelect">
+        <option value="">-- Select Status --</option>
+        <option value="placed">placed</option>
+        <option value="completed">confirmed</option>
+        <option value="scheduled">scheduled</option>
+        <option value="in_production">in_production</option>
+        <option value="completed">completed</option>
+        <option value="on_hold">on_hold</option>
+        <option value="cancelled">cancelled</option>
+      </select>
+    </div>
+    <div class="button-group">
+      <button class="btn-cancel" onclick="closeStatusModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitStatusUpdate()">Update</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Order Transactions Tab -->
+<div id="orderTab" class="tab-content">
+  <div id="orderTableContainer" class="orderTableContainer">
+    <h2>Order Transactions</h2>
+    <div class="filters">
+      <div class="filter-left">
+        <input type="text" placeholder="Search..." oninput="filterTable('orderTable', this.value)" />
+        <button class="clear-filters-btn" onclick="clearAllFilters('orderTable')">Clear Filters</button>
+      </div>
+
+      <div class="filter-right">
+      <select onchange="filterDropdown('orderTable', 7, this.value)">
+        <option value="">All Types</option>
+        <option>placed</option>
+        <option>completed</option>
+        <option>confirmed</option>
+        <option>scheduled</option>
+        <option>on_hold </option>
+        <option>cancelled</option>
+      </select>
+
+      <label for="orderStartDate">Start Date:</label>
+      <input type="date" id="orderStartDate" onchange="validateAndFilter('orderTable')">
+
+      <label for="orderEndDate">End Date:</label>
+      <input type="date" id="orderEndDate" onchange="validateAndFilter('orderTable')">
+
+      <label for="orderMinPrice">Min Price:</label>
+      <input type="number" id="orderMinPrice" placeholder="0" oninput="validateAndFilter('orderTable')">
+
+      <label for="orderMaxPrice">Max Price:</label>
+      <input type="number" id="orderMaxPrice" placeholder="99999" oninput="validateAndFilter('orderTable')">
+      </div>
+    </div>
+    <table id="orderTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('orderTable', 0)">Date</th>
+          <th onclick="sortTable('orderTable', 1)">Transaction ID</th>
+          <th onclick="sortTable('orderTable', 2)">Product Ordered</th>
+          <th onclick="sortTable('orderTable', 3)">Customer Name</th>
+          <th onclick="sortTable('orderTable', 4)">Contact</th>
+          <th onclick="sortTable('orderTable', 5)">Email</th>
+          <th onclick="sortTable('orderTable', 6)">Address</th>
+          <th onclick="sortTable('orderTable', 7)">Status</th>
+          <th>Action</th>
+          <th onclick="sortTable('orderTable', 9)">Total Amount</th>
+        </tr>
+      </thead>
+      <tbody id="orderTableBody"></tbody>
+    </table>
+    <div class="pagination" id="orderPagination"></div>
+  </div>
+</div>
+
+<!-- Tab Switch Script -->
+<script>
+function openTab(evt, tabId) {
+  const tabContents = document.querySelectorAll('.tab-content');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+
+  tabContents.forEach(c => c.style.display = 'none');
+  tabButtons.forEach(b => b.classList.remove('active'));
+
+  document.getElementById(tabId).style.display = 'block';
+  evt.currentTarget.classList.add('active');
+}
+</script>
+
+
+<!-- HTML scripts-->
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+function sortTable(tableId, colIndex) {
+    const table = document.getElementById(tableId);
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+    const isAscending = table.getAttribute(`data-sort-dir-${colIndex}`) !== "asc";
+
+    rows.sort((a, b) => {
+        let aText = a.cells[colIndex]?.innerText.trim() || "";
+        let bText = b.cells[colIndex]?.innerText.trim() || "";
+
+        let aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ""));
+        let bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ""));
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            return isAscending ? aNum - bNum : bNum - aNum;
+        }
+        return isAscending
+            ? aText.localeCompare(bText)
+            : bText.localeCompare(aText);
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+    table.setAttribute(`data-sort-dir-${colIndex}`, isAscending ? "asc" : "desc");
+}
+
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+  
+// ------------------ FILTERS -------------------
+
+function validateAndFilter(tableId) {
+  const startInput = document.getElementById(tableId.replace("Table", "StartDate"));
+  const endInput = document.getElementById(tableId.replace("Table", "EndDate"));
+  const minPriceInput = document.getElementById(tableId.replace("Table", "MinPrice"));
+  const maxPriceInput = document.getElementById(tableId.replace("Table", "MaxPrice"));
+
+  const startDate = startInput && startInput.value ? new Date(startInput.value) : null;
+  const endDate = endInput && endInput.value ? new Date(endInput.value) : null;
+
+  // Check for invalid date range
+  if (startDate && endDate && startDate > endDate) {
+    alert("Start date cannot be later than end date.");
+    if (document.activeElement === startInput) startInput.value = "";
+    else endInput.value = "";
+    return;
+  }
+
+  // Only use price filter if price inputs exist (order & production tables)
+  let minPrice = 0, maxPrice = Infinity;
+  if (minPriceInput && maxPriceInput) {
+    minPrice = parseFloat(minPriceInput.value) || 0;
+    maxPrice = parseFloat(maxPriceInput.value) || Infinity;
+  }
+
+  filterDateAndPriceRange(
+    tableId,
+    startInput ? startInput.value : "",
+    endInput ? endInput.value : "",
+    minPrice,
+    maxPrice
+  );
+}
+
+function filterDropdown(tableId, columnIndex, value) {
+  value = value.toLowerCase();
+
+  const filterData = (data, statusKey) => {
+    return value
+      ? data.filter(row => String(row[statusKey] || "").toLowerCase() === value)
+      : [...data];
+  };
+
+  if (tableId === "stockTable") {
+    stockFilteredData = filterData(stockData, "type_code");
+    stockCurrentPage = 1;
+    renderStockTable(stockCurrentPage);
+  }
+
+  if (tableId === "orderTable") {
+    orderFilteredData = filterData(orderData, "status_code");
+    orderCurrentPage = 1;
+    renderOrderTable(orderCurrentPage);
+  }
+
+  if (tableId === "productionTable") {
+    productionFilteredData = filterData(productionData, "status_code");
+    productionCurrentPage = 1;
+    renderProductionTable(productionCurrentPage);
+  }
+}
+
+// ------------------ DATE RANGE FILTER -------------------
+function filterDateAndPriceRange(tableId, startDate, endDate, minPrice, maxPrice) {
+  const filterData = (data) => {
+    return data.filter(row => {
+      const rowDate = new Date(row.date_created).toISOString().split("T")[0];
+
+      if (startDate && rowDate < startDate) return false;
+      if (endDate && rowDate > endDate) return false;
+
+      // Only check price if total_amount exists (orders & production)
+      if (row.total_amount !== undefined) {
+        const rowPrice = parseFloat(row.total_amount) || 0;
+        if (rowPrice < minPrice || rowPrice > maxPrice) return false;
+      }
+
+      return true;
+    });
+  };
+
+  if (tableId === "stockTable") {
+    stockFilteredData = filterData(stockData);
+    renderStockTable(stockCurrentPage = 1);
+  }
+  if (tableId === "orderTable") {
+    orderFilteredData = filterData(orderData);
+    renderOrderTable(orderCurrentPage = 1);
+  }
+  if (tableId === "productionTable") {
+    productionFilteredData = filterData(productionData);
+    renderProductionTable(productionCurrentPage = 1);
+  }
+}
+
+function clearAllFilters(tableId) {
+  // Reset text search
+  const searchInput = document.querySelector(`#${tableId}Container input[type="text"]`);
+  if (searchInput) searchInput.value = "";
+
+  // Reset dropdown
+  const dropdown = document.querySelector(`#${tableId}Container select`);
+  if (dropdown) dropdown.value = "";
+
+  // Reset date and price inputs
+  const startInput = document.getElementById(tableId.replace("Table", "StartDate"));
+  const endInput = document.getElementById(tableId.replace("Table", "EndDate"));
+  const minPriceInput = document.getElementById(tableId.replace("Table", "MinPrice"));
+  const maxPriceInput = document.getElementById(tableId.replace("Table", "MaxPrice"));
+
+  if (startInput) startInput.value = "";
+  if (endInput) endInput.value = "";
+  if (minPriceInput) minPriceInput.value = "";
+  if (maxPriceInput) maxPriceInput.value = "";
+
+  // Reset data and re-render table
+  if (tableId === "stockTable") {
+    stockFilteredData = [...stockData];
+    renderStockTable(stockCurrentPage = 1);
+  }
+  if (tableId === "orderTable") {
+    orderFilteredData = [...orderData];
+    renderOrderTable(orderCurrentPage = 1);
+  }
+  if (tableId === "productionTable") {
+    productionFilteredData = [...productionData];
+    renderProductionTable(productionCurrentPage = 1);
+  }
+}
+
+
+
+
+
+</script>
+
+<!-- Get Api-->
+<script>
+let stockData = [];
+let stockFilteredData = [];
+let stockCurrentPage = 1;
+
+let orderData = [];
+let orderFilteredData = [];
+let orderCurrentPage = 1;
+
+let productionData = [];
+let productionFilteredData = [];
+let productionCurrentPage = 1;
+
+const rowsPerPage = 5; // ✅ single source of truth
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchStockTransactions();
+  fetchOrderTransactions();
+
+  const stockSearchInput = document.getElementById("stockSearchInput");
+  if (stockSearchInput) {
+    stockSearchInput.addEventListener("input", (e) =>
+      filterTable("stockTable", e.target.value)
+    );
+  }
+
+  const orderSearchInput = document.getElementById("orderSearchInput");
+  if (orderSearchInput) {
+    orderSearchInput.addEventListener("input", (e) =>
+      filterTable("orderTable", e.target.value)
+    );
+  }
+});
+
+// ------------------ STOCK TRANSACTIONS -------------------
+
+async function fetchStockTransactions() {
+  try {
+    const res = await fetch("/api/stock-transactions");
+    stockData = await res.json();
+    stockFilteredData = [...stockData];
+    renderStockTable(stockCurrentPage);
+  } catch (error) {
+    console.error("Error fetching stock transactions:", error);
+  }
+}
+
+function renderStockTable(page = 1) {
+  const tbody = document.getElementById("stockTableBody");
+  tbody.innerHTML = "";
+
+  const start = (page - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = stockFilteredData.slice(start, end);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10">No stock transactions found.</td></tr>`;
+  } else {
+    pageData.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(row.date_created).toLocaleDateString('en-CA')}</td>
+        <td>${row.transaction_id}</td>
+        <td>${row.stock_type}</td>
+        <td>${row.type_code}</td>
+        <td>${row.material_name}</td>
+        <td>${row.item_decription}</td>
+        <td>${row.quantity}</td>
+        <td>${row.unit}</td>
+        <td>${row.supplier_name}</td>
+        <td>${row.supplier_contact}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  const pageLabel = document.getElementById("stockPageNumber");
+  if (pageLabel) pageLabel.textContent = `Page ${stockCurrentPage}`;
+
+  // ✅ Always refresh pagination
+  renderPagination("stock", stockCurrentPage, stockFilteredData.length);
+}
+
+// ------------------ ORDER TRANSACTIONS -------------------
+
+async function fetchOrderTransactions() {
+  try {
+    const res = await fetch("/api/order-transactions");
+    const data = await res.json();
+
+    orderData = data.filter(d => d.status_code !== "in_production");
+    productionData = data.filter(d => d.status_code === "in_production");
+
+    orderFilteredData = [...orderData];
+    productionFilteredData = [...productionData];
+
+    orderCurrentPage = 1;
+    productionCurrentPage = 1;
+
+    renderOrderTable(orderCurrentPage);
+    renderProductionTable(productionCurrentPage);
+
+    const orderTableEl = document.getElementById("orderTableContainer");
+    const productionTableEl = document.getElementById("productionTableContainer");
+
+    orderTableEl.style.display = orderFilteredData.length > 0 ? "block" : "none";
+    productionTableEl.style.display = productionFilteredData.length > 0 ? "block" : "none";
+  } catch (error) {
+    console.error("Error fetching order transactions:", error);
+  }
+}
+
+function renderProductionTable(page = 1) {
+  const tbody = document.getElementById("productionTableBody");
+  tbody.innerHTML = "";
+
+  const start = (page - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = productionFilteredData.slice(start, end);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10">No in-production orders found.</td></tr>`;
+  } else {
+    pageData.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(row.date_created).toLocaleDateString('en-CA')}</td>
+        <td>${row.transaction_id}</td>
+        <td>${row.product_names}</td>
+        <td>${row.customer_name}</td>
+        <td>${row.contact_number}</td>
+        <td>${row.customer_email}</td>
+        <td>${row.address}</td>
+        <td>${row.status_code}</td>
+        <td><button class="update-btn" onclick="openStatusModal(this, '${row.transaction_id}', '${row.status_code}')"> Update </button></td>
+        <td>₱${parseFloat(row.total_amount).toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  const pageLabel = document.getElementById("productionPageNumber");
+  if (pageLabel) pageLabel.textContent = `Page ${productionCurrentPage}`;
+
+  // ✅ Pagination refresh
+  renderPagination("production", productionCurrentPage, productionFilteredData.length);
+}
+
+function renderOrderTable(page = 1) {
+  const tbody = document.getElementById("orderTableBody");
+  tbody.innerHTML = "";
+
+  const start = (page - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+  const pageData = orderFilteredData.slice(start, end);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10">No order transactions found.</td></tr>`;
+  } else {
+    pageData.forEach((row) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(row.date_created).toLocaleDateString('en-CA')}</td>
+        <td>${row.transaction_id}</td>
+        <td>${row.product_names}</td>
+        <td>${row.customer_name}</td>
+        <td>${row.contact_number}</td>
+        <td>${row.customer_email}</td>
+        <td>${row.address}</td>
+        <td>${row.status_code}</td>
+        <td><button class="update-btn" onclick="openStatusModal(this, '${row.transaction_id}', '${row.status_code}')"> Update </button></td>
+        <td>₱${parseFloat(row.total_amount).toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  const pageLabel = document.getElementById("orderPageNumber");
+  if (pageLabel) pageLabel.textContent = `Page ${orderCurrentPage}`;
+
+  // ✅ Pagination refresh
+  renderPagination("order", orderCurrentPage, orderFilteredData.length);
+}
+
+// ------------------ SEARCH FUNCTION -------------------
+
+function filterTable(tableId, searchTerm) {
+  searchTerm = searchTerm.toLowerCase();
+
+  if (tableId === "stockTable") {
+    stockFilteredData = stockData.filter((row) =>
+      Object.values(row).some((val) => String(val).toLowerCase().includes(searchTerm))
+    );
+    stockCurrentPage = 1;
+    renderStockTable(stockCurrentPage);
+  }
+
+  if (tableId === "orderTable") {
+    orderFilteredData = orderData.filter((row) =>
+      Object.values(row).some((val) => String(val).toLowerCase().includes(searchTerm))
+    );
+    orderCurrentPage = 1;
+    renderOrderTable(orderCurrentPage);
+  }
+
+  if (tableId === "productionTable") {
+    productionFilteredData = productionData.filter((row) =>
+      Object.values(row).some((val) => String(val).toLowerCase().includes(searchTerm))
+    );
+    productionCurrentPage = 1;
+    renderProductionTable(productionCurrentPage);
+  }
+}
+
+// ------------------ PAGINATION -------------------
+
+function renderPagination(type, currentPage, totalRows) {
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+  const paginationDiv = document.getElementById(`${type}Pagination`);
+  paginationDiv.innerHTML = "";
+
+  function createButton(label, page, disabled = false, bold = false) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.disabled = disabled;
+    if (bold) btn.style.fontWeight = "bold";
+    btn.onclick = () => updatePage(type, page);
+    paginationDiv.appendChild(btn);
+  }
+
+  // Prev
+  createButton("Prev", currentPage - 1, currentPage === 1);
+
+  let pageNumbers = [];
+  if (totalPages <= 7) {
+    // If few pages, show all
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(i);
+    }
+  } else {
+    // Always show first page
+    pageNumbers.push(1);
+
+    // Left side
+    if (currentPage > 4) {
+      pageNumbers.push("...");
+    }
+
+    // Middle pages
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) {
+      pageNumbers.push(i);
+    }
+
+    // Right side
+    if (currentPage < totalPages - 3) {
+      pageNumbers.push("...");
+    }
+
+    // Always show last page
+    pageNumbers.push(totalPages);
+  }
+
+  // Render page buttons
+  pageNumbers.forEach(num => {
+    if (num === "...") {
+      const span = document.createElement("span");
+      span.textContent = "...";
+      span.style.margin = "0 5px";
+      paginationDiv.appendChild(span);
+    } else {
+      createButton(num, num, num === currentPage, num === currentPage);
+    }
+  });
+
+  // Next
+  createButton("Next", currentPage + 1, currentPage === totalPages);
+}
+
+function updatePage(type, newPage) {
+  if (type === "stock") {
+    stockCurrentPage = newPage;
+    renderStockTable(stockCurrentPage);
+  }
+  if (type === "order") {
+    orderCurrentPage = newPage;
+    renderOrderTable(orderCurrentPage);
+  }
+  if (type === "production") {
+    productionCurrentPage = newPage;
+    renderProductionTable(productionCurrentPage);
+  }
+}
+
+// ------------------ DATE FORMATTER -------------------
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toISOString().split("T")[0];
+}
+</script>
+
+
+<!-- Update API -->
+<script>
+function openStatusModal(button, transactionId, currentStatus) {
+  const modal = document.getElementById("statusModal");
+
+  // Set transaction ID and current status
+  document.getElementById("statusTransactionId").value = transactionId;
+  document.getElementById("statusSelect").value = currentStatus;
+
+  // Positioning logic
+  const rect = button.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+  const modalTop = rect.top + scrollTop - 130; // Approx height of modal-box
+  const modalLeft = rect.left + scrollLeft + rect.width / 2 - 110; // Approx half width of modal-box
+
+  modal.style.top = `${modalTop}px`;
+  modal.style.left = `${modalLeft}px`;
+  modal.style.display = "block";
+}
+
+function closeStatusModal() {
+  document.getElementById("statusModal").style.display = "none";
+}
+
+function submitStatusUpdate() {
+  const transactionId = document.getElementById("statusTransactionId").value;
+  const newStatus = document.getElementById("statusSelect").value;
+
+  if (!newStatus) {
+    alert("Please select a status.");
+    return;
+  }
+
+  fetch("/api/orders/update-status", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transaction_id: transactionId, status_code: newStatus })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Status update failed");
+    return res.json();
+  })
+  .then(data => {
+    alert("Status updated successfully!");
+    closeStatusModal();
+    fetchOrderTransactions(); // Reload both tables from API
+  })
+  .catch(err => {
+    alert("Error: " + err.message);
+  });
+}
+
+// Click outside modal to close
+document.addEventListener("click", function (e) {
+  const modal = document.getElementById("statusModal");
+  const box = modal.querySelector(".modal-box");
+
+  if (modal.style.display === "block" &&
+      !box.contains(e.target) &&
+      !e.target.closest(".update-btn")) {
+    closeStatusModal();
+  }
+});
+
+</script>
+</body>
+</html>
+
+

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/Settings.css?v=1">
+  <style>
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html" class="transition-link">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Settings Management</h1>
+  <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>Add Employee</h2>
+  <form id="addEmployeeForm">
+    <input type="text" name="firstname" placeholder="First Name" required>
+    <input type="text" name="lastname" placeholder="Last Name" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="text" name="contact_number" placeholder="Contact Number" required>
+    <button type="submit">Add Employee</button>
+  </form>
+</section>
+
+<section>
+  <h2>Change Employee Status</h2>
+  <form id="statusForm">
+    <input type="text" name="id" placeholder="Employee ID" required>
+    <select name="is_active" required>
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </select>
+    <button type="submit">Update Status</button>
+  </form>
+</section>
+
+<section>
+  <h2>Change Employee Password</h2>
+  <form id="passwordForm">
+    <input type="text" name="target_employee_id" placeholder="Employee ID" required>
+    <input type="password" name="new_password" placeholder="New Password" required>
+    <button type="submit">Change Password</button>
+  </form>
+</section>
+
+<section>
+  <h2>Migrate Password Hashes</h2>
+  <button id="migrateBtn">Run Migration</button>
+</section>
+
+  </div>
+</body>
+</html>
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+</script>
+
+<script>
+async function postData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+async function putData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+// Add Employee
+document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(e.target));
+  const res = await postData('/api/settings/add-employees', formData);
+  alert(JSON.stringify(res));
+});
+
+// Update Status
+document.getElementById('statusForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(e.target));
+  const res = await putData(`/api/settings/${formData.id}/status`, { is_active: formData.is_active === "true" });
+  alert(JSON.stringify(res));
+});
+
+// Change Password
+const adminId = "{{ user.id }}"; // passed from backend via user dict
+
+async function postData(url = '', data = {}) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+}
+
+document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = Object.fromEntries(new FormData(e.target));
+
+  const payload = {
+    target_employee_id: formData.target_employee_id,
+    new_password: formData.new_password
+  };
+
+  const res = await postData('/api/settings/change-employee-password', payload);
+  alert(JSON.stringify(res));
+});
+
+// Migrate Hashes
+document.getElementById('migrateBtn').addEventListener('click', async () => {
+  const res = await postData('/api/settings/migrate-hashes', {});
+  alert(JSON.stringify(res));
+});
+</script>
+
+

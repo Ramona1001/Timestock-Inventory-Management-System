@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      src="https://kit.fontawesome.com/64d58efce2.js"
+      crossorigin="anonymous"
+    ></script>
+    <link rel="stylesheet" href="../css/Login.css?v=2" />
+    <title>Sign in & Sign up Form</title>
+  </head>
+  <body>
+    <div class="container">
+      <div class="forms-container">
+        <div class="signin-signup">
+         <form class="sign-in-form" method="post" action="/login">
+            <h2 class="title">Sign in</h2>
+            <div class="input-field">
+              <i class="fas fa-user"></i>
+              <input type="text" name="email" placeholder="Email" required />
+            </div>
+            <div class="input-field">
+              <i class="fas fa-lock"></i>
+              <input type="password" name="password" placeholder="Password" required />
+            </div>
+            <input type="submit" value="Login" class="btn solid" />
+            {% if error %}
+              <p style="color:red;">{{ error }}</p>
+            {% endif %}
+          </form>
+
+          <form action="#" class="sign-up-form">
+            <h2 class="title">Sign up</h2>
+            <div class="input-field">
+              <i class="fas fa-user"></i>
+              <input type="text" placeholder="Email" required />
+            </div>
+            <div class="input-field">
+              <i class="fas fa-envelope"></i>
+              <input type="email" placeholder="Email" required />
+            </div>
+            <div class="input-field">
+              <i class="fas fa-lock"></i>
+              <input type="password" placeholder="Password" required />
+            </div>
+            <input type="submit" class="btn" value="Sign up" />
+            <p class="social-text">Or Sign up with social platforms</p>
+          </form>
+        </div>
+      </div>
+
+      <div class="panels-container">
+        <div class="panel left-panel">
+          <div class="content">
+            <h3>Welcome to TIMESTOCK IMS</h3>
+            <p>
+          Enhance your projects with precision-crafted glass and aluminum solutions.
+        Seamlessly manage orders, track inventory, and collaborate in real-time all in one integrated system.
+        Sign in to experience smarter, faster, and more reliable manufacturing management.
+            </p>
+          </div>
+          <img src="../images/TIMESTOCK_background.png" class="image" alt="Logo" />
+        </div>
+    </div>
+
+    <script>
+    </script>
+  </body>
+</html>

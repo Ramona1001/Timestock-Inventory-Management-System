@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/Analytics.css?v=4">
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  .recommendation-box {
+  background: #f9f9f9;
+  padding: 1rem;
+  margin-top: 0.5rem;
+  border-left: 5px solid #4caf50;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+/* Bubble Wrapper inside chart */
+.bubble-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-top: 1rem;
+}
+
+/* Button inside chart box */
+.bubble-btn {
+  padding: 0.6rem 1rem;
+  background-color: var(--color-primary, #38bdf8);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: var(--box-shadow);
+  transition: background-color 0.3s;
+}
+.bubble-btn:hover {
+  background-color: #0ea5e9;
+}
+
+/* Pop-up bubble */
+.popup-bubble {
+  display: none;
+  position: absolute;
+  bottom: 130%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-white);
+  border: 2px solid var(--color-primary, #38bdf8);
+  border-radius: var(--card-border-radius, 15px);
+  box-shadow: var(--box-shadow);
+  padding: 1rem;
+  width: 350px;
+  max-width: 90vw;
+  z-index: 1000;
+}
+
+/* Optional: arrow */
+.popup-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px;
+  border-style: solid;
+  border-color: var(--color-primary, #38bdf8) transparent transparent transparent;
+}
+
+/* Close button */
+.close-btn {
+  float: right;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-dark, #333);
+  cursor: pointer;
+}
+
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html" class="transition-link">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Analytics Management</h1>
+  <div class="top-bar">
+    {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+ <!-- Filter Buttons -->
+<div class="filter-buttons mb-4">
+  <button onclick="fetchSummary('week')" class="btn btn-primary">Week</button>
+  <button onclick="fetchSummary('month')" class="btn btn-outline-primary">Month</button>
+  <button onclick="fetchSummary('year')" class="btn btn-outline-primary">Year</button>
+</div>
+
+<!-- Summary Cards -->
+<div class="row" id="summary-cards">
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card p-4 shadow-sm">
+      <h5>Total Orders</h5>
+      <p id="orders-count" class="summary-value"></p>
+      <small class="text-muted">Product Orders</small>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-6 mb-3">
+    <div class="card p-4 shadow-sm">
+      <h5>Total Sales</h5>
+      <p id="sales-count" class="summary-value"></p>
+      <small class="text-muted">Number of Sales</small>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-6 mb-3">  
+    <div class="card p-4 shadow-sm">
+      <h5>Total Revenue</h5>
+      <p id="revenue-count" class="summary-value"></p>
+      <small class="text-muted">Revenue from the sold Products</small>
+    </div>
+  </div>
+</div>
+
+<div class="chart-row">
+  <div class="chart-box">
+  <h2 class="chart-title">Orders, Sales, and Revenue</h2>
+
+    <div class="bubble-wrapper">
+    <button class="bubble-btn" onclick="toggleBubble('reportBubble')">📄 View Report</button>
+    <div class="popup-bubble" id="reportBubble">
+      <span class="close-btn" onclick="toggleBubble('reportBubble')">&times;</span>
+        {{ chart_report | safe }}
+      </div>
+    </div>
+    
+  {{ chart_html | safe }}
+
+
+  </div>
+
+<div class="chart-box">
+  <h2 class="chart-title">Inventory Turnover Rate</h2>
+    <div class="bubble-wrapper">
+    <button class="bubble-btn" onclick="toggleBubble('turnoverSummaryBubble')">📄 View Report</button>
+    <div class="popup-bubble" id="turnoverSummaryBubble">
+      <span class="close-btn" onclick="toggleBubble('turnoverSummaryBubble')">&times;</span>
+      {{ summary | safe }}
+    </div>
+  </div>
+  {{ turnover_combined_html | safe }}
+</div>
+
+
+<!-- STL Decomposition Chart -->
+<div class="chart-box">
+  <h2 class="chart-title">STL Decomposition of Monthly Orders</h2>
+    <!-- Bubble Trigger -->
+    <div class="bubble-wrapper">
+
+      <button onclick="toggleBubble('stlPopupBubble')" class="bubble-btn">📊 View Report</button>
+
+      <div id="stlPopupBubble" class="popup-bubble">
+        <span class="close-btn" onclick="toggleBubble('stlPopupBubble')">×</span>
+        {{ stl_report | safe }}
+      </div>
+
+    </div>
+  <!-- Chart -->
+  <div class="chart-container">
+    {{ stl_html | safe }}
+
+    <section class="analytics-section">
+      <h3>📈 STL-Based Order Trend Recommendation</h3>
+      <div class="recommendation-box">
+        <ul>
+          {% for rec in stl_recommendation %}
+            <li>{{ rec | safe }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- Moving AVG Chart -->
+<div class="chart-box">
+  <h2 class="chart-title">Moving Average of Monthly Sales</h2>
+  <div class="bubble-wrapper">
+    <button class="bubble-btn" onclick="toggleBubble('ma-bubble')">📊 View Summary</button>
+    <div id="ma-bubble" class="popup-bubble">
+      <span class="close-btn" onclick="toggleBubble('ma-bubble')">&times;</span>
+      {{ ma_report | safe }}
+    </div>
+  </div>
+  {{ ma_chart_html | safe }}
+  
+<section class="analytics-section">
+  <h3>📊 Moving Average-Based Sales Recommendations</h3>
+  <div class="recommendation-box">
+    <ul>
+      {% for rec in ma_recommendation %}
+        <li>{{ rec | safe }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+
+</div>
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+  </div>
+</body>
+</html>
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+  
+  document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+
+  function toggleBubble() {
+  const bubble = document.getElementById("stlPopupBubble");
+  bubble.style.display = bubble.style.display === "block" ? "none" : "block";
+}
+ document.getElementById("toggleChartReport").addEventListener("click", function () {
+    document.querySelector(".report-container").classList.toggle("show");
+  });
+  function toggleBubble(id) {
+    const bubble = document.getElementById(id);
+    const isVisible = bubble.style.display === 'block';
+
+    // Close all bubbles first
+    document.querySelectorAll('.popup-bubble').forEach(b => b.style.display = 'none');
+
+    // Toggle the clicked one
+    bubble.style.display = isVisible ? 'none' : 'block';
+  }
+
+  window.addEventListener("click", function (e) {
+    const isInsideBubble = e.target.closest('.popup-bubble');
+    const isBubbleBtn = e.target.classList.contains('bubble-btn');
+
+    if (!isInsideBubble && !isBubbleBtn) {
+      document.querySelectorAll('.popup-bubble').forEach(b => b.style.display = 'none');
+    }
+  });
+</script>
+<script>
+  function fetchSummary(period) {
+    fetch(`/api/analytics/order-rev-sales?period=${period}`)
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('orders-count').textContent = data.total_orders;
+        document.getElementById('sales-count').textContent = data.total_sales;
+        document.getElementById('revenue-count').textContent = `₱${parseFloat(data.total_revenue).toLocaleString()}`;
+      })
+      .catch(error => console.error('Error fetching summary:', error));
+  }
+
+  // Default to "week" on page load
+  document.addEventListener("DOMContentLoaded", function() {
+    fetchSummary('week');
+  });
+</script>

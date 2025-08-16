@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+duckdb
+jinja2
+python-multipart
+starlette
+itsdangerous
+numpy
+pandas
+plotly
+statsmodels
+reportlab
+python-jose
+argon2-cffi

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=3">
+<style>
+</style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html" class="transition-link">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+
+</aside>
+
+<!-----END OF ASIDE MUENU----->
+<main>
+    <div class="header-bar">
+  <h1>Supplier Management</h1>
+   <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+
+<div class="container_quote mt-5">
+  <h1 class="text-center mb-4">🧾 Product Quotation</h1>
+
+  <div class="quote-grid">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <!-- Materials Table -->
+      <div class="card section-wrapper">
+        <h5 class="card-header">Material Details</h5>
+        <div class="card-body table-responsive">
+          <table class="table table-striped" id="materialTable">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Unit Used</th>
+                <th>Unit Cost</th>
+                <th>Line Cost</th>
+              </tr>
+            </thead>
+            <tbody id="materialList"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quotation Section -->
+      <div class="card mt-4">
+        <h5 class="card-header">Quotation</h5>
+        <div class="card-body" id="quotation"></div>
+      </div>
+
+      <!-- Products Table -->
+      <div class="card section-wrapper mt-4">
+        <h5 class="card-header">Products</h5>
+        <div class="card-body table-responsive">
+          <table class="table table-hover" id="productTable">
+            <thead>
+              <tr>
+                <th>Product ID</th>
+                <th>Product Name</th>
+                <th>Unit Price</th>
+              </tr>
+            </thead>
+            <tbody id="productList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- Order Cart -->
+      <div class="card section-wrapper">
+        <h5 class="card-header">🛒 Order Cart</h5>
+        <div class="card-body table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Product ID</th>
+                <th>Item Name</th>
+                <th>Unit Price</th>
+                <th>Misc. Fee</th>
+                <th>Quantity</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="orderCart"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Customer Info -->
+      <div class="card mt-4">
+        <h5 class="card-header">👤 Customer Details</h5>
+        <div class="card-body">
+          <input type="text" id="firstname" class="form-control mb-2" placeholder="First Name" required />
+          <input type="text" id="lastname" class="form-control mb-2" placeholder="Last Name" required />
+          <input type="text" id="contact_number" class="form-control mb-2" placeholder="Contact Number" required />
+          <input type="email" id="email" class="form-control mb-2" placeholder="Email" required />
+          <input type="text" id="address" class="form-control mb-3" placeholder="Address" required />
+
+          <label for="status_id" class="form-label">Order Status:</label>
+          <select id="status_id" class="form-select mb-3" required></select>
+
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-outline-success" onclick="openModal('receiptModal')">🧾 Receipt</button>
+            <button class="btn btn-outline-primary" onclick="openModal('quotationModal')">📄 Quotation</button>
+            <button class="btn btn-primary mt-2" onclick="submitOrder()">✅ Place Order</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="modal">
+  <div class="modal-content two-column">
+    <span class="close" onclick="closeModal('receiptModal')">&times;</span>
+    <div class="modal-left">
+      <h4>Down Payment & Receipt</h4>
+      <input type="number" id="down_payment" class="form-control mb-2" placeholder="Enter Down Payment" min="0" />
+      <button class="btn btn-success w-100" onclick="generateReceipt()">Generate Receipt</button>
+      <a id="downloadReceiptLink" href="#" download class="btn btn-secondary mt-2 w-100">Download PDF</a>
+    </div>
+    <div class="modal-right">
+      <h4>Preview</h4>
+      <iframe id="receiptPreview" style="width:100%; height:400px; border:1px solid #ccc;"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Quotation Modal -->
+<div id="quotationModal" class="modal">
+  <div class="modal-content two-column">
+    <span class="close" onclick="closeModal('quotationModal')">&times;</span>
+    <div class="modal-left">
+      <h4>Quotation</h4>
+      <button class="btn btn-primary w-100" onclick="generateQuotation()">Generate Quotation</button>
+      <a id="downloadQuotationLink" href="#" download class="btn btn-secondary mt-2 w-100">Download PDF</a>
+    </div>
+    <div class="modal-right">
+      <h4>Preview</h4>
+      <iframe id="quotationPreview" style="width:100%; height:400px; border:1px solid #ccc;"></iframe>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+</script>
+
+<!-- Order Quotes API-->
+
+<script>
+let orderCart = [];
+
+document.addEventListener("DOMContentLoaded", function () {
+  loadStatusOptions();
+  fetch('api/products')
+    .then(res => res.json())
+    .then(data => {
+      const productList = document.getElementById('productList');
+      data.forEach(product => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${product.product_id}</td>
+          <td><button class="btn btn-link" onclick="handleProductClick('${product.product_id}', '${product.item_name}', ${product.unit_price})">${product.item_name}</button></td>
+          <td>₱${product.unit_price.toFixed(2)}</td>
+        `;
+        productList.appendChild(row);
+      });
+    });
+});
+
+function handleProductClick(productId, itemName, unitPrice) {
+  fetch(`api/products/${productId}/quote`)
+    .then(res => res.json())
+    .then(data => {
+      const materialList = document.getElementById('materialList');
+      materialList.innerHTML = '';
+      data.materials.forEach(material => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${material.item_name}</td>
+          <td>${parseInt(material.used_quantity)} ${material.unit_measurement}</td>
+          <td>₱${parseFloat(material.unit_cost).toFixed(2)}</td>
+          <td>₱${parseFloat(material.line_cost).toFixed(2)}</td>
+        `;
+        materialList.appendChild(row);
+      });
+
+      const quotation = document.getElementById('quotation');
+      quotation.innerHTML = `<strong>Total Cost:</strong> ₱${parseFloat(data.total_cost).toFixed(2)}`;
+
+      const existing = orderCart.find(p => p.product_id === productId);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        orderCart.push({
+          product_id: productId,
+          item_name: itemName,
+          unit_price: unitPrice,
+          misc_fee: 0,
+          quantity: 1,
+          materials: data.materials.map(m => {
+            const used = parseFloat(m.used_quantity ?? 0);
+            let cost = parseFloat(m.unit_cost);
+            if (isNaN(cost) && m.line_cost && used > 0) {
+              cost = parseFloat(m.line_cost) / used;
+            }
+            const line = used * cost;
+            return {
+              ...m,
+              used_quantity: used,
+              unit_cost: cost,
+              line_cost: line
+            };
+          }),
+          material_total: data.total_cost
+        });
+      }
+
+      renderCart();
+    });
+}
+
+function renderCart() {
+  const cart = document.getElementById('orderCart');
+  cart.innerHTML = '';
+  let totalProductCost = 0;
+  let totalMaterialCost = 0;
+
+  orderCart.forEach(item => {
+    const feePercent = parseFloat(item.misc_fee || 0);
+    const adjustedUnitPrice = item.unit_price * (1 + feePercent / 100);
+    const productTotal = adjustedUnitPrice * item.quantity;
+    const materialTotal = item.materials?.reduce((sum, m) => sum + (m.line_cost || 0), 0) || 0;
+
+    totalProductCost += productTotal;
+    totalMaterialCost += materialTotal;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${item.product_id}</td>
+      <td>${item.item_name}</td>
+      <td>
+        <input type="number" min="0" step="0.01" value="${item.unit_price}" 
+              class="form-control form-control-sm"
+              style="width: 70px;" 
+              onchange="updateUnitPrice('${item.product_id}', this.value)" />
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" value="${item.misc_fee}" 
+              class="form-control form-control-sm"
+              style="width: 60px;" 
+              onchange="updateMiscFee('${item.product_id}', this.value)" /> %
+      </td>
+      <td>
+        <input type="number" min="1" value="${item.quantity}" 
+              class="form-control form-control-sm"
+              style="width: 60px;" 
+              onchange="updateQuantity('${item.product_id}', this.value)" />
+      </td>
+
+      <td>
+        <button class="btn-remove" onclick="removeFromCart('${item.product_id}')" title="Remove">🗑️</button>
+      </td>
+
+    `;
+    cart.appendChild(row);
+
+    if (item.materials && item.materials.length > 0) {
+      const materialRow = document.createElement('tr');
+      materialRow.innerHTML = `
+        <td colspan="6">
+          <table class="table table-sm table-bordered mb-0">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Used Qty</th>
+                <th>Unit Cost</th>
+                <th>Line Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${item.materials.map((m, mIndex) => `
+                <tr>
+                  <td>${m.item_name}</td>
+                 <td>
+                    <input type="number" min="0" step="0.01" value="${m.used_quantity}" 
+                          onchange="updateUsedQuantity('${item.product_id}', ${mIndex}, this.value)" 
+                          class="form-control form-control-sm" 
+                          style="width: 60px;" /> ${m.unit_measurement}
+                  </td>
+                  <td>₱${isNaN(m.unit_cost) ? '0.00' : m.unit_cost.toFixed(2)}</td>
+                  <td>₱${isNaN(m.line_cost) ? '0.00' : m.line_cost.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </td>
+      `;
+      cart.appendChild(materialRow);
+    }
+  });
+
+  const totalRow = document.createElement('tr');
+  totalRow.innerHTML = `
+    <td colspan="6" class="text-end fw-bold">
+      <div>Grand Total Product Cost (with Misc Fees): ₱${totalProductCost.toFixed(2)}</div>
+      <div>Total Material Quotation Cost: ₱${totalMaterialCost.toFixed(2)}</div>
+      <hr>
+    </td>
+  `;
+  cart.appendChild(totalRow);
+}
+
+function updateUnitPrice(productId, newPrice) {
+  const item = orderCart.find(p => p.product_id === productId);
+  if (item) {
+    const price = parseFloat(newPrice);
+    if (!isNaN(price)) {
+      item.unit_price = price;
+      renderCart();
+      hideReceiptPreview();
+      hideQuotationPreview();
+    }
+  }
+}
+
+function updateMiscFee(productId, fee) {
+  const item = orderCart.find(p => p.product_id === productId);
+  if (item) {
+    const val = parseFloat(fee);
+    item.misc_fee = isNaN(val) ? 0 : val;
+    renderCart();
+    hideReceiptPreview();
+    hideQuotationPreview();
+  }
+}
+
+function updateQuantity(productId, newQty) {
+  const item = orderCart.find(p => p.product_id === productId);
+  if (item) {
+    item.quantity = parseInt(newQty) || 1;
+  }
+  renderCart();
+  hideReceiptPreview();
+  hideQuotationPreview();
+}
+
+function updateUsedQuantity(productId, materialIndex, newQty) {
+  const item = orderCart.find(i => i.product_id === productId);
+  if (!item || !item.materials || !item.materials[materialIndex]) return;
+
+  const m = item.materials[materialIndex];
+  const usedQty = parseFloat(newQty);
+  const unitCost = parseFloat(m.unit_cost);
+
+  if (!isNaN(usedQty) && !isNaN(unitCost)) {
+    m.used_quantity = usedQty;
+    m.line_cost = usedQty * unitCost;
+  } else {
+    m.line_cost = 0;
+  }
+
+  renderCart();
+  hideReceiptPreview();
+  hideQuotationPreview();
+}
+
+function removeFromCart(productId) {
+  orderCart = orderCart.filter(p => p.product_id !== productId);
+  renderCart();
+  hideReceiptPreview();
+  hideQuotationPreview();
+}
+
+function loadStatusOptions() {
+  fetch('/api/order-statuses')
+    .then(res => {
+      if (!res.ok) throw new Error("Status API returned " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      const select = document.getElementById('status_id');
+      if (!select) return console.error("Selector #status_id not found!");
+
+      data.forEach(status => {
+        const option = document.createElement('option');
+        option.value = status.id;
+        option.textContent = status.status_code;
+        if (status.id === "OS004") option.selected = true;
+        select.appendChild(option);
+      });
+    })
+    .catch(err => console.error("Failed to load statuses:", err));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatusOptions();
+});
+
+function submitOrder() {
+  if (orderCart.length === 0) return alert("Cart is empty!");
+
+  const fields = ["firstname", "lastname", "contact_number", "email", "address", "status_id"];
+  for (const field of fields) {
+    const el = document.getElementById(field);
+    if (!el || !el.value.trim()) {
+      alert(`Please fill in the ${field.replace("_", " ")} field.`);
+      el.focus();
+      return;
+    }
+  }
+
+  const customer = {
+    firstname: document.getElementById('firstname').value,
+    lastname: document.getElementById('lastname').value,
+    contact_number: document.getElementById('contact_number').value,
+    email: document.getElementById('email').value,
+    address: document.getElementById('address').value
+  };
+
+  const status_id = document.getElementById('status_id').value;
+
+  const orderData = {
+    customer,
+    status_id,
+    items: orderCart.map(p => ({
+      product_id: p.product_id,
+      quantity: p.quantity,
+      unit_price: p.unit_price,
+      misc_fee: p.misc_fee
+    }))
+  };
+
+  fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(orderData)
+  })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(err => {
+          throw new Error(err.detail || "Order failed");
+        });
+      }
+      return res.json();
+    })
+    .then(result => {
+      alert("Order placed! Transaction ID: " + result.transaction_id);
+      orderCart = [];
+      renderCart();
+      clearCustomerForm();
+      hideReceiptPreview();
+      hideQuotationPreview();
+      
+    })
+    .catch(err => alert("Error: " + err.message));
+}
+
+function clearCustomerForm() {
+  ['firstname', 'lastname', 'contact_number', 'email', 'address']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('status_id').value = 'OS004';
+}
+
+function generateReceipt() {
+  if (orderCart.length === 0) return alert("Cart is empty!");
+
+  hideReceiptPreview(); // Clean up old preview
+
+  const customer = {
+    firstname: document.getElementById('firstname').value,
+    lastname: document.getElementById('lastname').value,
+    contact_number: document.getElementById('contact_number').value,
+    email: document.getElementById('email').value,
+    address: document.getElementById('address').value
+  };
+
+  const downPayment = parseFloat(document.getElementById("down_payment").value || "0");
+
+  const payload = {
+    customer_name: `${customer.firstname} ${customer.lastname}`,
+    address: customer.address,
+    phone: customer.contact_number,
+    down_payment: downPayment,
+    items: orderCart.map(item => ({
+      unit_id: item.product_id,
+      name: item.item_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price
+    }))
+  };
+
+  fetch("/api/generate-receipt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to generate receipt");
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      currentReceiptPath = url;
+
+      const iframe = document.getElementById("receiptPreview");
+      const downloadLink = document.getElementById("downloadReceiptLink");
+
+      iframe.src = url;
+      iframe.style.display = "block";
+
+      downloadLink.href = url;
+      downloadLink.download = "receipt.pdf";
+      downloadLink.style.display = "inline-block";
+
+      openModal("receiptModal");
+    })
+    .catch(err => alert("Error: " + err.message));
+}
+
+function generateQuotation() {
+  if (orderCart.length === 0) return alert("Cart is empty!");
+
+  hideQuotationPreview(); // Clean up old preview
+
+  const customerName = `${document.getElementById('firstname').value} ${document.getElementById('lastname').value}`;
+  const customerAddress = document.getElementById('address').value;
+
+  const items = orderCart.map(item => ({
+    description: `${item.item_name}\nDimension: (customize as needed)`,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+    short_label: item.item_name,
+    materials: item.materials.map(m => `${m.item_name}: ${m.used_quantity} ${m.unit_measurement}`)
+  }));
+
+  const payload = {
+    client_name: customerName,
+    client_address: customerAddress,
+    items_quote: items
+  };
+
+  fetch("/api/generate-quotation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to generate quotation");
+      return res.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+
+      const iframe = document.getElementById("quotationPreview");
+      const downloadLink = document.getElementById("downloadQuotationLink");
+
+      iframe.src = url;
+      iframe.style.display = "block";
+
+      downloadLink.href = url;
+      downloadLink.download = "quotation.pdf";
+      downloadLink.style.display = "inline-block";
+
+      openModal("quotationModal");
+    })
+    .catch(err => alert("Error: " + err.message));
+}
+
+
+let currentReceiptPath = null;
+
+function hideReceiptPreview() {
+  const iframe = document.getElementById("receiptPreview");
+  const downloadLink = document.getElementById("downloadReceiptLink");
+
+  if (currentReceiptPath) {
+    URL.revokeObjectURL(currentReceiptPath);
+    currentReceiptPath = null;
+  }
+
+  iframe.src = "";
+  iframe.style.display = "none";
+  downloadLink.href = "";
+  downloadLink.style.display = "none";
+}
+
+function hideQuotationPreview() {
+  const iframe = document.getElementById("quotationPreview");
+  const link = document.getElementById("downloadQuotationLink");
+
+  iframe.src = "";
+  iframe.style.display = "none";
+  link.href = "";
+  link.style.display = "none";
+}
+
+
+function openModal(id) {
+  document.getElementById(id).style.display = "block";
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+</script>
+
+

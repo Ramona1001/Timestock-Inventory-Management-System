@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/Materials.css?v=6">
+<style>
+.clear-filters-btn {
+  padding: 6px 12px;
+  height: 34px; /* match input height */
+  border: none;
+  background-color: #dc3545;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+.clear-filters-btn {
+  width: auto;        /* shrink to fit content */
+  padding: 6px 12px;  /* adjust size */
+  font-size: 14px;
+  height: 30px;       /* match input height if you want */
+  align-self: flex-start; /* prevent stretching */
+}
+
+
+.clear-filters-btn:hover {
+  background-color: #b02a37;
+}
+
+/* Filter Bar Container */
+.filters {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 15px;
+  background: #f9fafb;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  align-items: flex-end;
+}
+.filter-left {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* Individual filter group */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Range group */
+.range-group .range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.range-group input {
+  width: 80px;
+}
+
+/* Labels */
+.filters label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Inputs & Selects */
+.filters input,
+.filters select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+/* Wider search field */
+#searchInput {
+  width: 220px;
+}
+
+/* Hover & Focus */
+.filters input:focus,
+.filters select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.25);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .range-group .range-inputs {
+    flex-wrap: nowrap;
+  }
+
+  .range-group input {
+    flex: 1;
+  }
+}
+
+.edit-btn {
+  background-color: #007bff; /* Bootstrap green */
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.edit-btn:hover {
+  background-color: #0056b3; /* Darker green on hover */
+}
+
+.edit-btn:active {
+  background-color: #1e7e34; /* Even darker when clicked */
+  transform: scale(0.97);
+}/* Make table container take remaining screen space */
+
+.table-scroll {
+  height: calc(100vh - (65px + 90px)); /* header + filters */
+  width: 100%;
+  overflow-y: auto;
+}
+
+#productTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Makes columns scale properly */
+}
+
+#productTable th, #productTable td {
+  padding: 8px;
+  word-wrap: break-word; /* Prevents overflow text */
+}
+
+/* Pagination styling remains the same */
+.pagination {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  flex-shrink: 0;          /* Prevent from shrinking */
+}
+
+.pagination button {
+  padding: 6px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.2s;
+}
+
+.pagination button:hover {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+   <div class="sidebar">
+  <a href="index.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Overview</h3>
+  </a>
+    <a href="product.html">
+<span class="material-symbols-sharp">package_2</span>    
+<h3>Product</h3>
+</a>
+    <a href="Materials.html">
+    <span class="material-symbols-sharp">handyman</span>    
+    <h3>Materials</h3>
+  </a>
+  </a>
+    <a href="Analytics.html">
+    <span class="material-symbols-sharp">monitoring</span>    
+    <h3>Analytics</h3>
+  </a>
+    <a href="Transactions.html">
+    <span class="material-symbols-sharp">dashboard</span>
+    <h3>Transactions</h3>
+  </a>
+    <a href="Customer.html">
+    <span class="material-symbols-sharp">groups</span>    
+    <h3>Customer</h3>
+  </a>
+    <a href="Supplier.html">
+    <span class="material-symbols-sharp">factory</span>    
+    <h3>Supplier</h3>
+  </a>
+    <a href="Order_and_Quotation.html">
+    <span class="material-symbols-sharp">contract_edit</span>    
+    <h3>Order and Quotation</h3>
+  </a>
+    <a href="Settings.html">
+    <span class="material-symbols-sharp">settings</span>    
+    <h3>Settings</h3>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Materials Management</h1>
+ <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+   <div class="row" id="summary-cards">
+  <!-- Card 1 -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-unique-materials flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Total Materials</h3>
+          <h1 id="total-materials" class="mt-auto">Loading...</h1>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Number of Materials Used</small>
+    </div>
+  </div>
+
+  <!-- Card 2 -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card top-most-used-material flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Most Used Material</h3>
+          <div class="inline-pair align-items-center">
+            <h1 id="most-used-material" class="mb-0">Loading...</h1>
+            <h1 id="top-material-count" class="text-muted mb-0 ms-3">-</h1>
+          </div>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Material Consumption By Piece</small>
+    </div>
+  </div>
+
+  <!-- Card 3 -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-material-in-stock flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Total Materials In-Stock</h3>
+          <h1 id="total-material-quantity" class="mt-auto">Loading...</h1>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Total Number of Stock</small>
+    </div>
+  </div>
+</div>
+
+
+<!--------END OF THE OUT OF STOCKS---------->
+
+<!--------END OF THE OUT OF STOCKS---------->
+
+
+<div class="products-header">
+<div class="Products">
+  <h2>Materials Inventory</h2>
+  <!-- Buttons -->
+<div class="crud-buttons">
+  <button class="create-btn" onclick="openModal('createModal')">Add Materials</button>
+  <button class="delete-btn" onclick="openModal('deleteModal')">Delete Materials</button>
+  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Stock Materials</button>
+  <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
+</div>
+
+<div id="productMaterialModal" class="modal" style="display:none;">
+  <div class="modal-box">
+    <h2>Add Materials to Product</h2>
+
+    <label for="productSelect">Select Product:</label>
+    <select id="productSelect">
+      <option value="">-- Select Product --</option>
+    </select>
+
+    <div id="materialsContainer"></div>
+
+    <button onclick="addMaterialField()">+ Add Material</button>
+    <br><br>
+    <strong>Total Estimated Cost: ₱<span id="totalCost">0.00</span></strong>
+    <br><br>
+    <button onclick="submitProductMaterials()">Submit</button>
+    <button onclick="closePMModal()">Cancel</button>
+  </div>
+</div>
+
+
+<div id="stockMaterialsModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('stockMaterialsModal')">&times;</span>
+    <h2>Stock Materials</h2>
+
+    <form id="stockMaterialsForm" onsubmit="submitStockMaterials(event)">
+
+       <h4>Materials:</h4>
+      <div id="materialsList"></div>
+      <button type="button" onclick="addMaterialInput()">Add Materials</button>
+
+      <label>Supplier:</label>
+      <select id="supplierId">
+        <option value="">Supplier</option>
+      </select>
+
+      <button type="button" id="toggleSupplierBtn" onclick="toggleSupplierForm()">Add New Supplier</button>
+
+
+      <div id="newSupplierFields" style="display: none;">
+        <fieldset>
+          <legend>New Supplier</legend>
+          <input type="text" id="supplierFirstname" placeholder="First Name">
+          <input type="text" id="supplierLastname" placeholder="Last Name">
+          <input type="text" id="supplierContactName" placeholder="Contact Name">
+          <input type="text" id="supplierContactNumber" placeholder="Contact Number">
+          <input type="email" id="supplierEmail" placeholder="Email">
+          <input type="text" id="supplierAddress" placeholder="Address">
+        </fieldset>
+      </div>
+
+      <button type="submit" class="btn btn-success mt-3">Submit</button>
+    </form>
+  </div>
+</div>
+
+
+
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('createModal')">&times;</span>
+    <h3>Add Materials</h3>
+
+    <label for="createDate">Date:</label>
+    <input type="date" id="createDate" readonly>
+
+    <label for="createItemName">Item Name:</label>
+    <input type="text" id="createItemName" placeholder="Item-name" required>
+
+    <label for="createDescription">Item Description:</label>
+    <input type="text" id="createDescription" placeholder="Item-Description" required>
+
+    <label for="createSupplier">Supplier:</label>
+    <select id="createSupplier">
+      <option value="" disabled selected>Select a supplier</option>
+    </select>
+
+    <label for="createCategory">Category:</label>
+    <select id="createCategory">
+      <option value="" disabled selected>Select a category</option>
+    </select>
+
+    <label for="createUnitMeasurement">Unit Measurement:</label>
+    <select id="createUnitMeasurement">
+      <option value="ft">ft (Feet)</option>
+      <option value="sqft">sqft (Square Feet)</option>
+      <option value="pcs">pcs (Pieces)</option>
+      <option value="m">m (Meters)</option>
+      <option value="cm">cm (Centimeters)</option>
+      <option value="mm">mm (Millimeters)</option>
+      <option value="sqm">sqm (Square Meters)</option>
+    </select>
+
+    <label for="createUnitCost">Unit Cost:</label>
+    <input type="number" id="createUnitCost" placeholder="Unit-cost" required>
+
+    <label for="createQuantity">Quantity:</label>
+    <input type="number" id="createQuantity" placeholder="Quantity" required>
+
+    <label for="createMinStock">Minimum Stock:</label>
+    <input type="number" id="createMinStock" placeholder="Minimum Stock" required>
+
+    <label for="createMaxStock">Maximum Stock:</label>
+    <input type="number" id="createMaxStock" placeholder="Maximum Stock" required>
+
+    <button class="create-btn" onclick="addMaterial()">Submit</button>
+  </div>
+</div>
+
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+    <h3>Delete Materials</h3>
+    
+    <label for="deleteMaterialSelector">Select Material:</label>
+    <select id="deleteMaterialSelector" onchange="updateMaterialId()">
+    <option value="">Select Material</option>
+      <!-- Options will be populated dynamically -->
+    </select>
+
+    <!-- Hidden input to store the material's ID -->
+    <input type="hidden" id="deleteItemId">
+
+    <button class="delete-btn" onclick="deleteProduct()">Delete</button>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('editModal')">&times;</span>
+    <h3>Edit Material</h3>
+    
+    <input type="hidden" id="editMaterialId">
+    
+    <label for="editItemName">Item Name:</label>
+    <input type="text" id="editItemName" placeholder="Item Name" required>
+    
+    <label for="editItemDescription">Description:</label>
+    <input type="text" id="editItemDescription" placeholder="Description" required>
+    
+    <label for="editCategory">Category:</label>
+    <select id="editCategory"></select>
+    
+    <label for="editSupplier">Supplier:</label>
+    <select id="editSupplier"></select>
+    
+    <label for="editUnitMeasurement">Unit Measurement:</label>
+    <select id="editUnitMeasurement">
+      <option value="ft">ft (Feet)</option>
+      <option value="sqft">sqft (Square Feet)</option>
+      <option value="pcs">pcs (Pieces)</option>
+      <option value="m">m (Meters)</option>
+      <option value="cm">cm (Centimeters)</option>
+      <option value="mm">mm (Millimeters)</option>
+      <option value="sqm">sqm (Square Meters)</option>
+    </select>
+    
+    <label for="editMaterialCost">Material Cost:</label>
+    <input type="number" id="editMaterialCost" placeholder="Material Cost" required>
+    
+    <label for="editCurrentStock">Current Stock:</label>
+    <input type="number" id="editCurrentStock" placeholder="Current Stock" required>
+    
+    <label for="editMinStock">Minimum Stock:</label>
+    <input type="number" id="editMinStock" placeholder="Minimum Stock" required>
+    
+    <label for="editMaxStock">Maximum Stock:</label>
+    <input type="number" id="editMaxStock" placeholder="Maximum Stock" required>
+    
+    <button class="update-btn" onclick="updateMaterial()">Update</button>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  
+  <!-- Search -->
+<div class="filter-left">
+  <div class="filter-group">
+
+    <button type="button" class="clear-filters-btn" onclick="clearMaterialFilters()">Clear Filters</button>
+    <label for="searchInput">Search</label>
+    <input type="text" id="searchInput" placeholder="Search materials...">
+
+
+  </div>
+</div>
+
+<div class="filter-right">
+  <!-- Category -->
+  <div class="filter-group">
+    <label for="categoryFilter">Category</label>
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+    </select>
+  </div>
+
+  <!-- Availability -->
+  <div class="filter-group">
+    <label for="availabilityFilter">Availability</label>
+    <select id="availabilityFilter">
+      <option value="">All</option>
+      <option value="In-stock">In-stock</option>
+      <option value="Out of Stock">Out of Stock</option>
+    </select>
+  </div>
+
+  <!-- Quantity Range -->
+  <div class="filter-group range-group">
+    <label>Quantity</label>
+    <div class="range-inputs">
+      <input type="number" id="minQty" placeholder="Min">
+      <span>-</span>
+      <input type="number" id="maxQty" placeholder="Max">
+    </div>
+  </div>
+
+  <!-- Cost Range -->
+  <div class="filter-group range-group">
+    <label>Material Cost</label>
+    <div class="range-inputs">
+      <input type="number" id="minCost" placeholder="Min">
+      <span>-</span>
+      <input type="number" id="maxCost" placeholder="Max">
+    </div>
+  </div>
+
+  <!-- Rating Range -->
+  <div class="filter-group range-group">
+    <label>Movement Rating (%)</label>
+    <div class="range-inputs">
+      <input type="number" id="minRating" placeholder="Min" step="0.01">
+      <span>-</span>
+      <input type="number" id="maxRating" placeholder="Max" step="0.01">
+    </div>
+  </div>
+
+  <!-- Sorting -->
+  <div class="filter-group">
+    
+    <label for="sortFilter">Sort By</label>
+    <select id="sortFilter">
+      <option value="">Default</option>
+      <option value="nameAsc">Name A-Z</option>
+      <option value="nameDesc">Name Z-A</option>
+      <option value="qtyAsc">Quantity ↑</option>
+      <option value="qtyDesc">Quantity ↓</option>
+      <option value="costAsc">Cost ↑</option>
+      <option value="costDesc">Cost ↓</option>
+      <option value="ratingAsc">Rating ↑</option>
+      <option value="ratingDesc">Rating ↓</option>
+    </select>
+  </div>
+</div>
+</div>
+
+<div class="table-scroll">
+  <table id="productTable">
+    <thead>
+      <tr>
+        <th>Item ID</th>
+        <th>Material</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Quantity</th>
+        <th>Measurement</th>
+        <th>Material Cost</th>
+        <th>Movement Rating</th>
+        <th>Availability</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="materialTableBody">
+      <!-- Rows will be inserted dynamically via JavaScript -->
+    </tbody>
+
+  </table>
+  <div class="pagination" id="pagination">
+    <button onclick="changePage('stock', -1)">« Prev</button>
+    <span id="stockPageNumber">Page 1</span>
+    <button onclick="changePage('stock', 1)">Next »</button>
+  </div>
+</div>
+
+ <div>
+ <main>
+                 <!----------END OF MAIN------------->
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+
+   function filterTable() {
+      const input = document.getElementById("searchInput");
+      const filter = input.value.toLowerCase();
+      const table = document.getElementById("productTable");
+      const trs = table.getElementsByTagName("tr");
+
+      for (let i = 1; i < trs.length; i++) {
+        const tds = trs[i].getElementsByTagName("td");
+        let found = false;
+
+       for (const td of tds) {
+  if (td && td.innerText.toLowerCase().includes(filter)) {
+    found = true;
+    break;
+  }
+}
+
+
+        trs[i].style.display = found ? "" : "none";
+      }
+    }
+
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = "block";
+  const today = new Date().toISOString().split('T')[0];
+
+  if (modalId === 'createModal') {
+    document.getElementById('createDate').value = today;
+
+    // 🛠️ Load the suppliers and categories when opening create modal
+    CreatefetchSuppliers(); 
+    CreatefetchCategories();  
+  } else if (modalId === 'updateModal') {
+    document.getElementById('updateDate').value = today;
+
+    // (Optional) Call fetch for update modal if needed
+  }
+}
+
+function closePMModal() {
+  const modal = document.getElementById('productMaterialModal');
+  modal.style.display = 'none';
+  document.getElementById('materialsContainer').innerHTML = '';
+  document.getElementById('totalCost').textContent = '0.00';
+  document.getElementById('productSelect').value = '';
+}
+
+document.getElementById('productMaterialModal').addEventListener('click', function (event) {
+  const modalBox = document.querySelector('#productMaterialModal .modal-box');
+  if (!modalBox.contains(event.target)) {
+    closePMModal();
+  }
+});
+
+function clearMaterialFilters() {
+  // Reset filter input values
+  document.getElementById("searchInput").value = "";
+  document.getElementById("categoryFilter").value = "";
+  document.getElementById("availabilityFilter").value = "";
+  document.getElementById("minQty").value = "";
+  document.getElementById("maxQty").value = "";
+  document.getElementById("minCost").value = "";
+  document.getElementById("maxCost").value = "";
+  document.getElementById("minRating").value = "";
+  document.getElementById("maxRating").value = "";
+  document.getElementById("sortFilter").value = "";
+
+  // Reset filtered data to original materialsData
+  filteredData = [...materialsData];
+
+  // Reset pagination
+  currentPage = 1;
+
+  // Re-render table and pagination
+  renderTablePage(currentPage);
+  renderPagination();
+}
+
+
+</script>
+
+<script>
+  const rowsPerPage = 8;
+  let currentPage = 1;
+  let materialsData = [];
+  let filteredData = [];
+
+  document.addEventListener("DOMContentLoaded", fetchMaterials);
+
+  function getBarColor(rating) {
+    if (rating >= 80) return "#4caf50";
+    if (rating >= 50) return "#ffb300";
+    return "#f44336";
+  }
+
+  async function fetchMaterials() {
+    try {
+      const response = await fetch("/api/materials");
+      materialsData = await response.json();
+      populateCategoryFilter();
+      applyFilters();
+    } catch (error) {
+      console.error("Failed to load materials:", error);
+    }
+  }
+
+  function populateCategoryFilter() {
+    const categories = [...new Set(materialsData.map(m => m.item_category_name || "N/A"))];
+    const categorySelect = document.getElementById("categoryFilter");
+    categories.forEach(cat => {
+      const option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+  }
+
+  function applyFilters() {
+    const searchValue = document.getElementById("searchInput").value.toLowerCase();
+    const categoryValue = document.getElementById("categoryFilter").value;
+    const availabilityValue = document.getElementById("availabilityFilter").value;
+    const minQty = parseFloat(document.getElementById("minQty").value) || -Infinity;
+    const maxQty = parseFloat(document.getElementById("maxQty").value) || Infinity;
+    const minCost = parseFloat(document.getElementById("minCost").value) || -Infinity;
+    const maxCost = parseFloat(document.getElementById("maxCost").value) || Infinity;
+    const minRating = parseFloat(document.getElementById("minRating").value) || -Infinity;
+    const maxRating = parseFloat(document.getElementById("maxRating").value) || Infinity;
+    const sortValue = document.getElementById("sortFilter").value;
+
+    filteredData = materialsData.filter(material => {
+      const availability = material.current_stock === 0 ? "Out of Stock" : "In-stock";
+      return (
+        (material.material_id.toLowerCase().includes(searchValue) ||
+         material.item_name.toLowerCase().includes(searchValue) ||
+         (material.item_decription || "").toLowerCase().includes(searchValue)) &&
+        (categoryValue === "" || material.item_category_name === categoryValue) &&
+        (availabilityValue === "" || availability === availabilityValue) &&
+        material.current_stock >= minQty && material.current_stock <= maxQty &&
+        material.material_cost >= minCost && material.material_cost <= maxCost &&
+        (material.fast_moving_rating || 0) >= minRating &&
+        (material.fast_moving_rating || 0) <= maxRating
+      );
+    });
+
+    filteredData.sort((a, b) => {
+      switch (sortValue) {
+        case "nameAsc": return a.item_name.localeCompare(b.item_name);
+        case "nameDesc": return b.item_name.localeCompare(a.item_name);
+        case "qtyAsc": return a.current_stock - b.current_stock;
+        case "qtyDesc": return b.current_stock - a.current_stock;
+        case "costAsc": return a.material_cost - b.material_cost;
+        case "costDesc": return b.material_cost - a.material_cost;
+        case "ratingAsc": return (a.fast_moving_rating || 0) - (b.fast_moving_rating || 0);
+        case "ratingDesc": return (b.fast_moving_rating || 0) - (a.fast_moving_rating || 0);
+        default: return 0;
+      }
+    });
+
+    currentPage = 1;
+    renderTablePage(currentPage);
+    renderPagination();
+  }
+
+  function renderTablePage(page) {
+    const tableBody = document.getElementById("materialTableBody");
+    tableBody.innerHTML = "";
+
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    const pageData = filteredData.slice(start, end);
+
+    pageData.forEach(material => {
+      const statusData = material.current_stock === 0
+        ? { status: "Out of Stock", class: "danger" }
+        : { status: "In-stock", class: "success" };
+
+      const { status, class: statusClass } = statusData;
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${material.material_id}</td>
+        <td>${material.item_name}</td>
+        <td>${material.item_category_name || "N/A"}</td>
+        <td>${material.item_decription || ""}</td>
+        <td>${material.current_stock}</td>
+        <td>${material.unit_measurement}</td>
+        <td>₱${parseFloat(material.material_cost).toLocaleString()}</td>
+        <td>
+          <div class="rating-bar-wrapper">
+            <div class="rating-bar-fill" style="width: ${material.fast_moving_rating || 0}%; background-color: ${getBarColor(material.fast_moving_rating)};"></div>
+            <span class="rating-label">${material.fast_moving_rating?.toFixed(2) || "0.00"}%</span>
+          </div>
+        </td>
+        <td class="${statusClass}">${status}</td>
+        <td>
+          <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+  }
+
+  function renderPagination() {
+    const paginationDiv = document.getElementById("pagination");
+    paginationDiv.innerHTML = "";
+
+    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Prev";
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTablePage(currentPage);
+        renderPagination();
+      }
+    };
+    paginationDiv.appendChild(prevBtn);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const pageBtn = document.createElement("button");
+      pageBtn.textContent = i;
+      if (i === currentPage) {
+        pageBtn.disabled = true;
+        pageBtn.style.fontWeight = "bold";
+      }
+      pageBtn.onclick = () => {
+        currentPage = i;
+        renderTablePage(currentPage);
+        renderPagination();
+      };
+      paginationDiv.appendChild(pageBtn);
+    }
+
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTablePage(currentPage);
+        renderPagination();
+      }
+    };
+    paginationDiv.appendChild(nextBtn);
+  }
+
+  function formatDate() {
+    const now = new Date();
+    return now.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  function openEditModal(id) {
+    alert(`Open edit modal for material ID: ${id}`);
+  }
+
+  document.querySelectorAll("#searchInput, #categoryFilter, #availabilityFilter, #minQty, #maxQty, #minCost, #maxCost, #minRating, #maxRating, #sortFilter")
+    .forEach(el => el.addEventListener("input", applyFilters));
+</script>
+
+<!-- Add api -->
+<script>
+function openModal(modalId) {
+  document.getElementById(modalId).style.display = "block";
+  const today = new Date().toISOString().split('T')[0];
+
+  if (modalId === 'createModal') {
+    document.getElementById('createDate').value = today;
+  }
+}
+
+
+// Populate dropdowns
+async function fetchCategoriesAndSuppliers() {
+  const supplierSelect = document.getElementById("createSupplier");
+  const categorySelect = document.getElementById("createCategory");
+
+  try {
+    const [suppliersRes, categoriesRes] = await Promise.all([
+      fetch("/api/suppliers"),
+      fetch("/api/material-categories")
+    ]);
+
+    const [suppliers, categories] = await Promise.all([
+      suppliersRes.json(),
+      categoriesRes.json()
+    ]);
+
+    supplierSelect.innerHTML = '<option value="" disabled selected>Select a supplier</option>';
+    categorySelect.innerHTML = '<option value="" disabled selected>Select a category</option>';
+
+    suppliers.forEach(supplier => {
+      const option = document.createElement("option");
+      option.value = supplier.id;
+      option.text = supplier.contact_name;
+      supplierSelect.appendChild(option);
+    });
+
+    categories.forEach(category => {
+      const option = document.createElement("option");
+      option.value = category.id;
+      option.text = category.category_name;
+      categorySelect.appendChild(option);
+    });
+
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+}
+
+// Call the fetch function on load
+document.addEventListener("DOMContentLoaded", fetchCategoriesAndSuppliers);
+
+// Submit Material
+async function addMaterial() {
+  const item_name = document.getElementById("createItemName").value;
+  const item_decription = document.getElementById("createDescription").value;
+  const supplier_id = document.getElementById("createSupplier").value;
+  const category_id = document.getElementById("createCategory").value;
+  const unit_measurement = document.getElementById("createUnitMeasurement").value;
+  const material_cost = parseFloat(document.getElementById("createUnitCost").value);
+  const current_stock = parseFloat(document.getElementById("createQuantity").value);
+  const minimum_stock = parseFloat(document.getElementById("createMinStock").value);
+  const maximum_stock = parseFloat(document.getElementById("createMaxStock").value);
+
+// Validation
+  if (!item_name) return alert("Item name is required.");
+  if (!item_decription) return alert("Item description is required.");
+  if (!category_id) return alert("Please select a category.");
+  if (!supplier_id) return alert("Please select a supplier.");
+  if (!unit_measurement) return alert("Unit measurement is required.");
+  if (isNaN(material_cost) || material_cost < 0) return alert("Material cost must be a positive number.");
+  if (isNaN(current_stock) || current_stock < 0) return alert("Current stock must be a positive number.");
+  if (isNaN(minimum_stock) || minimum_stock < 0) return alert("Minimum stock must be a positive number.");
+  if (isNaN(maximum_stock) || maximum_stock < 0) return alert("Maximum stock must be a positive number.");
+  if (maximum_stock < minimum_stock) return alert("Maximum stock cannot be less than minimum stock.");
+
+
+  const newMaterial = {
+    item_name,
+    item_decription,
+    supplier_id,
+    category_id,
+    unit_measurement,
+    material_cost,
+    current_stock,
+    minimum_stock,
+    maximum_stock
+  };
+
+  try {
+    const response = await fetch("/api/materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newMaterial)
+    });
+
+    if (response.ok) {
+      alert("Material added successfully!");
+      closeModal("createModal");
+      location.reload(); 
+    } else {
+      const data = await response.json();
+      alert("Failed to add material: " + (data.detail || response.statusText));
+    }
+
+  } catch (error) {
+    console.error("Error adding material:", error);
+    alert("Something went wrong.");
+  }
+}
+</script>
+
+<!-- Delete api -->
+<script>
+  // Fetch materials to populate the delete selector dropdown
+  async function fetchMaterialsForDelete() {
+    try {
+      const response = await fetch("/api/materials"); // Ensure this is correct
+      if (!response.ok) {
+        throw new Error("Failed to fetch materials");
+      }
+
+      const materials = await response.json();
+      const materialSelect = document.getElementById("deleteMaterialSelector");
+
+      // Clear old options
+      materialSelect.innerHTML = "<option value=''>Select Material</option>";
+
+      // Check if materials are returned
+      if (materials.length === 0) {
+        console.log("No materials found.");
+        return;
+      }
+
+      // Populate the dropdown with material names
+      materials.forEach(material => {
+        const option = document.createElement("option");
+        option.value = material.material_id; // Use material_id as value
+        option.textContent = material.item_name; // Display material name
+        materialSelect.appendChild(option);
+      });
+    } catch (error) {
+      console.error("Failed to load materials for delete:", error);
+    }
+  }
+
+  // Update the hidden input when a material is selected
+  function updateMaterialId() {
+    const materialId = document.getElementById("deleteMaterialSelector").value;
+    document.getElementById("deleteItemId").value = materialId;
+  }
+
+  // Open the delete modal and load materials
+  function openDeleteModal() {
+    document.getElementById("deleteModal").style.display = "block";
+    fetchMaterialsForDelete(); // Load materials when the modal is opened
+  }
+
+
+
+  // Delete the selected material
+  async function deleteProduct() {
+    const itemId = document.getElementById("deleteItemId").value.trim();
+
+    if (!itemId) {
+      alert("Please select a valid material.");
+      return;
+    }
+
+    const confirmDelete = confirm(`Are you sure you want to delete Material ID: ${itemId}?`);
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(`/api/materials/${itemId}`, {
+        method: "DELETE", // Use DELETE method for material removal
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(result.message || "Material deleted successfully.");
+        closeModal("deleteModal");
+        location.reload();
+        fetchMaterials(); // Refresh the materials list after deletion
+      } else {
+        const error = await response.json();
+        alert(`Error deleting material: ${error.message || "Unknown error."}`);
+      }
+    } catch (err) {
+      console.error("Deletion failed:", err);
+      alert("Failed to delete material. Please try again.");
+    }
+  }
+
+  // Close the modal when clicking outside the modal
+  window.onclick = function(event) {
+    const modal = document.getElementById("deleteModal");
+    if (event.target === modal) {
+      closeModal("deleteModal");
+    }
+  };
+
+  // Make sure that this function is properly called when the page is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchMaterialsForDelete(); // Initial call to populate the dropdown when the page is loaded
+  });
+</script>
+<!-- Update api -->
+ <script>
+function attachStockWarning() {
+  const stockInput = document.getElementById('editCurrentStock');
+
+  stockInput.addEventListener('change', function () {
+    alert("⚠️ Warning: Changing 'Current Stock' will NOT generate a stock transaction history.");
+  });
+}
+</script>
+
+<script>
+async function openEditModal(materialId) {
+  document.getElementById("editModal").style.display = "block";
+
+  try {
+    const response = await fetch("/api/materials");
+    const materials = await response.json();
+    const material = materials.find(mat => mat.material_id == materialId);
+
+    if (material) {
+      document.getElementById("editMaterialId").value = material.material_id;
+      document.getElementById("editItemName").value = material.item_name;
+      document.getElementById("editItemDescription").value = material.item_decription;
+      document.getElementById("editMaterialCost").value = material.material_cost;
+      document.getElementById("editCurrentStock").value = material.current_stock;
+      document.getElementById("editMinStock").value = material.minimum_stock;
+      document.getElementById("editMaxStock").value = material.maximum_stock;
+
+      // Wait for dropdowns to load before setting selected values
+      await fetchCategories(material.category_id);
+      await fetchSuppliers(material.supplier_id);
+      document.getElementById("editUnitMeasurement").value = material.unit_measurement;
+
+      // Attach a warning on current stock change
+      const stockInput = document.getElementById("editCurrentStock");
+      stockInput.onchange = function () {
+        alert("⚠️ Warning: Changing 'Current Stock' will NOT generate a stock transaction history.");
+      };
+
+    } else {
+      console.error("Material not found");
+    }
+  } catch (error) {
+    console.error("Failed to load material data:", error);
+  }
+}
+
+
+async function fetchCategories(selectedId = null) {
+  try {
+    const response = await fetch("/api/material-categories");
+    const categories = await response.json();
+    const categorySelect = document.getElementById("editCategory");
+
+    categorySelect.innerHTML = ""; // Clear old options
+
+    categories.forEach(category => {
+      const option = document.createElement("option");
+      option.value = String(category.id);
+      option.textContent = category.category_name;
+      if (String(category.id) === String(selectedId)) {
+        option.selected = true; // Set selected here
+      }
+      categorySelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Failed to load categories", error);
+  }
+}
+
+
+async function fetchSuppliers(selectedId = null) {
+  try {
+    const response = await fetch("/api/suppliers");
+    const suppliers = await response.json();
+    const supplierSelect = document.getElementById("editSupplier");
+
+    supplierSelect.innerHTML = "";
+
+    suppliers.forEach(supplier => {
+      const option = document.createElement("option");
+      option.value = String(supplier.id);
+      option.textContent = supplier.contact_name;
+      if (String(supplier.id) === String(selectedId)) {
+        option.selected = true; // Set selected here
+      }
+      supplierSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Failed to load suppliers", error);
+  }
+}
+
+
+
+async function updateMaterial() {
+  const materialId = document.getElementById('editMaterialId').value;
+  const itemName = document.getElementById('editItemName').value.trim();
+  const itemDescription = document.getElementById('editItemDescription').value.trim();
+  const categoryId = document.getElementById('editCategory').value;
+  const supplierId = document.getElementById('editSupplier').value;
+  const unitMeasurement = document.getElementById('editUnitMeasurement').value;
+  const materialCost = parseFloat(document.getElementById('editMaterialCost').value);
+  const currentStock = parseInt(document.getElementById('editCurrentStock').value, 10);
+  const minimumStock = parseFloat(document.getElementById('editMinStock').value);
+  const maximumStock = parseFloat(document.getElementById('editMaxStock').value);
+
+  // Validate
+  if (!itemName) return alert("Item name is required.");
+  if (!itemDescription) return alert("Item description is required.");
+  if (!categoryId) return alert("Please select a category.");
+  if (!supplierId) return alert("Please select a supplier.");
+  if (!unitMeasurement) return alert("Unit measurement is required.");
+  if (isNaN(materialCost) || materialCost < 0) return alert("Material cost must be a positive number.");
+  if (isNaN(currentStock) || currentStock < 0) return alert("Current stock must be a positive number.");
+  if (isNaN(minimumStock) || minimumStock < 0) return alert("Minimum stock must be a positive number.");
+  if (isNaN(maximumStock) || maximumStock < 0) return alert("Maximum stock must be a positive number.");
+  if (maximumStock < minimumStock) return alert("Maximum stock cannot be less than minimum stock.");
+
+  const materialData = {
+    material_id: materialId,
+    item_name: itemName,
+    item_description: itemDescription,
+    category_id: categoryId,
+    supplier_id: supplierId,
+    unit_measurement: unitMeasurement,
+    material_cost: materialCost,
+    current_stock: currentStock,
+    minimum_stock: minimumStock,
+    maximum_stock: maximumStock,
+  };
+
+  try {
+    const response = await fetch(`/api/material/update`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(materialData),
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      alert("Material updated successfully!");
+      closeModal("editModal");
+      fetchMaterials();  // Refresh the table
+    } else {
+      alert(`Error: ${result.detail}`);
+    }
+  } catch (error) {
+    console.error("Failed to update material:", error);
+    alert("Error updating material. Please try again.");
+  }
+}
+
+window.onclick = function(event) {
+  const modal = document.getElementById("editModal");
+  if (event.target === modal) {
+    closeModal("editModal");
+  }
+};
+</script>
+
+<!-- Stock api -->
+<script>
+async function openModal(id) {
+  await loadSuppliers();
+  await loadMaterials(); // preload material options
+  addMaterialInput();    // add one material input initially
+  document.getElementById(id).style.display = "block";
+}
+
+function toggleSupplierForm() {
+  const fields = document.getElementById("newSupplierFields");
+  const btn = document.getElementById("toggleSupplierBtn");
+  const isHidden = fields.style.display === "none";
+  fields.style.display = isHidden ? "block" : "none";
+  btn.textContent = isHidden ? "Hide New Supplier" : "Add New Supplier";
+}
+
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+  document.getElementById("materialsList").innerHTML = ""; 
+}
+
+async function loadSuppliers() {
+  const response = await fetch("/api/suppliers");
+  const suppliers = await response.json();
+  const select = document.getElementById("supplierId");
+  select.innerHTML = `<option value="">-- Add New Supplier --</option>`;
+  suppliers.forEach(s => {
+    select.innerHTML += `<option value="${s.id}">${s.contact_name}</option>`;
+  });
+}
+
+let materialOptions = [];
+
+async function loadMaterials() {
+  const response = await fetch("/api/materials");
+  materialOptions = await response.json();
+}
+
+function addMaterialInput() {
+  const container = document.getElementById("materialsList");
+  const index = container.children.length;
+
+  const materialHTML = `
+    <div class="material-entry mt-2" id="material-entry-${index}">
+      <select class="material-id" required>
+        <option value="">-- Select Material --</option>
+        ${materialOptions.map(m => `<option value="${m.material_id}">${m.item_name}</option>`).join('')}
+      </select>
+      <input type="number" placeholder="Quantity" class="material-quantity" min="1" required>
+      <button type="button" onclick="removeMaterialInput(${index})">Remove</button>
+    </div>
+  `;
+  container.insertAdjacentHTML("beforeend", materialHTML);
+}
+
+function removeMaterialInput(index) {
+  const el = document.getElementById(`material-entry-${index}`);
+  if (el) el.remove();
+}
+
+async function submitStockMaterials(event) {
+  event.preventDefault();
+
+  const stockTypeId = "STT001"; // ✅ Always use Manual Stock-in
+  const supplierId = document.getElementById("supplierId").value.trim() || null;
+
+  const supplier = {
+    firstname: document.getElementById("supplierFirstname").value,
+    lastname: document.getElementById("supplierLastname").value,
+    contact_name: document.getElementById("supplierContactName").value,
+    contact_number: document.getElementById("supplierContactNumber").value,
+    email: document.getElementById("supplierEmail").value,
+    address: document.getElementById("supplierAddress").value,
+  };
+
+  const items = Array.from(document.querySelectorAll("#materialsList .material-entry")).map(entry => {
+    const material_id = entry.querySelector(".material-id").value;
+    const quantity = parseInt(entry.querySelector(".material-quantity").value);
+    return { material_id, quantity };
+  });
+
+  const payload = {
+    stock_type_id: stockTypeId,
+    supplier_id: supplierId,
+    supplier: (!supplierId && Object.values(supplier).some(v => v)) ? supplier : null,
+    items
+  };
+
+  try {
+    const response = await fetch("/api/stock-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      alert("Materials successfully stocked!");
+      closeModal('stockMaterialsModal');
+      location.reload();
+    } else {
+      alert("Error: " + result.detail);
+    }
+  } catch (err) {
+    alert("Request failed: " + err.message);
+  }
+}
+</script>
+
+<!-- Product Materials -->
+<script>
+let materialsList = [];
+let existingMaterialCosts = {};
+
+async function openAddProductMaterialModal() {
+  const [productsRes, materialsRes] = await Promise.all([
+    fetch('/api/products'),
+    fetch('/api/materials')
+  ]);
+
+  const products = await productsRes.json();
+  materialsList = await materialsRes.json();
+
+  const productSelect = document.getElementById('productSelect');
+  productSelect.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '-- Select Product --';
+  productSelect.appendChild(defaultOption);
+
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.product_id;
+    opt.textContent = p.item_name;
+    productSelect.appendChild(opt);
+  });
+
+  document.getElementById('materialsContainer').innerHTML = '';
+  productSelect.removeEventListener('change', handleProductChange);
+  productSelect.addEventListener('change', handleProductChange);
+
+  document.getElementById('productMaterialModal').style.display = 'flex';
+}
+
+async function handleProductChange(event) {
+  const productId = event.target.value;
+  await loadExistingMaterials(productId);
+}
+
+function updateUnitLabel(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const unit = selectedOption?.getAttribute("data-unit") || "";
+  const container = selectElement.closest(".material-entry");
+  const unitLabel = container.querySelector(".unit-label");
+  unitLabel.textContent = unit ? `(${unit})` : "";
+}
+
+function updateTotalCost() {
+  let total = 0;
+  document.querySelectorAll('.material-entry').forEach(div => {
+    const qty = parseFloat(div.querySelector('.used-quantity')?.value) || 0;
+    const cost = parseFloat(div.querySelector('.unit-cost')?.value) || 0;
+    total += qty * cost;
+  });
+  document.getElementById('totalCost').textContent = total.toFixed(2);
+}
+
+function checkDuplicateMaterial(selectedId, currentSelect) {
+  if (!selectedId) return false;
+  const allSelects = Array.from(document.querySelectorAll('.material-select'));
+  return allSelects.some(select => select !== currentSelect && select.value === selectedId);
+}
+
+function addMaterialField(data = {}, isExisting = false, productId = '') {
+  const container = document.getElementById('materialsContainer');
+  const div = document.createElement('div');
+  div.classList.add('material-entry');
+
+  const materialOptions = materialsList.map(m =>
+    `<option value="${m.material_id}" data-unit="${m.unit_measurement}" ${m.material_id === data.material_id ? 'selected' : ''}>
+      ${m.item_name}
+    </option>`
+  ).join('');
+
+  div.innerHTML = `
+    <label>Material:</label>
+    <select class="material-select" onchange="handleMaterialChange(this)" ${isExisting ? 'disabled' : ''}>
+      <option value="">-- Select Material --</option>
+      ${materialOptions}
+    </select>
+
+    <label>Used Quantity: <span class="unit-label"></span></label>
+    <input type="number" class="used-quantity" placeholder="Used Quantity" step="0.01"
+      value="${data.used_quantity ?? ''}" ${isExisting ? '' : ''} oninput="updateTotalCost()">
+
+    <label>Unit Cost:</label>
+    <input type="number" class="unit-cost" placeholder="Unit Cost" step="0.01"
+      value="${data.unit_cost ?? ''}" ${isExisting ? '' : ''} oninput="updateTotalCost()">
+
+    ${isExisting ? `
+      <button onclick="updateMaterialField(this, '${productId}', '${data.material_id}')">Update</button>
+      <button onclick="deleteMaterialField(this, '${productId}', '${data.material_id}')">Delete</button>
+    ` : `
+      <button onclick="removeMaterialField(this, event)">Remove</button>
+    `}
+    <br><br>
+  `;
+
+  container.appendChild(div);
+  const selectElement = div.querySelector('.material-select');
+  updateUnitLabel(selectElement);
+  updateTotalCost();
+}
+
+function handleMaterialChange(selectElement) {
+  const selectedId = selectElement.value;
+  if (checkDuplicateMaterial(selectedId, selectElement)) {
+    alert("This material has already been added.");
+    selectElement.value = "";
+    updateUnitLabel(selectElement);
+    return;
+  }
+
+  const container = selectElement.closest('.material-entry');
+  updateUnitLabel(selectElement);
+
+  const unitCostInput = container.querySelector('.unit-cost');
+  if (existingMaterialCosts[selectedId]) {
+    unitCostInput.value = existingMaterialCosts[selectedId];
+  }
+
+  updateTotalCost();
+}
+
+async function loadExistingMaterials(productId) {
+  document.getElementById('materialsContainer').innerHTML = '';
+  existingMaterialCosts = {};
+
+  if (!productId) return;
+
+  const res = await fetch(`/api/product-materials/${productId}`);
+  if (!res.ok) {
+    console.error("Failed to load existing materials");
+    return;
+  }
+
+  const existingMaterials = await res.json();
+  existingMaterials.forEach(m => {
+    existingMaterialCosts[m.material_id] = m.unit_cost;
+    addMaterialField(m, true, productId);
+  });
+
+  updateTotalCost();
+}
+
+async function submitProductMaterials() {
+  const product_id = document.getElementById('productSelect').value;
+  const materialDivs = document.querySelectorAll('.material-entry');
+
+  // Get only new (non-disabled) material rows
+  const materials = Array.from(materialDivs)
+    .filter(div => !div.querySelector('.material-select')?.disabled)
+    .map(div => {
+      return {
+        material_id: div.querySelector('.material-select').value,
+        used_quantity: parseFloat(div.querySelector('.used-quantity').value),
+        unit_cost: parseFloat(div.querySelector('.unit-cost').value)
+      };
+    });
+
+  // Validation checks
+  if (!product_id) {
+    alert('Please select a product.');
+    return;
+  }
+
+  if (materials.length === 0) {
+    alert('No new materials to add.');
+    return;
+  }
+
+  if (materials.some(m => !m.material_id || isNaN(m.used_quantity) || isNaN(m.unit_cost))) {
+    alert('Please complete all material fields.');
+    return;
+  }
+
+  // Send to backend
+  const res = await fetch('/api/product-materials/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_id, materials })
+  });
+
+  if (res.ok) {
+    alert('Materials added successfully.');
+    closePMModal();
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+
+async function updateMaterialField(button, productId, materialId) {
+  const entry = button.closest('.material-entry');
+  const used_quantity = parseFloat(entry.querySelector('.used-quantity').value);
+  const unit_cost = parseFloat(entry.querySelector('.unit-cost').value);
+
+  if (isNaN(used_quantity) || isNaN(unit_cost)) {
+    alert("Please enter valid quantity and cost.");
+    return;
+  }
+
+  const res = await fetch('/api/product-materials/update', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_id: productId, material_id: materialId, used_quantity, unit_cost })
+  });
+
+  if (res.ok) {
+    alert("Material updated.");
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+async function deleteMaterialField(button, productId, materialId) {
+  if (!confirm("Are you sure you want to delete this material from the product?")) return;
+
+  const res = await fetch(`/api/product-materials/delete?product_id=${productId}&material_id=${materialId}`, {
+    method: 'DELETE'
+  });
+
+  if (res.ok) {
+    alert("Material deleted.");
+    button.closest('.material-entry').remove();
+    updateTotalCost();
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+function closeModal() {
+  document.getElementById('productMaterialModal').style.display = 'none';
+  document.getElementById('materialsContainer').innerHTML = '';
+  document.getElementById('totalCost').textContent = '0.00';
+  document.getElementById('productSelect').value = '';
+}
+
+document.getElementById('productMaterialModal').addEventListener('click', function (event) {
+  const modalBox = document.querySelector('#productMaterialModal .modal-box');
+  if (!modalBox.contains(event.target)) {
+    closeModal();
+  }
+});
+
+function removeMaterialField(button, event) {
+  event.stopPropagation();
+  button.parentElement.remove();
+  updateTotalCost();
+}
+</script>
+
+<!-- Materials Summary Card -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  fetch('/api/summary/materials')
+    .then(response => response.json())
+    .then(data => {
+      // Card 1: 
+      document.getElementById("total-materials").textContent = data.total_materials ?? 0;
+
+      // Card 2:
+      const topMaterial = data.most_used_material;
+      document.getElementById("most-used-material").textContent = topMaterial.item_name || 'N/A';
+      document.getElementById("top-material-count").textContent = topMaterial.total_used ?? '-';
+
+      // Card 3:
+      document.getElementById("total-material-quantity").textContent = data.total_material_quantity ?? 0;
+    })
+    .catch(error => {
+      console.error('Error fetching material summary:', error);
+    });
+});
+</script>
+
+<script>
+window.onclick = function(event) {
+  const modalIds = [
+    "createModal",
+    "updateModal",
+    "deleteModal",
+    "stockMaterialsModal",
+    "editModal",
+    "productMaterialModal"
+  ];
+  
+  modalIds.forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal && event.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+};
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = "none";
+  if (modalId === "createModal") {
+    clearCreateMaterialsInputs();
+  }
+}
+
+function clearCreateMaterialsInputs() {
+  document.getElementById("createItemName").value = "";
+  document.getElementById("createDescription").value = "";
+  document.getElementById("createSupplier").selectedIndex = 0;
+  document.getElementById("createCategory").selectedIndex = 0;
+  document.getElementById("createUnitMeasurement").selectedIndex = 0;
+  document.getElementById("createUnitCost").value = "";
+  document.getElementById("createQuantity").value = "";
+  document.getElementById("createMinStock").value = "";
+  document.getElementById("createMaxStock").value = "";
+}
+
+</script>
+
+</body>
+</html>

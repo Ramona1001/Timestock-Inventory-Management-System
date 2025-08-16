@@ -1,0 +1,147 @@
+<!-- alert.html -->
+
+  <div class="notification-container">
+    <div class="notif-icon" id="notifIcon">
+      <span class="material-symbols-sharp">notifications</span>
+      <span class="notif-ping" id="notifPing"></span>
+    </div>
+    <div class="notification-box" id="notificationBox" style="display: none;">
+      <h3>System Alerts</h3>
+      <ul id="notificationBoxList">
+        <li>Loading...</li>
+      </ul>
+    </div>
+  </div>
+
+<style>
+          
+.notif-icon {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.notif-ping {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+  animation: ping 1.2s infinite;
+}
+
+.notification-container {
+  position: relative;
+  display: inline-block;
+}
+
+.notif-icon {
+  position: relative;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.notif-ping {
+  position: absolute;
+  top: 0px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+  display: none;
+  box-shadow: 0 0 5px red;
+}
+
+.notification-box {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  width: 250px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+  display: none;
+  z-index: 999;
+}
+
+.notification-box h3 {
+  margin-top: 0;
+  font-size: 16px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.notification-box ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.notification-box li {
+  padding: 4px 0;
+  font-size: 14px;
+  color: #333;
+}
+@keyframes ping {
+  0% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.5); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+</style>
+<script>
+async function fetchAllAlertsToBox() {
+  try {
+    const response = await fetch("/api/all-alerts");
+    const data = await response.json();
+
+    const list = document.getElementById("notificationBoxList");
+    const ping = document.getElementById("notifPing");
+    list.innerHTML = "";
+
+    const currentAlerts = data.alerts;
+    const storedAlerts = JSON.parse(localStorage.getItem("seenAlerts")) || [];
+
+    const hasNew = currentAlerts.some(alert => !storedAlerts.includes(alert));
+
+    if (currentAlerts.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No alerts 🎉";
+      li.style.color = "green";
+      list.appendChild(li);
+      ping.style.display = "none";
+    } else {
+      currentAlerts.forEach(alert => {
+        const li = document.createElement("li");
+        li.textContent = alert;
+        list.appendChild(li);
+      });
+      ping.style.display = hasNew ? "block" : "none";
+    }
+  } catch (error) {
+    document.getElementById("notificationBoxList").innerHTML =
+      "<li style='color: gray;'>Failed to load alerts</li>";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("notifIcon").addEventListener("click", () => {
+    const notificationBox = document.getElementById("notificationBox");
+    notificationBox.style.display = notificationBox.style.display === "block" ? "none" : "block";
+
+    const listItems = document.querySelectorAll("#notificationBoxList li");
+    const alerts = Array.from(listItems).map(li => li.textContent);
+    localStorage.setItem("seenAlerts", JSON.stringify(alerts));
+    document.getElementById("notifPing").style.display = "none";
+  });
+
+  fetchAllAlertsToBox();
+  setInterval(fetchAllAlertsToBox, 3000);
+});
+</script>

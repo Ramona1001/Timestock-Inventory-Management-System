@@ -1,0 +1,538 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --color-primary: #7380ec;
+  --color-danger: #ff7782;
+  --color-success: #41f1b6;
+  --color-warning: #ffbb55;
+  --color-white: #fff;
+  --color-info-dark: #7d8da1;
+  --color-info-light: #dce1eb;
+  --color-dark: #363949;
+  --color-light: rgba(132, 139, 200, 0.18);
+  --color-primary-variant: #111e88;
+  --color-dark-variant: #677483;
+  --color-background: #f6f6f9;
+
+  --card-border-radius: 2rem;
+  --border-radius-1: 0.4rem;
+  --border-radius-2: 0.8rem;
+
+  --card-padding: 1.8rem;
+  --padding-1: 1.2rem;
+
+  --box-shadow: 0 2rem 3rem var(--color-light);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  outline: 0;
+  appearance: none;
+  border: 0;
+  text-decoration: none;
+  list-style: none;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  font-family: Poppins, sans-serif;
+  font-size: 0.88rem;
+  background: var(--color-background);
+  user-select: none;
+  overflow-x: hidden;
+  color: var(--color-dark);
+}
+
+.container {
+    display: grid;
+    width: 100%;
+    gap: 1.8rem;
+    grid-template-columns: 14rem auto;
+    padding: 0 1.5rem;
+}
+
+a {
+  color: var(--color-dark);
+}
+
+img {
+  display: block;
+  width: 100%;
+}
+
+h1 {
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+
+h2 {
+  font-size: 1.4rem;
+}
+
+h3 {
+  font-size: 0.87rem;
+}
+
+.small,
+small {
+  font-size: 0.7rem;
+}
+
+.profile-photo {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.text-muted {
+  color: var(--color-info-dark);
+}
+
+p {
+  color: var(--color-dark-variant);
+}
+
+b {
+  color: var(--color-dark);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+aside {
+  height: 100vh;
+}
+
+aside .top {
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.4rem;
+}
+
+aside .logo {
+  display: flex;
+  gap: 0.8rem;
+}
+
+aside .logo img {
+  width: 4rem;
+  height: 4rem;
+}
+
+aside .close {
+  display: none;
+}
+
+aside .sidebar {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  height: 86vh;
+  position: relative;
+  top: 3rem;
+}
+
+aside h3 {
+  font-weight: 500;
+}
+
+aside .sidebar a {
+  display: flex;
+  color: var(--color-info-dark);
+  margin-left: 2rem;
+  gap: 1rem;
+  align-items: center;
+  position: relative;
+  height: 3.7rem;
+  transition: all 300ms ease;
+}
+
+aside .sidebar a span {
+  font-size: 1.6rem;
+  transition: all 300ms ease;
+}
+
+aside .sidebar a:last-child {
+  position: absolute;
+  bottom: 2rem;
+  width: 100%;
+}
+
+aside .sidebar a.active {
+  background: var(--color-light);
+  color: var(--color-primary);
+  margin-left: 0;
+}
+
+aside .sidebar a.active:before {
+  content: "";
+  width: 6px;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+aside .sidebar a.active span {
+  color: var(--color-primary);
+  margin-left: calc(1rem - 3px);
+}
+
+main {
+  margin-top: 1.4rem;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-right: 2rem;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profile-photo img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.notification-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.material-symbols-sharp {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: var(--border-radius-1);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 2.8rem;
+  right: 0;
+  width: 220px;
+  background: var(--color-white);
+  border-radius: var(--border-radius-2);
+  box-shadow: var(--box-shadow);
+  display: none;
+  z-index: 1000;
+}
+
+.dropdown-menu ul {
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-menu ul li {
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--color-light);
+  transition: background 0.3s ease;
+}
+
+.dropdown-menu ul li:last-child {
+  border-bottom: none;
+}
+
+.dropdown-menu ul li:hover {
+  background: var(--color-light);
+}
+
+.dropdown-menu ul li a {
+  color: var(--color-dark);
+  text-decoration: none;
+  font-size: 0.88rem;
+  display: block;
+}
+
+.table-container,.productionTableContainer ,.orderTableContainer {
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 12px;
+}
+
+.filters {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.filters input,
+.filters select {
+  padding: 6px 10px 6px 30px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff url('https://fonts.gstatic.com/s/i/materialiconssharp/24px/black/24dp/1x/baseline_search_black_24dp.png') no-repeat 6px center;
+  background-size: 18px;
+  transition: box-shadow 0.3s;
+}
+
+.filters input:hover,
+.filters select:hover {
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  transition: box-shadow 0.3s ease;
+}
+
+table:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+th,
+td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  transition: background 0.3s ease;
+}
+
+tr:hover td {
+  background-color: #f1f1f1;
+}
+
+th {
+  background-color: #7380ec;
+  color: var(--color-white);
+}
+
+.actions button {
+  background: #6200ea;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  margin-right: 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.3s, transform 0.2s, box-shadow 0.3s;
+}
+
+.actions button:hover {
+  background: #3700b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.pagination {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.pagination button {
+  padding: 6px 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.pagination button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* floating bubble */
+.modal-overlay {
+  position: absolute; 
+  display: none;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 12px;
+  width: 220px;
+  transition: opacity 0.3s ease;
+}
+
+/* Adjust modal box content */
+.modal-box {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.modal-box h2 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 10px;
+}
+
+#statusSelect {
+  width: 100%;
+  padding: 5px;
+  font-size: 0.9rem;
+}
+
+/* Button styles */
+.button-group {
+  display: flex;
+  justify-content: space-between;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background-color: #ddd;
+}
+
+.btn-submit {
+  background-color: #28a745;
+  color: white;
+}
+
+
+/* Keep all tables same size & aligned */
+.table-container,
+.productionTableContainer,
+.orderTableContainer {
+  min-height: 500px; /* Same visual height for all */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollable body with aligned columns */
+.table-container table,
+.productionTableContainer table,
+.orderTableContainer table {
+  table-layout: fixed; /* Prevent shifting widths */
+  width: 100%;
+}
+
+.table-container thead,
+.productionTableContainer thead,
+.orderTableContainer thead {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table-container tbody,
+.productionTableContainer tbody,
+.orderTableContainer tbody {
+  display: block;
+  max-height: 350px; /* Set scroll area */
+  overflow-y: auto;
+}
+
+.table-container tbody tr,
+.productionTableContainer tbody tr,
+.orderTableContainer tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Optional: keep header visible while scrolling */
+.table-container thead th,
+.productionTableContainer thead th,
+.orderTableContainer thead th {
+  position: sticky;
+  top: 0;
+  background-color: #7380ec;
+  color: #fff;
+  z-index: 2;
+  white-space: nowrap; /* keep header text on one line */
+}
+
+/* ✅ Prevent overlapping by letting text wrap */
+.table-container td,
+.productionTableContainer td,
+.orderTableContainer td {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Optional: Give small columns a min-width */
+.table-container th:nth-child(1),
+.productionTableContainer th:nth-child(1),
+.orderTableContainer th:nth-child(1) {
+  min-width: 80px; /* e.g. ID column */
+}
+
+/* Tabs styling */
+.tabs {
+  display: flex;
+  gap: 0; /* tabs touch each other */
+  margin-bottom: 0; /* no gap before container */
+}
+
+.tab-btn {  
+  padding: 8px 16px;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-bottom: none; /* remove bottom border for active look */
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  margin-right: 2px;
+  transition: background 0.3s;
+}
+
+.tab-btn:hover {
+  background: #ddd;
+}
+
+.tab-btn.active {
+  background: #fff; /* match container */
+  font-weight: bold;
+  position: relative;
+  z-index: 2;
+}
+
+.tab-content {
+  display: none;
+  border: 1px solid #ccc;
+  border-top: none; /* merge with tabs */
+  border-radius: 0 0 8px 8px;
+  background: #fff;
+  padding: 0;
+}
