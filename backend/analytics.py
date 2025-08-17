@@ -223,12 +223,7 @@ def get_total_in_production():
         JOIN order_statuses os ON os.id = ot.status_id
         WHERE os.status_code = 'in_production'
     """).fetchone()[0] or 0
-    return con.execute("""
-        SELECT COUNT(*) 
-        FROM order_transactions ot
-        JOIN order_statuses os ON os.id = ot.status_id
-        WHERE os.status_code = 'in_production'
-    """).fetchone()[0] or 0
+
 
 def get_product_usage_summary():
     return {

@@ -1,5 +1,5 @@
 from typing import List, Any, Optional
-from fastapi import APIRouter, HTTPException, Header,Request
+from fastapi import APIRouter, Depends, HTTPException, Header,Request
 from fastapi.responses import JSONResponse, FileResponse
 from tempfile import NamedTemporaryFile
 from datetime import datetime, timedelta
@@ -7,7 +7,7 @@ import pandas as pd
 import uuid
 import os
 
-from backend.auth import verify_token
+from backend.auth import get_current_user, verify_token
 from .app_schemas import (
     ProductCategoryCreate, ProductCategoryUpdate, EmployeeStatusUpdate,
     MaterialCategoryCreate, MaterialCategoryUpdate, ChangeEmployeePassword,
@@ -442,6 +442,9 @@ def recent_transactions_api():
 def dashboard_metrics():
     return analytics.get_all_time_metrics()
 
+
+# ------------ Receipt and Quote -----------
+
 @router.post("/generate-receipt")
 def generate_receipt(req: ReceiptRequest):
     # Ensure pdf_container exists
@@ -485,6 +488,23 @@ def generate_quotation(data: QuotationRequest):
     )
 
     return FileResponse(filename, media_type="application/pdf", filename="quotation.pdf")
+
+@router.get("/reports/pdf")
+def generate_report_pdf_endpoint(year: int, month: int = None, user: dict = Depends(get_current_user)):
+    if not user:
+        return {"error": "Unauthorized"}
+
+    # Gather reports
+    report_text = graphs.get_text_report_for_month(year, month)
+    turnover_report = graphs.get_turnover_text_report_for_month(year, month)
+    stl_report = graphs.get_stl_text_report_for_month(year, month)
+    moving_avg_report = graphs.get_sales_moving_average_text_report(month=month, year=year)
+
+    # Generate PDF
+    filepath = reciept.generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month)
+
+    return FileResponse(filepath, media_type="application/pdf", filename=filepath.split("/")[-1])
+
 
 
 # ------------ SETTINGS -------------

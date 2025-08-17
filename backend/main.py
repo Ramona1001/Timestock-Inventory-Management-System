@@ -111,8 +111,6 @@ def analytics_page(request: Request, user: dict = Depends(get_current_user)):
     })
 
 
-
-
 @app.get("/Order_and_Quotation.html", response_class=HTMLResponse)
 def order_quotation_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
@@ -136,6 +134,34 @@ def transactions_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
     return templates.TemplateResponse("Transactions.html", {"request": request, "user": user})
+
+@app.get("/Reports.html", response_class=HTMLResponse)
+def settings_page(request: Request, user: dict = Depends(get_current_user),month: int = None, year: int = None):
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    report_text, turnover_report, stl_report, moving_avg_report = None, None, None, None
+
+    if year and month:
+        report_text = graphs.get_text_report_for_month(year, month)
+        turnover_report = graphs.get_turnover_text_report_for_month(year, month)
+        stl_report = graphs.get_stl_text_report_for_month(year, month)
+        moving_avg_report = graphs.get_sales_moving_average_text_report(month=month, year=year)
+
+    elif year:  # allow whole year view
+        report_text = graphs.get_text_report_for_month(year, None)
+        turnover_report = graphs.get_turnover_text_report_for_month(year, None)
+        stl_report = graphs.get_stl_text_report_for_month(year, None)
+        moving_avg_report = graphs.get_sales_moving_average_text_report(year=year)
+
+    return templates.TemplateResponse("Reports.html", {
+        "request": request,
+        "user": user,
+        "report_text": report_text,
+        "turnover_report": turnover_report,
+        "stl_report": stl_report,
+        "moving_avg_report": moving_avg_report
+    })
 
 @app.get("/Customer.html", response_class=HTMLResponse)
 def customer_page(request: Request, user: dict = Depends(get_current_user)):
