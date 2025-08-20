@@ -7,6 +7,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Materials.css?v=6">
 <style>
+.delete-btn {
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.delete-btn:hover {
+  background-color: #cc0000;
+}
+
 .clear-filters-btn {
   padding: 6px 12px;
   height: 34px; /* match input height */
@@ -286,7 +299,6 @@
   <!-- Buttons -->
 <div class="crud-buttons">
   <button class="create-btn" onclick="openModal('createModal')">Add Materials</button>
-  <button class="delete-btn" onclick="openModal('deleteModal')">Delete Materials</button>
   <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Stock Materials</button>
   <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
 </div>
@@ -399,26 +411,6 @@
     <input type="number" id="createMaxStock" placeholder="Maximum Stock" required>
 
     <button class="create-btn" onclick="addMaterial()">Submit</button>
-  </div>
-</div>
-
-
-<!-- Delete Modal -->
-<div id="deleteModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('deleteModal')">&times;</span>
-    <h3>Delete Materials</h3>
-    
-    <label for="deleteMaterialSelector">Select Material:</label>
-    <select id="deleteMaterialSelector" onchange="updateMaterialId()">
-    <option value="">Select Material</option>
-      <!-- Options will be populated dynamically -->
-    </select>
-
-    <!-- Hidden input to store the material's ID -->
-    <input type="hidden" id="deleteItemId">
-
-    <button class="delete-btn" onclick="deleteProduct()">Delete</button>
   </div>
 </div>
 
@@ -795,6 +787,7 @@ function clearMaterialFilters() {
         <td class="${statusClass}">${status}</td>
         <td>
           <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
+           <button class="delete-btn" onclick="deleteMaterial('${material.material_id}')">Delete</button>
         </td>
       `;
       tableBody.appendChild(row);
@@ -1026,37 +1019,30 @@ async function addMaterial() {
 
 
   // Delete the selected material
-  async function deleteProduct() {
-    const itemId = document.getElementById("deleteItemId").value.trim();
+ async function deleteMaterial(materialId) {
+  const confirmDelete = confirm(`Are you sure you want to delete Material ID: ${materialId}?`);
+  if (!confirmDelete) return;
 
-    if (!itemId) {
-      alert("Please select a valid material.");
+  try {
+    const response = await fetch(`/api/materials/${materialId}`, {
+      method: "DELETE"
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert("Error: " + (result.message || result.detail || "Unknown error"));
       return;
     }
 
-    const confirmDelete = confirm(`Are you sure you want to delete Material ID: ${itemId}?`);
-    if (!confirmDelete) return;
-
-    try {
-      const response = await fetch(`/api/materials/${itemId}`, {
-        method: "DELETE", // Use DELETE method for material removal
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        alert(result.message || "Material deleted successfully.");
-        closeModal("deleteModal");
-        location.reload();
-        fetchMaterials(); // Refresh the materials list after deletion
-      } else {
-        const error = await response.json();
-        alert(`Error deleting material: ${error.message || "Unknown error."}`);
-      }
-    } catch (err) {
-      console.error("Deletion failed:", err);
-      alert("Failed to delete material. Please try again.");
-    }
+    alert(result.message || "Material deleted successfully.");
+    fetchMaterials(); // Refresh material list after deletion
+  } catch (err) {
+    console.error("Failed to delete material:", err);
+    alert("Failed to delete material. Please try again.");
   }
+}
+
 
   // Close the modal when clicking outside the modal
   window.onclick = function(event) {

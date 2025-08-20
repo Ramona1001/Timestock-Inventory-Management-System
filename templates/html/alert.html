@@ -7,42 +7,89 @@
     </div>
     <div class="notification-box" id="notificationBox" style="display: none;">
       <h3>System Alerts</h3>
-      <ul id="notificationBoxList">
-        <li>Loading...</li>
-      </ul>
+      <div id="notificationCategories"></div>
     </div>
   </div>
 
 <style>
-          
+  /* Category styling */
+.category {
+  margin-bottom: 15px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f9fafb;
+  transition: background 0.2s ease;
+}
+.category:hover {
+  background: #f1f5f9;
+}
+.category h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #222;
+}
+.category ul {
+  max-height: 100px;      /* default collapsed height */
+  overflow: hidden;       /* hide extra items */
+  transition: max-height 0.3s ease;
+}
+
+.category.expanded ul {
+  max-height: 200px;      /* expanded height */
+  overflow-y: auto;       /* enable vertical scrolling */
+  scrollbar-width: thin;  /* optional: thin scrollbar for Firefox */
+}
+
+.category.expanded ul::-webkit-scrollbar {
+  width: 6px;             /* scrollbar width for WebKit */
+}
+
+.category.expanded ul::-webkit-scrollbar-thumb {
+  background-color: #ccc; /* scrollbar color */
+  border-radius: 3px;
+}
+
+.category li {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #444;
+  border-bottom: 1px solid #eee;
+}
+.category li:last-child {
+  border-bottom: none;
+}
+
+/* View More / View Less */
+.view-more {
+  display: inline-block;
+  font-size: 13px;
+  color: #2563eb;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: color 0.2s ease;
+}
+.view-more:hover {
+  text-decoration: underline;
+  color: #1d4ed8;
+}
+
+/* Notification Icon + Ping */
 .notif-icon {
   position: relative;
   display: inline-block;
   cursor: pointer;
+  font-size: 26px;
+  color: #444;
+  transition: color 0.2s ease;
 }
-
-.notif-ping {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 10px;
-  height: 10px;
-  background-color: red;
-  border-radius: 50%;
-  animation: ping 1.2s infinite;
+.notif-icon:hover {
+  color: #2563eb;
 }
-
-.notification-container {
-  position: relative;
-  display: inline-block;
-}
-
-.notif-icon {
-  position: relative;
-  cursor: pointer;
-  font-size: 24px;
-}
-
 .notif-ping {
   position: absolute;
   top: 0px;
@@ -53,95 +100,213 @@
   border-radius: 50%;
   display: none;
   box-shadow: 0 0 5px red;
+  animation: ping 1.2s infinite;
 }
 
+/* Notification Box */
+.notification-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* Notification box aligned properly to bell icon */
 .notification-box {
   position: absolute;
-  right: 0;
-  top: 30px;
-  width: 250px;
+  top: 35px;
+  right: 0;                  /* keep right edge aligned */
+  transform: translateX(10%); /* shift slightly right or left if needed */
+  width: 400px;              
+  max-height: 420px;
   background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
   padding: 1rem;
   display: none;
   z-index: 999;
-}
-
-.notification-box h3 {
-  margin-top: 0;
-  font-size: 16px;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 5px;
-}
-
-.notification-box ul {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
-  max-height: 200px;
   overflow-y: auto;
 }
 
-.notification-box li {
-  padding: 4px 0;
-  font-size: 14px;
-  color: #333;
+/* Box Header */
+.notification-box h3 {
+  margin: 0 0 10px 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
 }
-@keyframes ping {
-  0% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.5); opacity: 0.4; }
-  100% { transform: scale(1); opacity: 0.9; }
+
+/*  Responsive: make box shrink on mobile */
+@media (max-width: 480px) {
+  .notification-box {
+    width: 90vw;
+    right: 5%;
+  }
 }
+
 </style>
+
 <script>
 async function fetchAllAlertsToBox() {
   try {
     const response = await fetch("/api/all-alerts");
     const data = await response.json();
 
-    const list = document.getElementById("notificationBoxList");
+    const categoriesContainer = document.getElementById("notificationCategories");
     const ping = document.getElementById("notifPing");
-    list.innerHTML = "";
 
-    const currentAlerts = data.alerts;
+    // Track expanded categories
+    const expandedCategories = new Set(
+      Array.from(document.querySelectorAll(".category.expanded"))
+        .map(div => div.getAttribute("data-category"))
+    );
+
+    categoriesContainer.innerHTML = "";
+
+    const alertsByCategory = data.alerts;
     const storedAlerts = JSON.parse(localStorage.getItem("seenAlerts")) || [];
 
-    const hasNew = currentAlerts.some(alert => !storedAlerts.includes(alert));
+    let allAlerts = [];
+    let hasNew = false;
 
-    if (currentAlerts.length === 0) {
-      const li = document.createElement("li");
-      li.textContent = "No alerts 🎉";
-      li.style.color = "green";
-      list.appendChild(li);
-      ping.style.display = "none";
-    } else {
-      currentAlerts.forEach(alert => {
+    for (const [category, alerts] of Object.entries(alertsByCategory)) {
+      const categoryDiv = document.createElement("div");
+      categoryDiv.classList.add("category");
+      categoryDiv.setAttribute("data-category", category);
+
+      const header = document.createElement("h4");
+      header.textContent = category;
+      categoryDiv.appendChild(header);
+
+      const ul = document.createElement("ul");
+
+      alerts.forEach((alertObj, idx) => {
+        allAlerts.push(alertObj.message);
+
         const li = document.createElement("li");
-        li.textContent = alert;
-        list.appendChild(li);
+
+        // Use display_time if available, fallback to raw timestamp
+        const displayTime = alertObj.display_time || alertObj.timestamp;
+
+        li.innerHTML = `<span>${alertObj.message}</span> 
+                        <span style="float:right; font-size:12px; color:#888;">${displayTime}</span>`;
+
+        // Hide all after 1st unless category is expanded
+        if (idx >= 1 && !expandedCategories.has(category)) {
+          li.style.display = "none";
+        }
+
+        ul.appendChild(li);
+
+        if (!storedAlerts.includes(alertObj.message)) {
+          hasNew = true;
+        }
       });
-      ping.style.display = hasNew ? "block" : "none";
+
+      categoryDiv.appendChild(ul);
+
+      // Add View More / View Less toggle
+      if (alerts.length > 1) {
+        const viewMore = document.createElement("span");
+        viewMore.textContent = expandedCategories.has(category) ? "View Less" : "View More";
+        viewMore.classList.add("view-more");
+
+        viewMore.addEventListener("click", () => {
+          if (expandedCategories.has(category)) {
+            // collapse
+            ul.querySelectorAll("li").forEach((li, idx) => {
+              if (idx >= 1) li.style.display = "none";
+            });
+            viewMore.textContent = "View More";
+            expandedCategories.delete(category);
+            categoryDiv.classList.remove("expanded");
+          } else {
+            // expand
+            ul.querySelectorAll("li").forEach(li => li.style.display = "list-item");
+            viewMore.textContent = "View Less";
+            expandedCategories.add(category);
+            categoryDiv.classList.add("expanded");
+          }
+        });
+
+        categoryDiv.appendChild(viewMore);
+      }
+
+      categoriesContainer.appendChild(categoryDiv);
     }
+
+    ping.style.display = hasNew ? "block" : "none";
+
   } catch (error) {
-    document.getElementById("notificationBoxList").innerHTML =
-      "<li style='color: gray;'>Failed to load alerts</li>";
+    categoriesContainer.innerHTML =
+      "<p style='color: gray;'>Failed to load alerts</p>";
+    console.error("Error fetching alerts:", error);
   }
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("notifIcon").addEventListener("click", () => {
-    const notificationBox = document.getElementById("notificationBox");
-    notificationBox.style.display = notificationBox.style.display === "block" ? "none" : "block";
+  const notifIcon = document.getElementById("notifIcon");
+  const notificationBox = document.getElementById("notificationBox");
+  const ping = document.getElementById("notifPing");
 
-    const listItems = document.querySelectorAll("#notificationBoxList li");
-    const alerts = Array.from(listItems).map(li => li.textContent);
-    localStorage.setItem("seenAlerts", JSON.stringify(alerts));
-    document.getElementById("notifPing").style.display = "none";
-  });
+  let fetchInterval = null;
 
+  function startInterval() {
+    if (!fetchInterval) {
+      fetchInterval = setInterval(() => {
+        if (notificationBox.style.display !== "block") {
+          fetchAllAlertsToBox();
+        }
+      }, 1000);
+    }
+  }
+
+  function stopInterval() {
+    if (fetchInterval) {
+      clearInterval(fetchInterval);
+      fetchInterval = null;
+    }
+  }
+
+  // Toggle box when bell is clicked
+notifIcon.addEventListener("click", (e) => {
+  e.stopPropagation(); // prevent triggering document click
+  const isOpen = notificationBox.style.display === "block";
+
+  if (isOpen) {
+    // Closing the box
+    notificationBox.style.display = "none";
+    startInterval(); // resume fetch interval
+    fetchAllAlertsToBox(); // refresh alerts on close
+  } else {
+    // Opening the box
+    notificationBox.style.display = "block";
+    stopInterval(); // pause interval while open
+    const allAlerts = Array.from(
+      document.querySelectorAll("#notificationCategories li span:first-child")
+    ).map(span => span.textContent);
+    localStorage.setItem("seenAlerts", JSON.stringify(allAlerts));
+    ping.style.display = "none";
+  }
+});
+
+// Close box when clicking outside
+document.addEventListener("click", (e) => {
+  const isClickInsideBox = notificationBox.contains(e.target);
+  const isClickOnIcon = notifIcon.contains(e.target);
+
+  if (!isClickInsideBox && !isClickOnIcon && notificationBox.style.display === "block") {
+    notificationBox.style.display = "none";
+    startInterval(); // resume fetching
+    fetchAllAlertsToBox(); // refresh alerts on close
+  }
+});
+
+
+  // Initial fetch and start interval
   fetchAllAlertsToBox();
-  setInterval(fetchAllAlertsToBox, 3000);
+  startInterval();
 });
 </script>

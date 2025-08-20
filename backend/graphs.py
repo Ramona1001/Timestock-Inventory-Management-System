@@ -818,23 +818,23 @@ def get_text_report_for_month(year: int, month: int):
     total_sales = int(df["total_sales"].sum())
     total_revenue = float(df["total_revenue"].sum())
 
-    # Build plain text report
-    lines = []
-    lines.append(f"📅 Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
-    lines.append(f"Total Orders: {total_orders}")
-    lines.append(f"Total Sales: {total_sales}")
-    lines.append(f"Total Revenue: Php{total_revenue:,.2f}")
-    lines.append("")
-    lines.append("Daily Breakdown:")
+    breakdown = []
     for _, row in df.iterrows():
-        day = row['period'].strftime("%Y-%m-%d")
-        lines.append(
-            f"  {day}: {int(row['total_orders'])} orders, "
-            f"{int(row['total_sales'])} sales, "
-            f"Php{float(row['total_revenue']):,.2f} revenue"
-        )
+        breakdown.append({
+            "day": row['period'].strftime("%Y-%m-%d"),
+            "orders": int(row['total_orders']),
+            "sales": int(row['total_sales']),
+            "revenue": float(row['total_revenue'])
+        })
 
-    return "\n".join(lines)
+    return {
+        "empty": False,
+        "title": f"Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}",
+        "total_orders": total_orders,
+        "total_sales": total_sales,
+        "total_revenue": total_revenue,
+        "breakdown": breakdown
+    }
 
 def get_turnover_text_report_for_month(year: int, month: int):
     con = duckdb.connect('backend/db_timestock')
@@ -878,26 +878,27 @@ def get_turnover_text_report_for_month(year: int, month: int):
     df = con.execute(query).fetchdf()
 
     if df.empty:
-        return f"No turnover records found for {year}-{month:02d}"
+        return {"empty": True, "message": f"No turnover records found for {year}-{month:02d}"}
 
     row = df.iloc[0]  # only one row since it's month-level
     cogs = float(row["cogs"])
     avg_inventory = float(row["avg_inventory"])
     turnover_rate = float(row["turnover_rate"])
 
-    # Build plain text report
-    lines = []
-    lines.append(f"📦 Inventory Turnover Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
-    lines.append(f"COGS: Php{cogs:,.2f}")
-    lines.append(f"Average Inventory: Php{avg_inventory:,.2f}")
-    lines.append(f"Turnover Rate: {turnover_rate:.2f} times")
-    lines.append("")
-    if turnover_rate > 0:
-        lines.append(f"Interpretation: Inventory turned over about {turnover_rate:.2f} times in {year}-{month:02d}.")
-    else:
-        lines.append("Interpretation: No turnover occurred this month.")
+    interpretation = (
+        f"Inventory turned over about {turnover_rate:.2f} times in {year}-{month:02d}."
+        if turnover_rate > 0 else
+        "No turnover occurred this month."
+    )
 
-    return "\n".join(lines)
+    return {
+        "empty": False,
+        "title": f"Inventory Turnover Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}",
+        "cogs": cogs,
+        "avg_inventory": avg_inventory,
+        "turnover_rate": turnover_rate,
+        "interpretation": interpretation
+    }
 
 def get_stl_text_report_for_month(year: int, month: int):
     con = duckdb.connect('backend/db_timestock')
@@ -913,13 +914,13 @@ def get_stl_text_report_for_month(year: int, month: int):
     ORDER BY order_month
     """
     df = con.execute(query).fetchdf()
+    if df.empty:
+        return {"empty": True, "message": f"No STL data found for {year}-{month:02d}"}
+
     df['order_month'] = pd.to_datetime(df['order_month'])
     df.set_index('order_month', inplace=True)
     df = df.asfreq('MS')
     df['total_quantity'] = df['total_quantity'].fillna(0)
-
-    if df.empty:
-        return f"No STL data found for {year}-{month:02d}"
 
     # Run STL decomposition
     stl = STL(df['total_quantity'], period=12)
@@ -945,43 +946,49 @@ def get_stl_text_report_for_month(year: int, month: int):
         WHERE rnk = 1
     """).fetchdf()
 
-    top_products_df['month'] = pd.to_datetime(top_products_df['month'])
-    top_products_df.rename(columns={'month': 'order_month', 'product_name': 'top_product'}, inplace=True)
+    if not top_products_df.empty:
+        top_products_df['month'] = pd.to_datetime(top_products_df['month'])
+        top_products_df.rename(columns={'month': 'order_month', 'product_name': 'top_product'}, inplace=True)
 
     # Extract just that month
     target_date = pd.Timestamp(year=year, month=month, day=1)
     if target_date not in df.index:
-        return f"No STL data available for {year}-{month:02d}"
+        return {"empty": True, "message": f"No STL data available for {year}-{month:02d}"}
 
     trend_val = float(result.trend.loc[target_date])
     seasonal_val = float(result.seasonal.loc[target_date])
     resid_val = float(result.resid.loc[target_date])
 
-    top_product_row = top_products_df[top_products_df['order_month'] == target_date]
-    top_product = top_product_row['top_product'].iloc[0] if not top_product_row.empty else "N/A"
+    top_product_row = (
+        top_products_df[top_products_df['order_month'] == target_date]
+        if not top_products_df.empty else None
+    )
+    top_product = top_product_row['top_product'].iloc[0] if top_product_row is not None and not top_product_row.empty else "N/A"
 
-    # Build text report
-    lines = []
-    lines.append(f"📊 STL Decomposition Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
-    lines.append(f"Top-Selling Product: {top_product}")
-    lines.append(f"Trend Component: {trend_val:.2f}")
-    lines.append(f"Seasonal Component: {seasonal_val:.2f}")
-    lines.append(f"Residual Component: {resid_val:.2f}")
-    lines.append("")
+    # Interpretations
     if seasonal_val > 0:
-        lines.append("Interpretation: Seasonality boosted demand this month.")
+        seasonal_text = "Seasonality boosted demand this month."
     elif seasonal_val < 0:
-        lines.append("Interpretation: Seasonality reduced demand this month.")
+        seasonal_text = "Seasonality reduced demand this month."
     else:
-        lines.append("Interpretation: Neutral seasonality this month.")
-    if resid_val > 0:
-        lines.append("Residual suggests an unexpected demand spike.")
-    elif resid_val < 0:
-        lines.append("Residual suggests an unexpected drop in demand.")
-    else:
-        lines.append("Residual suggests stable demand.")
+        seasonal_text = "Neutral seasonality this month."
 
-    return "\n".join(lines)
+    if resid_val > 0:
+        resid_text = "Residual suggests an unexpected demand spike."
+    elif resid_val < 0:
+        resid_text = "Residual suggests an unexpected drop in demand."
+    else:
+        resid_text = "Residual suggests stable demand."
+
+    return {
+        "empty": False,
+        "title": f"STL Decomposition Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}",
+        "top_product": top_product,
+        "trend": trend_val,
+        "seasonal": seasonal_val,
+        "residual": resid_val,
+        "interpretations": [seasonal_text, resid_text]
+    }
 
 def get_sales_moving_average_text_report(year: int, month: int | None = None):
     with duckdb.connect('backend/db_timestock') as con:
@@ -996,7 +1003,7 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
         """).fetchdf()
 
         if df.empty:
-            return "No moving average records found."
+            return {"empty": True, "message": "No moving average records found."}
 
         df['month'] = pd.to_datetime(df['month'])
 
@@ -1026,7 +1033,7 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
         df = df.merge(top_products_df, on='month', how='left')
         df.rename(columns={'product_name': 'top_product'}, inplace=True)
 
-        # --- moving averages computed on full dataset ---
+        # --- moving averages ---
         df['3_MA'] = df['total_sales'].rolling(window=3).mean()
         df['6_MA'] = df['total_sales'].rolling(window=6).mean()
 
@@ -1034,27 +1041,26 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
         if month is not None:
             target_date = pd.Timestamp(year=year, month=month, day=1)
             if target_date not in df['month'].values:
-                return f"No moving average data for {year}-{month:02d}"
+                return {"empty": True, "message": f"No moving average data for {year}-{month:02d}"}
             row = df[df['month'] == target_date].iloc[0]
         else:
             # last available month of that year
             year_df = df[df['month'].dt.year == year]
             if year_df.empty:
-                return f"No moving average records found for {year}"
+                return {"empty": True, "message": f"No moving average records found for {year}"}
             row = year_df.iloc[-1]
 
         total_sales = float(row['total_sales'])
         top_product = row['top_product'] if pd.notna(row['top_product']) else "No sales"
-        ma3 = row['3_MA']
-        ma6 = row['6_MA']
+        ma3 = float(row['3_MA']) if pd.notna(row['3_MA']) else None
+        ma6 = float(row['6_MA']) if pd.notna(row['6_MA']) else None
 
-        # --- build plain text report ---
-        lines = []
-        lines.append(f"📈 Moving Average Report for {row['month'].strftime('%B %Y')}")
-        lines.append(f"Total Sales: Php{total_sales:,.2f}")
-        lines.append(f"Top-Selling Product: {top_product}")
-        lines.append(f"3-Month Moving Average: Php{ma3:,.2f}" if pd.notna(ma3) else "3-Month Moving Average: Not enough data")
-        lines.append(f"6-Month Moving Average: Php{ma6:,.2f}" if pd.notna(ma6) else "6-Month Moving Average: Not enough data")
-
-        return "\n".join(lines)
-
+        # --- return structured data ---
+        return {
+            "empty": False,
+            "title": f"Moving Average Report for {row['month'].strftime('%B %Y')}",
+            "total_sales": total_sales,
+            "top_product": top_product,
+            "ma3": ma3,
+            "ma6": ma6
+        }
