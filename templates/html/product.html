@@ -7,6 +7,108 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/product.css?v=2">
   <style>
+.prodMats-btn  { background-color: #ffc107; color: black; }
+.prodMats-btn:hover { background-color: #e0a800; color: black; }
+/* Modal Overlay */
+#productMaterialModal.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;                   
+  align-items: center;            
+  justify-content: center;    
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Modal Content */
+#productMaterialModal .modal-box {
+  background: #ebebeb;
+  width: 600px;
+  max-width: 90%;
+  max-height: 90vh;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Title */
+.modal-box h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+/* Labels and Inputs */
+#productMaterialModal label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+#productMaterialModal select,
+#productMaterialModal input[type="number"] {
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+/* Material Entry */  
+#materialsContainer .material-entry {
+  background-color: #fffdfd;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 3px solid #ddd;
+  border-radius: 20px;
+  box-shadow: 0 12px 16px rgba(0, 0, 0, 0.1); /* added shadow */
+}
+/* Buttons */
+#productMaterialModal button {
+  padding: 8px 14px;
+  font-size: 1rem;
+  margin: 8px 4px 0 0;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#productMaterialModal button:hover {
+  opacity: 0.9;
+}
+
+#productMaterialModal .modal-box button:nth-of-type(1) {
+  background-color: #007bff;
+  color: white;
+}
+
+#productMaterialModal .modal-box button:nth-of-type(2) {
+  background-color: #28a745;
+  color: white;
+}
+
+#productMaterialModal .modal-box button:nth-of-type(3) {
+  background-color: #dc3545;
+  color: white;
+}
+.delete-btn {
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  margin-left: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.delete-btn:hover {
+  background-color: #cc0000;
+}
+
 .clear-filters-btn {
   align-self: flex-end;   
   height: 34px;           
@@ -275,23 +377,9 @@
   <h2>Product Inventory</h2>
     <div class="crud-buttons">
   <button class="create-btn" onclick="openModal('createModal')">Add a Product</button>
+  <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
   <button class="unavailable-btn" id="toggleUnavailableBtn" style="background-color: #007bff;">Show Unavailable Products</button>
-  <button class="delete-btn" onclick="openModal('deleteModal')" style="background-color: #ff0000;">Delete Product</button>
 </div>
-
-<!-- Delete Product Modal -->
-<div id="deleteModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('deleteModal')">&times;</span>
-    <h3>Delete a Product</h3>
-    <label for="deleteProductSelector">Select Product:</label>
-    <select id="deleteProductSelector">
-      <!-- Populated by JS -->
-    </select>
-    <button onclick="deleteSelectedProduct()">Delete</button>
-  </div>
-</div>
-
 
 <!-- Create Product Modal -->
 <div id="createModal" class="modal">
@@ -314,6 +402,26 @@
   </div>
 </div>
 
+
+<div id="productMaterialModal" class="modal" style="display:none;">
+  <div class="modal-box">
+    <h2>Add Materials to Product</h2>
+
+    <label for="productSelect">Select Product:</label>
+    <select id="productSelect">
+      <option value="">-- Select Product --</option>
+    </select>
+
+    <div id="materialsContainer"></div>
+
+    <button onclick="addMaterialField()">+ Add Material</button>
+    <br><br>
+    <strong>Total Estimated Cost: ₱<span id="totalCost">0.00</span></strong>
+    <br><br>
+    <button onclick="submitProductMaterials()">Submit</button>
+    <button onclick="closeModal('productMaterialModal')">Cancel</button>
+  </div>
+</div>
 
 <!-- Edit Product Modal -->
 <div id="editModal" class="modal">
@@ -555,21 +663,6 @@ function populateCategoryFilter(products) {
   });
 }
 
-
-
-function openModal(modalId) {
-document.getElementById(modalId).style.display = "block";
-const today = new Date().toISOString().split('T')[0];
-  if (modalId === 'createModal') {
-    document.getElementById('createDate').value = today;
-  } else if (modalId === 'updateModal') {
-    document.getElementById('updateDate').value = today;
-  }
-}
-
-
-
-
 document.getElementById("toggleUnavailableBtn").addEventListener("click", () => {
   const table = document.getElementById("unavailableProductTable");
   const isHidden = table.style.display === "none";
@@ -601,6 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
       : "Show Unavailable Products";
   });
 });
+
 async function fetchProducts() {
   try {
     const response = await fetch("/api/products");
@@ -628,6 +722,7 @@ async function fetchProducts() {
     console.error("Failed to fetch products:", error);
   }
 }
+
 function renderTablePage(type, page) {
   let data, tbodyId;
 
@@ -659,11 +754,15 @@ function renderTablePage(type, page) {
       <td>${product.materials_cost}</td>
       <td>${formatDate(product.date_created)}</td>
       <td class="${statusClass}">${product.status}</td>
-      <td><button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button></td>
+      <td>
+        <button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button>
+        <button class="delete-btn" onclick="deleteProduct('${product.product_id}')">Delete</button>
+      </td>
     `;
     tbody.appendChild(row);
   });
 }
+
 
 function renderPagination(type) {
   let data, currentPage, paginationId;
@@ -765,7 +864,6 @@ function formatDate(dateString) {
 
 <!-- Create API -->
 <script>
-
 async function fetchCategories() {
   try {
     const response = await fetch("/api/product-categories"); // You must have this endpoint
@@ -1048,50 +1146,7 @@ document.getElementById("editProductForm").addEventListener("submit", async func
 
 <!-- Delete API -->
 <script>
-async function loadProductSelector() {
-  try {
-    const response = await fetch("/api/products");
-    const products = await response.json();
-
-    const selector = document.getElementById("deleteProductSelector");
-    selector.innerHTML = ""; // Clear previous options
-
-    products.forEach(product => {
-      const option = document.createElement("option");
-      option.value = product.product_id;
-      option.textContent = product.item_name;
-      selector.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Failed to load products for deletion", error);
-  }
-}
-
-function openModal(modalId) {
-  document.getElementById(modalId).style.display = "block";
-  const today = new Date().toISOString().split("T")[0];
-
-  if (modalId === "createModal") {
-    document.getElementById("createDate").value = today;
-    fetchCategories(); // Load categories
-  } else if (modalId === "deleteModal") {
-    loadProductSelector(); // Load product names for deletion
-  }
-}
-
-function closeModal(modalId) {
-  document.getElementById(modalId).style.display = "none";
-}
-
-async function deleteSelectedProduct() {
-  const selector = document.getElementById("deleteProductSelector");
-  const productId = selector.value;
-
-  if (!productId) {
-    alert("Please select a product to delete.");
-    return;
-  }
-
+async function deleteProduct(productId) {
   const confirmDelete = confirm("Are you sure you want to delete this product?");
   if (!confirmDelete) return;
 
@@ -1103,13 +1158,12 @@ async function deleteSelectedProduct() {
     const result = await response.json();
 
     if (!response.ok) {
-      alert("Error: " + result.message || result.detail);
+      alert("Error: " + (result.message || result.detail));
       return;
     }
 
     alert(result.message);
-    closeModal("deleteModal");
-    fetchProducts(); // Refresh product list
+    fetchProducts(); // Refresh table after deletion
   } catch (error) {
     console.error("Failed to delete product:", error);
     alert("Deletion failed.");
@@ -1146,41 +1200,287 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+<!-- Product Materials -->
+<script>
+let materialsList = [];
+let existingMaterialCosts = {};
+
+async function openAddProductMaterialModal() {
+  const [productsRes, materialsRes] = await Promise.all([
+    fetch('/api/products'),
+    fetch('/api/materials')
+  ]);
+
+  const products = await productsRes.json();
+  materialsList = await materialsRes.json();
+
+  const productSelect = document.getElementById('productSelect');
+  productSelect.innerHTML = '';
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = '-- Select Product --';
+  productSelect.appendChild(defaultOption);
+
+  products.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.product_id;
+    opt.textContent = p.item_name;
+    productSelect.appendChild(opt);
+  });
+
+  document.getElementById('materialsContainer').innerHTML = '';
+  productSelect.removeEventListener('change', handleProductChange);
+  productSelect.addEventListener('change', handleProductChange);
+
+  document.getElementById('productMaterialModal').style.display = 'flex';
+}
+
+async function handleProductChange(event) {
+  const productId = event.target.value;
+  await loadExistingMaterials(productId);
+}
+
+function updateUnitLabel(selectElement) {
+  const selectedOption = selectElement.options[selectElement.selectedIndex];
+  const unit = selectedOption?.getAttribute("data-unit") || "";
+  const container = selectElement.closest(".material-entry");
+  const unitLabel = container.querySelector(".unit-label");
+  unitLabel.textContent = unit ? `(${unit})` : "";
+}
+
+function updateTotalCost() {
+  let total = 0;
+  document.querySelectorAll('.material-entry').forEach(div => {
+    const qty = parseFloat(div.querySelector('.used-quantity')?.value) || 0;
+    const cost = parseFloat(div.querySelector('.unit-cost')?.value) || 0;
+    total += qty * cost;
+  });
+  document.getElementById('totalCost').textContent = total.toFixed(2);
+}
+
+function checkDuplicateMaterial(selectedId, currentSelect) {
+  if (!selectedId) return false;
+  const allSelects = Array.from(document.querySelectorAll('.material-select'));
+  return allSelects.some(select => select !== currentSelect && select.value === selectedId);
+}
+
+function addMaterialField(data = {}, isExisting = false, productId = '') {
+  const container = document.getElementById('materialsContainer');
+  const div = document.createElement('div');
+  div.classList.add('material-entry');
+
+  const materialOptions = materialsList.map(m =>
+    `<option value="${m.material_id}" data-unit="${m.unit_measurement}" ${m.material_id === data.material_id ? 'selected' : ''}>
+      ${m.item_name}
+    </option>`
+  ).join('');
+
+  div.innerHTML = `
+    <label>Material:</label>
+    <select class="material-select" onchange="handleMaterialChange(this)" ${isExisting ? 'disabled' : ''}>
+      <option value="">-- Select Material --</option>
+      ${materialOptions}
+    </select>
+
+    <label>Used Quantity: <span class="unit-label"></span></label>
+    <input type="number" class="used-quantity" placeholder="Used Quantity" step="0.01"
+      value="${data.used_quantity ?? ''}" ${isExisting ? '' : ''} oninput="updateTotalCost()">
+
+    <label>Unit Cost:</label>
+    <input type="number" class="unit-cost" placeholder="Unit Cost" step="0.01"
+      value="${data.unit_cost ?? ''}" ${isExisting ? '' : ''} oninput="updateTotalCost()">
+
+    ${isExisting ? `
+      <button onclick="updateMaterialField(this, '${productId}', '${data.material_id}')">Update</button>
+      <button onclick="deleteMaterialField(this, '${productId}', '${data.material_id}')">Delete</button>
+    ` : `
+      <button onclick="removeMaterialField(this, event)">Remove</button>
+    `}
+    <br><br>
+  `;
+
+  container.appendChild(div);
+  const selectElement = div.querySelector('.material-select');
+  updateUnitLabel(selectElement);
+  updateTotalCost();
+}
+
+function handleMaterialChange(selectElement) {
+  const selectedId = selectElement.value;
+  if (checkDuplicateMaterial(selectedId, selectElement)) {
+    alert("This material has already been added.");
+    selectElement.value = "";
+    updateUnitLabel(selectElement);
+    return;
+  }
+
+  const container = selectElement.closest('.material-entry');
+  updateUnitLabel(selectElement);
+
+  const unitCostInput = container.querySelector('.unit-cost');
+  if (existingMaterialCosts[selectedId]) {
+    unitCostInput.value = existingMaterialCosts[selectedId];
+  }
+
+  updateTotalCost();
+}
+
+async function loadExistingMaterials(productId) {
+  document.getElementById('materialsContainer').innerHTML = '';
+  existingMaterialCosts = {};
+
+  if (!productId) return;
+
+  const res = await fetch(`/api/product-materials/${productId}`);
+  if (!res.ok) {
+    console.error("Failed to load existing materials");
+    return;
+  }
+
+  const existingMaterials = await res.json();
+  existingMaterials.forEach(m => {
+    existingMaterialCosts[m.material_id] = m.unit_cost;
+    addMaterialField(m, true, productId);
+  });
+
+  updateTotalCost();
+}
+
+async function submitProductMaterials() {
+  const product_id = document.getElementById('productSelect').value;
+  const materialDivs = document.querySelectorAll('.material-entry');
+
+  // Get only new (non-disabled) material rows
+  const materials = Array.from(materialDivs)
+    .filter(div => !div.querySelector('.material-select')?.disabled)
+    .map(div => {
+      return {
+        material_id: div.querySelector('.material-select').value,
+        used_quantity: parseFloat(div.querySelector('.used-quantity').value),
+        unit_cost: parseFloat(div.querySelector('.unit-cost').value)
+      };
+    });
+
+  // Validation checks
+  if (!product_id) {
+    alert('Please select a product.');
+    return;
+  }
+
+  if (materials.length === 0) {
+    alert('No new materials to add.');
+    return;
+  }
+
+  if (materials.some(m => !m.material_id || isNaN(m.used_quantity) || isNaN(m.unit_cost))) {
+    alert('Please complete all material fields.');
+    return;
+  }
+
+  // Send to backend
+  const res = await fetch('/api/product-materials/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_id, materials })
+  });
+
+  if (res.ok) {
+    alert('Materials added successfully.');
+    closeModal('productMaterialModal');
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+
+async function updateMaterialField(button, productId, materialId) {
+  const entry = button.closest('.material-entry');
+  const used_quantity = parseFloat(entry.querySelector('.used-quantity').value);
+  const unit_cost = parseFloat(entry.querySelector('.unit-cost').value);
+
+  if (isNaN(used_quantity) || isNaN(unit_cost)) {
+    alert("Please enter valid quantity and cost.");
+    return;
+  }
+
+  const res = await fetch('/api/product-materials/update', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ product_id: productId, material_id: materialId, used_quantity, unit_cost })
+  });
+
+  if (res.ok) {
+    alert("Material updated.");
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+async function deleteMaterialField(button, productId, materialId) {
+  if (!confirm("Are you sure you want to delete this material from the product?")) return;
+
+  const res = await fetch(`/api/product-materials/delete?product_id=${productId}&material_id=${materialId}`, {
+    method: 'DELETE'
+  });
+
+  if (res.ok) {
+    alert("Material deleted.");
+    button.closest('.material-entry').remove();
+    updateTotalCost();
+  } else {
+    const error = await res.json();
+    alert(`Error: ${error.detail}`);
+  }
+}
+
+function removeMaterialField(button, event) {
+  event.stopPropagation();
+  button.parentElement.remove();
+  updateTotalCost();
+}
+</script>
+
+
 <script>
 function closeModal(modalId) {
-  document.getElementById(modalId).style.display = "none";
+  const modal = document.getElementById(modalId);
+  modal.style.display = "none";
 
   if (modalId === "createModal") {
+    // Reset create form
     document.getElementById("createName").value = "";
     document.getElementById("createDescription").value = "";
     document.getElementById("createCategory").selectedIndex = 0;
     document.getElementById("createPrice").value = "";
     document.getElementById("createCost").value = "";
     document.getElementById("createStatus").selectedIndex = 0;
+  } else if (modalId === "productMaterialModal") {
+    // Reset product materials modal
+    document.getElementById("materialsContainer").innerHTML = "";
+    document.getElementById("totalCost").textContent = "0.00";
+    document.getElementById("productSelect").value = "";
   }
 }
 
-// Close "Create" modal on outside click and clear inputs
-document.getElementById("createModal").addEventListener("click", function(event) {
-  if (event.target === this) {
-    this.style.display = "none";
-  }
-});
+window.onclick = function(event) {
+  const modalIds = [
+    "createModal",
+    "editModal",
+    "deleteModal",
+    "productMaterialModal"
+  ];
+  
+  modalIds.forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal && event.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+};
 
-
-// Close "Edit" modal on outside click
-document.getElementById("editModal").addEventListener("click", function(event) {
-  if (event.target === this) {
-    this.style.display = "none";
-  }
-});
-
-// Close "Delete" modal on outside click
-document.getElementById("deleteModal").addEventListener("click", function(event) {
-  if (event.target === this) {
-    this.style.display = "none";
-  }
-});
 </script>
 
 

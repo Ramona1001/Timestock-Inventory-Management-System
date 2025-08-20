@@ -65,27 +65,119 @@
   </form>
 
 
-{% if report_text %}
-  <div>
-    <h3>Summary</h3>
-    <pre>{{ report_text }}</pre>
+{% if report_text and not report_text.empty %}
+  <div class="report-section">
+    <h3>{{ report_text.title }}</h3>
+    <p><strong>Total Orders:</strong> {{ report_text.total_orders }}</p>
+    <p><strong>Total Sales:</strong> {{ report_text.total_sales }}</p>
+    <p><strong>Total Revenue:</strong> Php{{ "{:,.2f}".format(report_text.total_revenue) }}</p>
+
+    <h4>Daily Breakdown</h4>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Orders</th>
+          <th>Sales</th>
+          <th>Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report_text.breakdown %}
+        <tr>
+          <td>{{ row.day }}</td>
+          <td>{{ row.orders }}</td>
+          <td>{{ row.sales }}</td>
+          <td>Php{{ "{:,.2f}".format(row.revenue) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+{% elif report_text and report_text.empty %}
+  <p>{{ report_text.message }}</p>
 {% endif %}
 
-{% if turnover_report %}
-  <h3>Inventory Turnover Report</h3>
-  <pre>{{ turnover_report }}</pre>
+
+{% if turnover_report and not turnover_report.empty %}
+  <div class="report-section">
+    <h3>{{ turnover_report.title }}</h3>
+    <p><strong>COGS:</strong> Php{{ "{:,.2f}".format(turnover_report.cogs) }}</p>
+    <p><strong>Average Inventory:</strong> Php{{ "{:,.2f}".format(turnover_report.avg_inventory) }}</p>
+    <p><strong>Turnover Rate:</strong> {{ "%.2f"|format(turnover_report.turnover_rate) }} times</p>
+    <p><em>{{ turnover_report.interpretation }}</em></p>
+  </div>
+{% elif turnover_report and turnover_report.empty %}
+  <p>{{ turnover_report.message }}</p>
 {% endif %}
 
-{% if stl_report %}
-  <h3>STL Decomposition Report</h3>
-  <pre>{{ stl_report }}</pre>
+
+{% if stl_report and not stl_report.empty %}
+  <div class="report-section">
+    <h3>{{ stl_report.title }}</h3>
+    <p><strong>Top-Ordered Product:</strong> {{ stl_report.top_product }}</p>
+    <p><strong>Trend Component:</strong> {{ "%.2f"|format(stl_report.trend) }}</p>
+    <p><strong>Seasonal Component:</strong> {{ "%.2f"|format(stl_report.seasonal) }}</p>
+    <p><strong>Residual Component:</strong> {{ "%.2f"|format(stl_report.residual) }}</p>
+
+    <h4>Interpretation</h4>
+    <ul>
+      {% for interp in stl_report.interpretations %}
+        <li>{{ interp }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% elif stl_report and stl_report.empty %}
+  <p>{{ stl_report.message }}</p>
 {% endif %}
 
-{% if moving_avg_report %}
-  <h3>Sales Moving Average</h3>
-  <pre>{{ moving_avg_report}}</pre>
+
+{% if moving_avg_report and not moving_avg_report.empty %}
+  <section class="report-section card" style="margin-top:1rem;">
+    <div class="card-body">
+      <h3 class="card-title">{{ moving_avg_report.title }}</h3>
+
+      <div class="row" style="margin: .5rem 0;">
+        <div class="col">
+          <p><strong>Total Sales:</strong>
+            Php{{ "{:,.2f}".format(moving_avg_report.total_sales) }}
+          </p>
+        </div>
+        <div class="col">
+          <p><strong>Top-Selling Product:</strong>
+            {{ moving_avg_report.top_product }}
+          </p>
+        </div>
+      </div>
+
+      <div class="row" style="margin: .5rem 0;">
+        <div class="col">
+          <p><strong>3-Month Moving Average:</strong>
+            {% if moving_avg_report.ma3 is not none %}
+              Php{{ "{:,.2f}".format(moving_avg_report.ma3) }}
+            {% else %}
+              <em>Not enough data</em>
+            {% endif %}
+          </p>
+        </div>
+        <div class="col">
+          <p><strong>6-Month Moving Average:</strong>
+            {% if moving_avg_report.ma6 is not none %}
+              Php{{ "{:,.2f}".format(moving_avg_report.ma6) }}
+            {% else %}
+              <em>Not enough data</em>
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+{% elif moving_avg_report and moving_avg_report.empty %}
+  <section class="report-section" style="margin-top:1rem;">
+    <p>{{ moving_avg_report.message }}</p>
+  </section>
 {% endif %}
+
 
 
 <!-- Download PDF Button -->

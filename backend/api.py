@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 from datetime import datetime, timedelta
 import pandas as pd
 import uuid
-import os
+import os, json
 
 from backend.auth import get_current_user, verify_token
 from .app_schemas import (
@@ -63,53 +63,99 @@ def update_material_api(material: MaterialUpdate) -> Any:
 
 
 # ---- Alerts ---
+CACHE_FILE = "alert_cache.json"
+
+# Load cache from file
+if os.path.exists(CACHE_FILE):
+    with open(CACHE_FILE, "r") as f:
+        alert_cache = json.load(f)
+        # Only convert to pd.Timestamp for Reorder/Minimum Stock, NOT Turnover
+        for cat in ["Reorder", "Minimum Stock"]:
+            for key, ts in alert_cache.get(cat, {}).items():
+                try:
+                    alert_cache[cat][key] = pd.Timestamp(ts)
+                except:
+                    alert_cache[cat][key] = pd.Timestamp.now()
+else:
+    alert_cache = {"Turnover": {}, "Reorder": {}, "Minimum Stock": {}}
+
 @router.get("/all-alerts")
 def get_all_alerts():
-    alerts = []
+    now = pd.Timestamp.now()
+    alerts = {"Turnover": [], "Reorder": [], "Minimum Stock": []}
 
-    # Turnover Alerts (sorted by label_date descending)
+    # --- Turnover Alerts ---
     _, turnover_df, _ = graphs.get_turnover_combined_graph()
-    turnover_df['label_date'] = pd.to_datetime(turnover_df['label'], format='%Y-%m')
-    three_months_ago = pd.Timestamp.now() - pd.DateOffset(months=1)
-    recent_df = turnover_df[turnover_df['label_date'] >= three_months_ago]
+    turnover_msgs = set()
+    if "label" in turnover_df.columns:
+        turnover_df['label_date'] = pd.to_datetime(turnover_df['label'], format='%Y-%m')
+        recent_df = turnover_df[turnover_df['label_date'] >= (now - pd.DateOffset(months=1))]
 
-    for _, row in recent_df.iterrows():
-        label = row['label']
-        rate = row['turnover_rate']
-        date = pd.Timestamp.now()
+        for _, row in recent_df.iterrows():
+            label = row['label']
+            rate = row['turnover_rate']
 
-        if rate < 1:
-            msg = f"⚠️ {label}: Low turnover rate ({rate}) – Review excess stock."
-        elif rate > 5:
-            msg = f"⚠️ {label}: High turnover rate ({rate}) – Stock might run out fast."
-        else:
-            msg = f"✅ {label}: Turnover rate is normal ({rate})."
-        alerts.append((date, msg))
+            if rate < 1:
+                msg = f"⚠️ {label}: Low turnover rate ({rate}) – Review excess stock."
+            elif rate > 5:
+                msg = f"⚠️ {label}: High turnover rate ({rate}) – Stock might run out fast."
+            else:
+                msg = f"✅ {label}: Turnover rate is normal ({rate})."
 
-    # Reorder Point Alerts (assume these are current and use today as the timestamp)
+            formatted_timestamp = row['label_date'].strftime("%b %Y")
+            timestamp = alert_cache["Turnover"].get(msg, formatted_timestamp)
+            alert_cache["Turnover"][msg] = timestamp
+
+            alerts["Turnover"].append({
+                "message": msg,
+                "timestamp": timestamp,
+            })
+            turnover_msgs.add(msg)
+
+    # Invalidate old Turnover cache entries not present now
+    alert_cache["Turnover"] = {k: v for k, v in alert_cache["Turnover"].items() if k in turnover_msgs}
+
+    # --- Reorder Alerts ---
+    reorder_msgs = set()
     reorder_df = graphs.get_reorder_point_chart(return_df=True)
     if reorder_df is not None:
-        today = pd.Timestamp.now()
         for _, row in reorder_df.iterrows():
             if row['reorder_status'] == '⚠️ Reorder Needed':
                 msg = f"⚠️ {row['item_name']}: Stock is low ({row['current_stock']}) – Reorder point is {row['reorder_point']}"
-                alerts.append((today, msg))
+                timestamp = alert_cache["Reorder"].get(msg, now)
+                alert_cache["Reorder"][msg] = timestamp
 
-    # Minimum Stock Alerts (assume analytics returns list of tuples: (date, message))
+                alerts["Reorder"].append({
+                    "message": msg,
+                    "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                    "display_time": timestamp.strftime("%b %d %Y %H:%M")
+                })
+                reorder_msgs.add(msg)
+
+    alert_cache["Reorder"] = {k: v for k, v in alert_cache["Reorder"].items() if k in reorder_msgs}
+
+    # --- Minimum Stock Alerts ---
+    minstock_msgs = set()
     min_stock_alerts = analytics.get_minimum_stock_alerts()
     for item in min_stock_alerts:
-        if isinstance(item, tuple) and len(item) == 2:
-            alerts.append(item)
-        else:
-            # fallback in case it's just a string, use today
-            alerts.append((pd.Timestamp.now(), item))
+        msg = str(item[1]) if isinstance(item, tuple) and len(item) == 2 else str(item)
+        timestamp = alert_cache["Minimum Stock"].get(msg, now)
+        alert_cache["Minimum Stock"][msg] = timestamp
 
-    # Sort all alerts by date (newest first)
-    sorted_alerts = sorted(alerts, key=lambda x: x[0], reverse=True)
+        alerts["Minimum Stock"].append({
+            "message": msg,
+            "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "display_time": timestamp.strftime("%b %d %Y %H:%M")
+        })
+        minstock_msgs.add(msg)
 
-    # Return just the messages
-    return {"alerts": [msg for _, msg in sorted_alerts]}
+    alert_cache["Minimum Stock"] = {k: v for k, v in alert_cache["Minimum Stock"].items() if k in minstock_msgs}
 
+    # --- Persist cache ---
+    with open(CACHE_FILE, "w") as f:
+        json.dump({cat: {k: str(v) for k,v in alert_cache[cat].items()} for cat in alert_cache}, f)
+
+    return {"alerts": alerts}
 
 @router.get("/low-stock-alerts")
 def low_stock_alerts():

@@ -247,62 +247,97 @@ def generate_modern_quotation_pdf(filename, client_name, client_address, items_q
 
 
 #----------- Reports ----------
+import os
+import calendar
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
 def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month=None):
+    # File setup
     month_name = calendar.month_name[month] if month else "ALL"
     filename = f"report_{month_name}_{year}.pdf"
     filepath = os.path.join("reports", filename)
     os.makedirs("reports", exist_ok=True)
 
-    c = canvas.Canvas(filepath, pagesize=A4)
-    width, height = A4
-    margin = 40
-    y_pos = height - 60
+    doc = SimpleDocTemplate(filepath, pagesize=A4)
+    story = []
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="SectionTitle", fontSize=14, leading=16, spaceAfter=10, textColor=colors.darkblue))
 
     # Title
-    c.setFont("Helvetica-Bold", 22)
-    report_title = f"Business Report - {month_name} {year}" if month else f"Business Report - {year}"
-    c.drawCentredString(width / 2, y_pos, report_title)
-    y_pos -= 25
+    story.append(Paragraph(f"Business Report - {month_name} {year}", styles["Title"]))
+    story.append(Paragraph(f"Generated on {datetime.now().strftime('%B %d, %Y %H:%M:%S')}", styles["Normal"]))
+    story.append(Spacer(1, 20))
 
-    # Subtitle
-    c.setFont("Helvetica", 10)
-    c.drawCentredString(width / 2, y_pos, f"Generated on {datetime.now().strftime('%B %d, %Y %H:%M:%S')}")
-    y_pos -= 30
+    # Sales Report
+    if report_text and not report_text.get("empty", False):
+        story.append(Paragraph(report_text["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>Total Orders:</b> {report_text['total_orders']}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Total Sales:</b> {report_text['total_sales']}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Total Revenue:</b> Php{report_text['total_revenue']:,.2f}", styles["Normal"]))
+        story.append(Spacer(1, 10))
 
-    # Function to write plain text sections (from your report functions)
-    def write_text_section(title, text, y):
-        c.setFont("Helvetica-Bold", 14)
-        c.setFillColor(colors.darkblue)
-        c.drawString(margin, y, title)
-        c.line(margin, y-2, width-margin, y-2)
-        y -= 20
+        # Daily breakdown table
+        data = [["Date", "Orders", "Sales", "Revenue"]]
+        for row in report_text["breakdown"]:
+            data.append([
+                row["day"],
+                row["orders"],
+                row["sales"],
+                f"Php{row['revenue']:,.2f}"
+            ])
+        table = Table(data, colWidths=[100, 80, 80, 100])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 20))
 
-        c.setFont("Helvetica", 11)
-        c.setFillColor(colors.black)
-        for line in text.splitlines():
-            if y < 50:
-                c.showPage()
-                y = height - margin
-                c.setFont("Helvetica", 11)
-            c.drawString(margin + 5, y, line)
-            y -= 14
-        y -= 10
-        return y
+    # Turnover Report
+    if turnover_report and not turnover_report.get("empty", False):
+        story.append(Paragraph(turnover_report["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>COGS:</b> Php{turnover_report['cogs']:,.2f}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Average Inventory:</b> Php{turnover_report['avg_inventory']:,.2f}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Turnover Rate:</b> {turnover_report['turnover_rate']:.2f} times", styles["Normal"]))
+        story.append(Paragraph(f"<i>{turnover_report['interpretation']}</i>", styles["Normal"]))
+        story.append(Spacer(1, 20))
 
-    # Draw each section
-    if report_text:
-        y_pos = write_text_section("📊 Sales Report", report_text, y_pos)
-    if turnover_report:
-        y_pos = write_text_section("💰 Turnover Report", turnover_report, y_pos)
-    if stl_report:
-        y_pos = write_text_section("📈 STL Decomposition Report", stl_report, y_pos)
-    if moving_avg_report:
-        y_pos = write_text_section("📉 Moving Average Report", moving_avg_report, y_pos)
+    # STL Report
+    if stl_report and not stl_report.get("empty", False):
+        story.append(Paragraph(stl_report["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>Top-Ordered Product:</b> {stl_report['top_product']}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Trend Component:</b> {stl_report['trend']:.2f}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Seasonal Component:</b> {stl_report['seasonal']:.2f}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Residual Component:</b> {stl_report['residual']:.2f}", styles["Normal"]))
+        story.append(Spacer(1, 5))
 
-    # Footer with page number
-    c.setFont("Helvetica-Oblique", 8)
-    c.setFillColor(colors.grey)
-    c.drawRightString(width - margin, 20, f"Page 1")
+        if "interpretations" in stl_report:
+            story.append(Paragraph("<b>Interpretation:</b>", styles["Normal"]))
+            for interp in stl_report["interpretations"]:
+                story.append(Paragraph(f"- {interp}", styles["Normal"]))
+        story.append(Spacer(1, 20))
 
-    c.save()
+    # Moving Average Report
+    if moving_avg_report and not moving_avg_report.get("empty", False):
+        story.append(Paragraph(moving_avg_report["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>Total Sales:</b> Php{moving_avg_report['total_sales']:,.2f}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Top-Selling Product:</b> {moving_avg_report['top_product']}", styles["Normal"]))
+
+        if moving_avg_report["ma3"] is not None:
+            story.append(Paragraph(f"<b>3-Month Moving Average:</b> Php{moving_avg_report['ma3']:,.2f}", styles["Normal"]))
+        else:
+            story.append(Paragraph("<b>3-Month Moving Average:</b> Not enough data", styles["Normal"]))
+
+        if moving_avg_report["ma6"] is not None:
+            story.append(Paragraph(f"<b>6-Month Moving Average:</b> Php{moving_avg_report['ma6']:,.2f}", styles["Normal"]))
+        else:
+            story.append(Paragraph("<b>6-Month Moving Average:</b> Not enough data", styles["Normal"]))
+
+    # Build PDF
+    doc.build(story)
     return filepath
