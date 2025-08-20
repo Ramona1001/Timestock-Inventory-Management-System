@@ -1,8 +1,10 @@
-from reportlab.lib.pagesizes import mm,letter
+from reportlab.lib.pagesizes import mm,letter, A4
+from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from datetime import datetime
+import calendar
 from xml.sax.saxutils import escape
 import time, os
 
@@ -119,24 +121,6 @@ def generate_unofficial_receipt(
 
     doc.build(elements)
     print(f"✅ Receipt saved to: {filename}")
-
-items = [
-    {"unit_id": "U001", "name": "Tempered Glass 12mm", "quantity": 2, "unit_price": 750},
-    {"unit_id": "U002", "name": "Sliding Frame - White Finish", "quantity": 1, "unit_price": 1250},
-    {"unit_id": "U003", "name": "Sealant Tube (Neutral Cure)", "quantity": 3, "unit_price": 120},
-    {"unit_id": "U002", "name": "Sliding Frame - White Finish", "quantity": 1, "unit_price": 1250},
-    {"unit_id": "U002", "name": "Sliding Frame - White Finish", "quantity": 1, "unit_price": 1250}
-]
-
-# generate_unofficial_receipt(
-#     filename="auto_height_receipt.pdf",
-#     company_name="Times Stock Aluminum & Glass",
-#     customer_name="Juan Dela Cruz",
-#     address="123 Tindahan St, Maynila",
-#     phone="0917-123-4567",
-#     items=items,
-#     down_payment=1000
-# )
 
 #Quote
 
@@ -261,45 +245,64 @@ def generate_modern_quotation_pdf(filename, client_name, client_address, items_q
     doc.build(elements)
     print(f"✅ Quotation PDF generated: {filename}")
 
-items_quote = [
-    {
-        "description": "Fixed with Sliding Door (4 panels)\nDimension: W452cm x H230cm",
-        "quantity": 4,
-        "unit_price": 33000,
-        "short_label": "Fixed with Sliding Door",
-        "materials": [
-            "Glass: 6mm ordinary glass",
-            "Frames: 1 3/4 x 3 tubular analok brown, SOBc, 798 profile",
-            "Accessories: roller, vinyl, rubber jamb, lockset"
-        ]
-    },
-    {
-        "description": "Frame Glass Door (E.D Door)\nDimension: W91cm x H210cm",
-        "quantity": 2,
-        "unit_price": 14000,
-        "short_label": "ED Frame Glass Door",
-        "materials": [
-            "Glass: 6mm ordinary glass",
-            "Frames: 1 3/4 x 4 tubular analok brown, ED profile",
-            "Accessories: overhead door closer, WF lockset, Samson handle"
-        ]
-    },
-    {
-        "description": "Fixed with Swing Frame Glassdoor\nDimension: W360cm x H212cm",
-        "quantity": 2,
-        "unit_price": 31900,
-        "short_label": "Swing Frame Glass Door",
-        "materials": [
-            "Glass: 6mm ordinary glass",
-            "Frames: aluminum profile",
-            "Accessories: standard handle, hinges, lockset"
-        ]
-    }
-]
 
-# generate_modern_quotation_pdf(
-#     filename="modernized_quotation.pdf",
-#     client_name="Sir Irvyn Guevarra",
-#     client_address="Kalayaan, Brgy. Cembo, Makati",
-#     items_quote=items_quote
-# )
+#----------- Reports ----------
+def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month=None):
+    month_name = calendar.month_name[month] if month else "ALL"
+    filename = f"report_{month_name}_{year}.pdf"
+    filepath = os.path.join("reports", filename)
+    os.makedirs("reports", exist_ok=True)
+
+    c = canvas.Canvas(filepath, pagesize=A4)
+    width, height = A4
+    margin = 40
+    y_pos = height - 60
+
+    # Title
+    c.setFont("Helvetica-Bold", 22)
+    report_title = f"Business Report - {month_name} {year}" if month else f"Business Report - {year}"
+    c.drawCentredString(width / 2, y_pos, report_title)
+    y_pos -= 25
+
+    # Subtitle
+    c.setFont("Helvetica", 10)
+    c.drawCentredString(width / 2, y_pos, f"Generated on {datetime.now().strftime('%B %d, %Y %H:%M:%S')}")
+    y_pos -= 30
+
+    # Function to write plain text sections (from your report functions)
+    def write_text_section(title, text, y):
+        c.setFont("Helvetica-Bold", 14)
+        c.setFillColor(colors.darkblue)
+        c.drawString(margin, y, title)
+        c.line(margin, y-2, width-margin, y-2)
+        y -= 20
+
+        c.setFont("Helvetica", 11)
+        c.setFillColor(colors.black)
+        for line in text.splitlines():
+            if y < 50:
+                c.showPage()
+                y = height - margin
+                c.setFont("Helvetica", 11)
+            c.drawString(margin + 5, y, line)
+            y -= 14
+        y -= 10
+        return y
+
+    # Draw each section
+    if report_text:
+        y_pos = write_text_section("📊 Sales Report", report_text, y_pos)
+    if turnover_report:
+        y_pos = write_text_section("💰 Turnover Report", turnover_report, y_pos)
+    if stl_report:
+        y_pos = write_text_section("📈 STL Decomposition Report", stl_report, y_pos)
+    if moving_avg_report:
+        y_pos = write_text_section("📉 Moving Average Report", moving_avg_report, y_pos)
+
+    # Footer with page number
+    c.setFont("Helvetica-Oblique", 8)
+    c.setFillColor(colors.grey)
+    c.drawRightString(width - margin, 20, f"Page 1")
+
+    c.save()
+    return filepath

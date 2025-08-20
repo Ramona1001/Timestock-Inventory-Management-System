@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Stock IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <link rel="stylesheet" href="../css/reports.css?v=1">
+  <style>
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside>
+      <div class="top">
+        <div class="logo">
+          <img src="../images/TIMESTOCK_BG.png">
+          <h2>TIME<span class="danger">STOCK</span></h2>
+        </div>
+        <div class="close" id="close-btn">
+            <span class="material-symbols-sharp">close </span>        
+      </div>
+    </div>
+
+<div class="sidebar">
+  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
+  <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
+  <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
+  <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
+  <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
+  <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
+  <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
+  <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
+  <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
+  <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+</aside>
+<!-----END OF ASIDE MUENU----->
+<main>
+  <div class="header-bar">
+  <h1>Reports</h1>
+  <div class="top-bar">
+        {% include 'alert.html' %}
+    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
+    <small class="text-muted">Admin</small>
+    <div class="profile-photo">
+      <img src="../images/admin-profile!.png" />
+    </div>
+  </div>
+</div>
+
+  <form method="get" action="/Reports.html">
+    <label for="year">Year:</label>
+    <input type="number" name="year" id="year" min="2020" max="2100" required>
+    
+    <label for="month">Month:</label>
+    <input type="number" name="month" id="month" min="1" max="12" required>
+
+    <button type="submit">Generate Report</button>
+  </form>
+
+
+{% if report_text %}
+  <div>
+    <h3>Summary</h3>
+    <pre>{{ report_text }}</pre>
+  </div>
+{% endif %}
+
+{% if turnover_report %}
+  <h3>Inventory Turnover Report</h3>
+  <pre>{{ turnover_report }}</pre>
+{% endif %}
+
+{% if stl_report %}
+  <h3>STL Decomposition Report</h3>
+  <pre>{{ stl_report }}</pre>
+{% endif %}
+
+{% if moving_avg_report %}
+  <h3>Sales Moving Average</h3>
+  <pre>{{ moving_avg_report}}</pre>
+{% endif %}
+
+
+<!-- Download PDF Button -->
+<button id="downloadPdfBtn" class="btn btn-primary">Download PDF</button>
+  </div>
+</body>
+</html>
+<script>
+  const notificationIcon = document.getElementById("notificationToggle");
+  const dropdownMenu = document.getElementById("notificationDropdown");
+
+  document.addEventListener("click", function (e) {
+    const isInside = notificationIcon.contains(e.target) || dropdownMenu.contains(e.target);
+    if (!isInside) {
+      dropdownMenu.style.display = "none";
+    }
+  });
+
+  notificationIcon.addEventListener("click", function (e) {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
+  });
+</script>
+
+<script>
+  document.getElementById("downloadPdfBtn").addEventListener("click", function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const year = urlParams.get("year");
+    const month = urlParams.get("month");
+
+    if (!year) {
+      alert("Please select a year before downloading the report.");
+      return;
+    }
+
+    // Build API URL
+    let apiUrl = `/api/reports/pdf?year=${year}`;
+    if (month) {
+      apiUrl += `&month=${month}`;
+    }
+
+    // Trigger PDF download
+    window.location.href = apiUrl;
+  });
+</script>

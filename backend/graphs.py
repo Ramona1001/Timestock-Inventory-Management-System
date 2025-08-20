@@ -790,3 +790,271 @@ def generate_sales_moving_average_report(df: pd.DataFrame) -> str:
     🔹 3-Month MA: ₱{latest_3_ma:,.2f}<br>
     🟢 6-Month MA: ₱{latest_6_ma:,.2f}
     """
+
+# ------------ Reports -----------
+def get_text_report_for_month(year: int, month: int):
+    con = duckdb.connect('backend/db_timestock')
+
+    query = f"""
+        SELECT 
+            DATE_TRUNC('day', ot.date_created) AS period,
+            COUNT(DISTINCT ot.id) AS total_orders,
+            SUM(oi.quantity) AS total_sales,
+            SUM(ot.total_amount) AS total_revenue
+        FROM order_transactions ot
+        JOIN order_items oi ON ot.id = oi.order_id
+        WHERE EXTRACT(YEAR FROM ot.date_created) = {year}
+          AND EXTRACT(MONTH FROM ot.date_created) = {month}
+        GROUP BY period
+        ORDER BY period;
+    """
+    df = con.execute(query).fetchdf()
+
+    if df.empty:
+        return f"No records found for {year}-{month:02d}"
+
+    # Monthly totals
+    total_orders = int(df["total_orders"].sum())
+    total_sales = int(df["total_sales"].sum())
+    total_revenue = float(df["total_revenue"].sum())
+
+    # Build plain text report
+    lines = []
+    lines.append(f"📅 Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
+    lines.append(f"Total Orders: {total_orders}")
+    lines.append(f"Total Sales: {total_sales}")
+    lines.append(f"Total Revenue: Php{total_revenue:,.2f}")
+    lines.append("")
+    lines.append("Daily Breakdown:")
+    for _, row in df.iterrows():
+        day = row['period'].strftime("%Y-%m-%d")
+        lines.append(
+            f"  {day}: {int(row['total_orders'])} orders, "
+            f"{int(row['total_sales'])} sales, "
+            f"Php{float(row['total_revenue']):,.2f} revenue"
+        )
+
+    return "\n".join(lines)
+
+def get_turnover_text_report_for_month(year: int, month: int):
+    con = duckdb.connect('backend/db_timestock')
+
+    query = f"""
+        WITH monthly_data AS (
+            SELECT
+                DATE_TRUNC('month', st.date_created) AS period,
+                SUM(CASE WHEN stt.type_code = 'stock-in' THEN sti.quantity * m.material_cost ELSE 0 END) AS stock_in_value,
+                SUM(CASE WHEN stt.type_code = 'stock-out' THEN sti.quantity * m.material_cost ELSE 0 END) AS cogs,
+                SUM(m.current_stock * m.material_cost) AS ending_inventory_value
+            FROM stock_transaction_items sti
+            JOIN stock_transactions st ON st.id = sti.stock_transaction_id
+            JOIN stock_transaction_types stt ON stt.id = st.stock_type_id
+            JOIN materials m ON m.id = sti.material_id
+            WHERE EXTRACT(YEAR FROM st.date_created) = {year}
+              AND EXTRACT(MONTH FROM st.date_created) = {month}
+            GROUP BY period
+        ),
+        turnover_calc AS (
+            SELECT
+                STRFTIME(period, '%Y-%m') AS label,
+                cogs,
+                ending_inventory_value,
+                ROUND(
+                    (ending_inventory_value + (cogs + stock_in_value - ending_inventory_value)) / 2.0, 2
+                ) AS avg_inventory,
+                ROUND(
+                    CASE
+                        WHEN ((ending_inventory_value + (cogs + stock_in_value - ending_inventory_value)) / 2.0) > 0
+                        THEN cogs / ((ending_inventory_value + (cogs + stock_in_value - ending_inventory_value)) / 2.0)
+                        ELSE 0
+                    END, 2
+                ) AS turnover_rate
+            FROM monthly_data
+        )
+        SELECT label, cogs, avg_inventory, turnover_rate
+        FROM turnover_calc
+        ORDER BY label;
+    """
+    df = con.execute(query).fetchdf()
+
+    if df.empty:
+        return f"No turnover records found for {year}-{month:02d}"
+
+    row = df.iloc[0]  # only one row since it's month-level
+    cogs = float(row["cogs"])
+    avg_inventory = float(row["avg_inventory"])
+    turnover_rate = float(row["turnover_rate"])
+
+    # Build plain text report
+    lines = []
+    lines.append(f"📦 Inventory Turnover Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
+    lines.append(f"COGS: Php{cogs:,.2f}")
+    lines.append(f"Average Inventory: Php{avg_inventory:,.2f}")
+    lines.append(f"Turnover Rate: {turnover_rate:.2f} times")
+    lines.append("")
+    if turnover_rate > 0:
+        lines.append(f"Interpretation: Inventory turned over about {turnover_rate:.2f} times in {year}-{month:02d}.")
+    else:
+        lines.append("Interpretation: No turnover occurred this month.")
+
+    return "\n".join(lines)
+
+def get_stl_text_report_for_month(year: int, month: int):
+    con = duckdb.connect('backend/db_timestock')
+
+    # Monthly order quantity
+    query = """
+    SELECT 
+        DATE_TRUNC('month', ot.date_created) AS order_month,
+        SUM(oi.quantity) AS total_quantity
+    FROM order_transactions ot
+    JOIN order_items oi ON ot.id = oi.order_id
+    GROUP BY order_month
+    ORDER BY order_month
+    """
+    df = con.execute(query).fetchdf()
+    df['order_month'] = pd.to_datetime(df['order_month'])
+    df.set_index('order_month', inplace=True)
+    df = df.asfreq('MS')
+    df['total_quantity'] = df['total_quantity'].fillna(0)
+
+    if df.empty:
+        return f"No STL data found for {year}-{month:02d}"
+
+    # Run STL decomposition
+    stl = STL(df['total_quantity'], period=12)
+    result = stl.fit()
+
+    # Top-selling product for that month
+    top_products_df = con.execute("""
+        SELECT month, product_name FROM (
+            SELECT 
+                DATE_TRUNC('month', ot.date_created) AS month,
+                i.item_name AS product_name,
+                SUM(oi.quantity) AS total_qty,
+                RANK() OVER (
+                    PARTITION BY DATE_TRUNC('month', ot.date_created) 
+                    ORDER BY SUM(oi.quantity) DESC
+                ) AS rnk
+            FROM order_transactions ot
+            JOIN order_items oi ON ot.id = oi.order_id
+            JOIN products p ON oi.product_id = p.id
+            JOIN items i ON p.item_id = i.id
+            GROUP BY month, product_name
+        ) 
+        WHERE rnk = 1
+    """).fetchdf()
+
+    top_products_df['month'] = pd.to_datetime(top_products_df['month'])
+    top_products_df.rename(columns={'month': 'order_month', 'product_name': 'top_product'}, inplace=True)
+
+    # Extract just that month
+    target_date = pd.Timestamp(year=year, month=month, day=1)
+    if target_date not in df.index:
+        return f"No STL data available for {year}-{month:02d}"
+
+    trend_val = float(result.trend.loc[target_date])
+    seasonal_val = float(result.seasonal.loc[target_date])
+    resid_val = float(result.resid.loc[target_date])
+
+    top_product_row = top_products_df[top_products_df['order_month'] == target_date]
+    top_product = top_product_row['top_product'].iloc[0] if not top_product_row.empty else "N/A"
+
+    # Build text report
+    lines = []
+    lines.append(f"📊 STL Decomposition Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}")
+    lines.append(f"Top-Selling Product: {top_product}")
+    lines.append(f"Trend Component: {trend_val:.2f}")
+    lines.append(f"Seasonal Component: {seasonal_val:.2f}")
+    lines.append(f"Residual Component: {resid_val:.2f}")
+    lines.append("")
+    if seasonal_val > 0:
+        lines.append("Interpretation: Seasonality boosted demand this month.")
+    elif seasonal_val < 0:
+        lines.append("Interpretation: Seasonality reduced demand this month.")
+    else:
+        lines.append("Interpretation: Neutral seasonality this month.")
+    if resid_val > 0:
+        lines.append("Residual suggests an unexpected demand spike.")
+    elif resid_val < 0:
+        lines.append("Residual suggests an unexpected drop in demand.")
+    else:
+        lines.append("Residual suggests stable demand.")
+
+    return "\n".join(lines)
+
+def get_sales_moving_average_text_report(year: int, month: int | None = None):
+    with duckdb.connect('backend/db_timestock') as con:
+        # --- get full dataset (no filtering here) ---
+        df = con.execute("""
+            SELECT
+                DATE_TRUNC('month', ot.date_created) AS month,
+                SUM(ot.total_amount) AS total_sales
+            FROM order_transactions ot
+            GROUP BY month
+            ORDER BY month
+        """).fetchdf()
+
+        if df.empty:
+            return "No moving average records found."
+
+        df['month'] = pd.to_datetime(df['month'])
+
+        # --- top-selling product for each month ---
+        top_products_df = con.execute("""
+            SELECT month, product_name FROM (
+                SELECT 
+                    DATE_TRUNC('month', ot.date_created) AS month,
+                    i.item_name AS product_name,
+                    SUM(oi.quantity) AS total_qty,
+                    RANK() OVER (
+                        PARTITION BY DATE_TRUNC('month', ot.date_created) 
+                        ORDER BY SUM(oi.quantity) DESC
+                    ) AS rnk
+                FROM order_transactions ot
+                JOIN order_items oi ON ot.id = oi.order_id
+                JOIN products p ON oi.product_id = p.id
+                JOIN items i ON p.item_id = i.id
+                GROUP BY month, product_name
+            ) 
+            WHERE rnk = 1
+        """).fetchdf()
+
+        if not top_products_df.empty:
+            top_products_df['month'] = pd.to_datetime(top_products_df['month'])
+
+        df = df.merge(top_products_df, on='month', how='left')
+        df.rename(columns={'product_name': 'top_product'}, inplace=True)
+
+        # --- moving averages computed on full dataset ---
+        df['3_MA'] = df['total_sales'].rolling(window=3).mean()
+        df['6_MA'] = df['total_sales'].rolling(window=6).mean()
+
+        # --- select target row ---
+        if month is not None:
+            target_date = pd.Timestamp(year=year, month=month, day=1)
+            if target_date not in df['month'].values:
+                return f"No moving average data for {year}-{month:02d}"
+            row = df[df['month'] == target_date].iloc[0]
+        else:
+            # last available month of that year
+            year_df = df[df['month'].dt.year == year]
+            if year_df.empty:
+                return f"No moving average records found for {year}"
+            row = year_df.iloc[-1]
+
+        total_sales = float(row['total_sales'])
+        top_product = row['top_product'] if pd.notna(row['top_product']) else "No sales"
+        ma3 = row['3_MA']
+        ma6 = row['6_MA']
+
+        # --- build plain text report ---
+        lines = []
+        lines.append(f"📈 Moving Average Report for {row['month'].strftime('%B %Y')}")
+        lines.append(f"Total Sales: Php{total_sales:,.2f}")
+        lines.append(f"Top-Selling Product: {top_product}")
+        lines.append(f"3-Month Moving Average: Php{ma3:,.2f}" if pd.notna(ma3) else "3-Month Moving Average: Not enough data")
+        lines.append(f"6-Month Moving Average: Php{ma6:,.2f}" if pd.notna(ma6) else "6-Month Moving Average: Not enough data")
+
+        return "\n".join(lines)
+

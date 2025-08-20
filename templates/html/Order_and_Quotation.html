@@ -22,43 +22,17 @@
       </div>
     </div>
 
-   <div class="sidebar">
-  <a href="index.html">
-    <span class="material-symbols-sharp">dashboard</span>
-    <h3>Overview</h3>
-  </a>
-    <a href="product.html" class="transition-link">
-<span class="material-symbols-sharp">package_2</span>    
-<h3>Product</h3>
-</a>
-    <a href="Materials.html">
-    <span class="material-symbols-sharp">handyman</span>    
-    <h3>Materials</h3>
-  </a>
-  </a>
-    <a href="Analytics.html">
-    <span class="material-symbols-sharp">monitoring</span>    
-    <h3>Analytics</h3>
-  </a>
-    <a href="Transactions.html">
-    <span class="material-symbols-sharp">dashboard</span>
-    <h3>Transactions</h3>
-  </a>
-    <a href="Customer.html">
-    <span class="material-symbols-sharp">groups</span>    
-    <h3>Customer</h3>
-  </a>
-    <a href="Supplier.html">
-    <span class="material-symbols-sharp">factory</span>    
-    <h3>Supplier</h3>
-  </a>
-    <a href="Order_and_Quotation.html">
-    <span class="material-symbols-sharp">contract_edit</span>    
-    <h3>Order and Quotation</h3>
-  </a>
-    <a href="Settings.html">
-    <span class="material-symbols-sharp">settings</span>    
-    <h3>Settings</h3>
+<div class="sidebar">
+  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
+  <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
+  <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
+  <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
+  <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
+  <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
+  <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
+  <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
+  <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
+  <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
   <a href="/logout">
     <span class="material-symbols-sharp">logout</span>    
     <h3>Sign-out</h3>
@@ -70,7 +44,7 @@
 <!-----END OF ASIDE MUENU----->
 <main>
     <div class="header-bar">
-  <h1>Supplier Management</h1>
+  <h1>Order and Quotation</h1>
    <div class="top-bar">
         {% include 'alert.html' %}
     <p class="greeting">Hey, <b>Emma-Nulle</b></p>
@@ -496,15 +470,59 @@ function submitOrder() {
     }
   }
 
-  const customer = {
-    firstname: document.getElementById('firstname').value,
-    lastname: document.getElementById('lastname').value,
-    contact_number: document.getElementById('contact_number').value,
-    email: document.getElementById('email').value,
-    address: document.getElementById('address').value
-  };
-
+  // --- Extra Validations ---
+  const firstname = document.getElementById('firstname').value.trim();
+  const lastname = document.getElementById('lastname').value.trim();
+  const contact_number = document.getElementById('contact_number').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const address = document.getElementById('address').value.trim();
   const status_id = document.getElementById('status_id').value;
+
+  // Name validation (letters and spaces only)
+  const nameRegex = /^[A-Za-z\s]+$/;
+  if (!nameRegex.test(firstname)) {
+    alert("Firstname should only contain letters and spaces.");
+    document.getElementById('firstname').focus();
+    return;
+  }
+  if (!nameRegex.test(lastname)) {
+    alert("Lastname should only contain letters and spaces.");
+    document.getElementById('lastname').focus();
+    return;
+  }
+
+  // Contact number validation (PH standard: 10–11 digits)
+  const phoneRegex = /^[0-9]{10,11}$/;
+  if (!phoneRegex.test(contact_number)) {
+    alert("Contact number must be 10–11 digits only.");
+    document.getElementById('contact_number').focus();
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert("Please enter a valid email address.");
+    document.getElementById('email').focus();
+    return;
+  }
+
+  // Address validation (at least 5 chars)
+  if (address.length < 5) {
+    alert("Address must be at least 5 characters long.");
+    document.getElementById('address').focus();
+    return;
+  }
+
+  // Status validation
+  if (!status_id) {
+    alert("Please select a valid status.");
+    document.getElementById('status_id').focus();
+    return;
+  }
+
+  // --- Construct order data ---
+  const customer = { firstname, lastname, contact_number, email, address };
 
   const orderData = {
     customer,
@@ -537,7 +555,6 @@ function submitOrder() {
       clearCustomerForm();
       hideReceiptPreview();
       hideQuotationPreview();
-      
     })
     .catch(err => alert("Error: " + err.message));
 }
@@ -551,14 +568,25 @@ function clearCustomerForm() {
 function generateReceipt() {
   if (orderCart.length === 0) return alert("Cart is empty!");
 
+  // --- Customer validation ---
+  const fields = ["firstname", "lastname", "contact_number", "email", "address"];
+  for (const field of fields) {
+    const el = document.getElementById(field);
+    if (!el || !el.value.trim()) {
+      alert(`Please fill in the ${field.replace("_", " ")} field before generating receipt.`);
+      el.focus();
+      return;
+    }
+  }
+
   hideReceiptPreview(); // Clean up old preview
 
   const customer = {
-    firstname: document.getElementById('firstname').value,
-    lastname: document.getElementById('lastname').value,
-    contact_number: document.getElementById('contact_number').value,
-    email: document.getElementById('email').value,
-    address: document.getElementById('address').value
+    firstname: document.getElementById('firstname').value.trim(),
+    lastname: document.getElementById('lastname').value.trim(),
+    contact_number: document.getElementById('contact_number').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    address: document.getElementById('address').value.trim()
   };
 
   const downPayment = parseFloat(document.getElementById("down_payment").value || "0");
@@ -607,10 +635,21 @@ function generateReceipt() {
 function generateQuotation() {
   if (orderCart.length === 0) return alert("Cart is empty!");
 
+  // --- Customer validation ---
+  const fields = ["firstname", "lastname", "address"];
+  for (const field of fields) {
+    const el = document.getElementById(field);
+    if (!el || !el.value.trim()) {
+      alert(`Please fill in the ${field.replace("_", " ")} field before generating quotation.`);
+      el.focus();
+      return;
+    }
+  }
+
   hideQuotationPreview(); // Clean up old preview
 
-  const customerName = `${document.getElementById('firstname').value} ${document.getElementById('lastname').value}`;
-  const customerAddress = document.getElementById('address').value;
+  const customerName = `${document.getElementById('firstname').value.trim()} ${document.getElementById('lastname').value.trim()}`;
+  const customerAddress = document.getElementById('address').value.trim();
 
   const items = orderCart.map(item => ({
     description: `${item.item_name}\nDimension: (customize as needed)`,
