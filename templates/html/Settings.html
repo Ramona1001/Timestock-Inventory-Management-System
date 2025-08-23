@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Settings.css?v=1">
+  <link rel="stylesheet" href="../css/Settings.css?v=2">
   <style>
     
   </style>
@@ -91,10 +91,102 @@
   <h2>Migrate Password Hashes</h2>
   <button id="migrateBtn">Run Migration</button>
 </section>
+<!-- START OF TESTING HTML -->
 
+<section class="maintenance-card" aria-labelledby="maintenance-title">
+  <h2 id="maintenance-title">Delete Old Transactions</h2>
+  <p class="muted">Preview what would be deleted before confirming. Minimum allowed value: <strong>5</strong> years.</p>
+
+  <div class="maintenance-row" style="margin-top:0.8rem;">
+    <label for="yearsToKeep">Years to keep</label>
+    <input id="yearsToKeep" type="number" min="2" value="2" aria-describedby="yearsHelp" />
+    <div id="yearsHelp" class="muted">Records older than <em>now − years</em> will be affected.</div>
+
+    <div style="margin-left:auto; display:flex; gap:0.5rem;">
+      <button id="previewDeleteBtn" class="btn btn-primary" type="button">Preview</button>
+      <button id="openDeleteModalBtn" class="btn btn-danger" type="button" disabled>Delete</button>
+    </div>
   </div>
+
+  <div id="previewBlock" class="hidden" style="margin-top:1rem;">
+    <div class="notice" role="status" aria-live="polite">
+      <div id="previewMessage"><strong>Preview:</strong> Checking counts…</div>
+    </div>
+
+    <ul id="previewCounts" style="margin-top:0.6rem;">
+      <li>Order rows: <span id="previewOrders">0</span></li>
+      <li>Order item rows: <span id="previewOrderItems">0</span></li>
+      <li>Stock transactions: <span id="previewStocks">0</span></li>
+      <li>Stock item rows: <span id="previewStockItems">0</span></li>
+    </ul>
+
+    <div id="previewCutoff" class="muted" style="margin-top:0.6rem;">Cutoff date: <span id="previewCutoffDate">—</span></div>
+  </div>
+</section>
+
+<!-- Confirmation Modal (hidden by default) -->
+<div id="deleteConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content" role="document">
+    <h3 id="confirmTitle">Confirm Delete</h3>
+    <p id="confirmMessage">You are about to delete <strong id="confirmTotal">0</strong> records of transaction history.</p>
+
+    <div style="margin-top:8px;">
+      <ul>
+        <li>Order rows: <strong id="confirmOrders">0</strong></li>
+        <li>Order item rows: <strong id="confirmOrderItems">0</strong></li>
+        <li>Stock transactions: <strong id="confirmStocks">0</strong></li>
+        <li>Stock item rows: <strong id="confirmStockItems">0</strong></li>
+      </ul>
+    </div>
+
+    <div id="confirmCutoff" class="muted" style="margin-top:8px;">Cutoff date: <span id="confirmCutoffDate">—</span></div>
+
+    <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+      <button id="cancelDeleteBtn" class="btn" type="button">Decline</button>
+      <button id="confirmDeleteBtn" class="btn btn-danger" type="button">Accept</button>
+    </div>
+  </div>
+</div>
+
+<section class="maintenance-card" aria-labelledby="maintenance-title">
+  <h2>Audit Logs</h2>
+
+    <div id="controls" style="margin-bottom:12px;">
+      <button id="prevBtn">Prev</button>
+      <span id="pageInfo" style="margin:0 8px">Page 1</span>
+      <button id="nextBtn">Next</button>
+    </div>
+
+    <div class="table-wrapper">
+      <!-- table area + slider side-by-side -->
+      <div class="table-container">
+        <table id="auditTable">
+          <thead>
+            <tr>
+              <th>ID</th><th>Entity</th><th>Entity ID</th><th>Action</th><th>Details</th><th>User</th><th>Time</th>
+            </tr>
+          </thead>
+          <!-- The tbody is wrapped so we can control scrolling height -->
+          <tbody id="auditBody"></tbody>
+        </table>
+      </div>
+
+      <!-- vertical slider to scroll the table body -->
+      <div class="slider-container">
+        <input id="verticalSlider" type="range" min="0" max="100" value="0" orient="vertical">
+      </div>
+    </div>
+
+    <div id="pagination" style="margin-top:12px;"></div>
+  <script src="audit_with_slider.js"></script>
+</section>
+
+<!-- END OF TESTING HTML -->
+
 </body>
 </html>
+
 <script>
   const notificationIcon = document.getElementById("notificationToggle");
   const dropdownMenu = document.getElementById("notificationDropdown");
@@ -179,4 +271,317 @@ document.getElementById('migrateBtn').addEventListener('click', async () => {
 });
 </script>
 
+<script>
+const API_BASE = '/api'; // <-- change this to '' or 'http://127.0.0.1:8000' as needed
 
+const previewUrl = years => `${API_BASE}/maintenance/preview-delete/${encodeURIComponent(years)}`;
+const deleteUrl  = years => `${API_BASE}/maintenance/delete-old-transactions/${encodeURIComponent(years)}`;
+
+async function fetchJson(url, options = {}) {
+  const opts = {
+    credentials: 'include',
+    headers: { 'Accept': 'application/json' },
+    ...options
+  };
+  if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  const resp = await fetch(url, opts);
+  const text = await resp.text();
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch (e) { /* not json */ }
+  if (!resp.ok) {
+    const detail = (json && (json.detail || json.message)) || text || resp.statusText;
+    const err = new Error(detail);
+    err.status = resp.status;
+    throw err;
+  }
+  return json;
+}
+
+/* UI elements */
+const previewBtn = document.getElementById('previewDeleteBtn');
+const deleteBtn = document.getElementById('openDeleteModalBtn');
+const yearsInput = document.getElementById('yearsToKeep');
+
+const previewBlock = document.getElementById('previewBlock');
+const previewMessage = document.getElementById('previewMessage');
+const previewOrders = document.getElementById('previewOrders');
+const previewOrderItems = document.getElementById('previewOrderItems');
+const previewStocks = document.getElementById('previewStocks');
+const previewStockItems = document.getElementById('previewStockItems');
+const previewCutoffDate = document.getElementById('previewCutoffDate');
+
+const modal = document.getElementById('deleteConfirmModal');
+const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+const confirmTotal = document.getElementById('confirmTotal');
+const confirmOrders = document.getElementById('confirmOrders');
+const confirmOrderItems = document.getElementById('confirmOrderItems');
+const confirmStocks = document.getElementById('confirmStocks');
+const confirmStockItems = document.getElementById('confirmStockItems');
+const confirmCutoffDate = document.getElementById('confirmCutoffDate');
+
+function showPreviewBlock() {
+  previewBlock.classList.remove('hidden');
+}
+function hidePreviewBlock() {
+  previewBlock.classList.add('hidden');
+}
+function openModal() { modal.classList.remove('hidden'); }
+function closeModal() { modal.classList.add('hidden'); }
+
+/* compute total helper */
+function totalFromResult(res) {
+  return (res.old_order_items || 0) + (res.old_orders || 0) + (res.old_stock_items || 0) + (res.old_stocks || 0);
+}
+
+/* Preview flow */
+previewBtn.addEventListener('click', async () => {
+  const years = Number(yearsInput.value || 0);
+  if (!years || years < 2) {
+    alert('Please enter a number >= 5 for years.');
+    return;
+  }
+
+  // show loading state
+  showPreviewBlock();
+  previewMessage.textContent = 'Preview: checking counts…';
+  previewOrders.textContent = previewOrderItems.textContent = previewStocks.textContent = previewStockItems.textContent = '-';
+  previewCutoffDate.textContent = '—';
+  deleteBtn.disabled = true;
+
+  try {
+    const res = await fetchJson(previewUrl(years), { method: 'GET' });
+
+    if (res && res.message && (res.message.indexOf("Data still") === 0 || res.message.indexOf("Data still") !== -1)) {
+      // special zero-result message from server
+      previewMessage.innerHTML = `<strong>Preview:</strong> ${res.message}`;
+      previewOrders.textContent = previewOrderItems.textContent = previewStocks.textContent = previewStockItems.textContent = '0';
+      previewCutoffDate.textContent = res.cutoff_date || '—';
+      deleteBtn.disabled = true; // nothing to delete
+      return;
+    }
+
+    // Normal preview result with counts
+    previewOrders.textContent = res.old_orders ?? 0;
+    previewOrderItems.textContent = res.old_order_items ?? 0;
+    previewStocks.textContent = res.old_stocks ?? 0;
+    previewStockItems.textContent = res.old_stock_items ?? 0;
+    previewCutoffDate.textContent = res.cutoff_date ?? '—';
+
+    const total = totalFromResult(res);
+    previewMessage.innerHTML = `<strong>Preview:</strong> This operation would delete <strong>${total}</strong> records.`;
+
+    // enable Delete button only if total > 0
+    deleteBtn.disabled = total === 0;
+
+    // store the last preview response on the delete button element for use later
+    deleteBtn._previewData = res;
+
+  } catch (err) {
+    console.error(err);
+    previewMessage.textContent = 'Error fetching preview: ' + (err.message || 'Unknown error');
+    deleteBtn.disabled = true;
+  }
+});
+
+/* Open modal with preview data */
+deleteBtn.addEventListener('click', (e) => {
+  const data = deleteBtn._previewData;
+  if (!data) return alert('Please run Preview first.');
+
+  const total = totalFromResult(data);
+  confirmTotal.textContent = total;
+  confirmOrders.textContent = data.old_orders ?? 0;
+  confirmOrderItems.textContent = data.old_order_items ?? 0;
+  confirmStocks.textContent = data.old_stocks ?? 0;
+  confirmStockItems.textContent = data.old_stock_items ?? 0;
+  confirmCutoffDate.textContent = data.cutoff_date ?? '—';
+
+  // show modal and make Accept clickable
+  openModal();
+});
+
+/* Cancel modal */
+cancelDeleteBtn.addEventListener('click', () => {
+  closeModal();
+});
+
+/* Confirm delete (perform destructive action) */
+confirmDeleteBtn.addEventListener('click', async () => {
+  // disable the button once clicked to avoid double submissions
+  confirmDeleteBtn.disabled = true;
+  confirmDeleteBtn.textContent = 'Deleting…';
+
+  const years = Number(yearsInput.value || 0);
+  try {
+    const res = await fetchJson(deleteUrl(years), { method: 'DELETE' });
+
+    const totalDeleted = (res.old_order_items || 0) + (res.old_orders || 0) + (res.old_stock_items || 0) + (res.old_stocks || 0);
+    // show success in modal and preview area
+    confirmTotal.textContent = totalDeleted;
+    previewMessage.innerHTML = `<strong>Success:</strong> Deleted ${totalDeleted} rows.`;
+    previewOrders.textContent = res.old_orders ?? 0;
+    previewOrderItems.textContent = res.old_order_items ?? 0;
+    previewStocks.textContent = res.old_stocks ?? 0;
+    previewStockItems.textContent = res.old_stock_items ?? 0;
+    previewCutoffDate.textContent = res.cutoff_date ?? '—';
+
+    // close modal after a short delay
+    setTimeout(() => {
+      closeModal();
+      confirmDeleteBtn.disabled = false;
+      confirmDeleteBtn.textContent = 'Accept';
+      // disable Delete button now (nothing left to delete)
+      deleteBtn.disabled = true;
+    }, 1200);
+
+  } catch (err) {
+    console.error(err);
+    alert('Delete failed: ' + (err.message || 'server error'));
+    confirmDeleteBtn.disabled = false;
+    confirmDeleteBtn.textContent = 'Accept';
+  }
+});
+
+/* Make clicking the backdrop close the modal */
+document.addEventListener('click', (ev) => {
+  if (!modal || modal.classList.contains('hidden')) return;
+  // if the click target is the backdrop, close
+  const backdrop = modal.querySelector('.modal-backdrop');
+  if (backdrop && backdrop.contains(ev.target)) {
+    closeModal();
+  }
+});
+
+/* TEST */
+
+const API = '/api/audit-logs';
+const PAGE_SIZE = 10;  // 10 rows per page
+let logs = [];         // full dataset loaded from server
+let currentPage = 1;
+
+const auditBody = document.getElementById('auditBody');
+const pageInfo = document.getElementById('pageInfo');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const paginationDiv = document.getElementById('pagination');
+const slider = document.getElementById('verticalSlider');
+
+// fetch logs and initialize UI
+async function init() {
+  try {
+    const resp = await fetch(`${API}?limit=1000`); // fetch many; adapt if you want server pagination
+    if (!resp.ok) throw new Error('Failed to fetch audit logs: ' + resp.status);
+    const json = await resp.json();
+    logs = (json.logs || []).sort((a,b) => {
+      // try to sort by action_time descending if present
+      const ta = a.action_time || a.timestamp || '';
+      const tb = b.action_time || b.timestamp || '';
+      return String(tb).localeCompare(String(ta));
+    });
+    renderPagination();
+    renderPage(1);
+  } catch (err) {
+    console.error(err);
+    auditBody.innerHTML = `<tr><td colspan="7">Error loading logs: ${err.message}</td></tr>`;
+  }
+}
+
+function renderPage(page) {
+  currentPage = Math.max(1, Math.min(page, Math.ceil(logs.length / PAGE_SIZE) || 1));
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageRows = logs.slice(start, start + PAGE_SIZE);
+
+  auditBody.innerHTML = '';
+  if (pageRows.length === 0) {
+    auditBody.innerHTML = `<tr><td colspan="7">No audit logs</td></tr>`;
+  } else {
+    // create up to PAGE_SIZE rows (the scroll window will show first 5 by default)
+    for (const log of pageRows) {
+      const user = log.admin_id || log.employee_id || '';
+      const time = log.action_time || log.timestamp || '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${log.id ?? ''}</td>
+        <td title="${escapeHtml(log.entity ?? '')}">${log.entity ?? ''}</td>
+        <td title="${escapeHtml(log.entity_id ?? '')}">${log.entity_id ?? ''}</td>
+        <td title="${escapeHtml(log.action ?? '')}">${log.action ?? ''}</td>
+        <td title="${escapeHtml(log.details ?? '')}">${log.details ?? ''}</td>
+        <td>${user}</td>
+        <td>${time}</td>
+      `;
+      auditBody.appendChild(tr);
+    }
+  }
+
+  // reset scrolling and slider
+  const tbody = auditBody.parentElement; // tbody element (we used #auditBody as the tbody)
+  tbody.scrollTop = 0;
+  slider.value = 0;
+  pageInfo.textContent = `Page ${currentPage} / ${Math.max(1, Math.ceil(logs.length / PAGE_SIZE))}`;
+
+  // show/hide slider: only needed if pageRows length > 5
+  const showSlider = pageRows.length > 5;
+  document.querySelector('.slider-container').style.display = showSlider ? 'flex' : 'none';
+  updatePageButtons();
+}
+
+// pagination UI
+function renderPagination() {
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  paginationDiv.innerHTML = '';
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = (i === currentPage) ? 'active' : '';
+    btn.onclick = () => renderPage(i);
+    paginationDiv.appendChild(btn);
+  }
+}
+
+function updatePageButtons() {
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  prevBtn.disabled = currentPage <= 1;
+  nextBtn.disabled = currentPage >= totalPages;
+  // refresh page number buttons (simple approach: re-render numbers)
+  renderPagination();
+}
+
+// Prev/Next handlers
+prevBtn.addEventListener('click', () => { renderPage(currentPage - 1); });
+nextBtn.addEventListener('click', () => { renderPage(currentPage + 1); });
+
+// Slider <-> scroll sync
+const tbodyElement = () => auditBody.parentElement; // the actual tbody element (display:block)
+
+slider.addEventListener('input', () => {
+  const tbody = tbodyElement();
+  // slider is 0..100; map percent to scrollTop
+  const pct = Number(slider.value) / 100;
+  const maxScroll = Math.max(0, tbody.scrollHeight - tbody.clientHeight);
+  tbody.scrollTop = Math.round(pct * maxScroll);
+});
+
+// if user scrolls with mouse, update slider position
+auditBody.parentElement?.addEventListener?.('scroll', () => {
+  const tbody = tbodyElement();
+  const maxScroll = Math.max(1, tbody.scrollHeight - tbody.clientHeight);
+  const pct = Math.round((tbody.scrollTop / maxScroll) * 100);
+  slider.value = pct;
+});
+
+// helper
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Initialize when DOM ready
+document.addEventListener('DOMContentLoaded', init);
+
+/* End of maintenance JS */
+</script>

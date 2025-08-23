@@ -247,13 +247,6 @@ def generate_modern_quotation_pdf(filename, client_name, client_address, items_q
 
 
 #----------- Reports ----------
-import os
-import calendar
-from datetime import datetime
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month=None):
     # File setup

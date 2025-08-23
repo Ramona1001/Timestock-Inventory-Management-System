@@ -324,6 +324,161 @@ main .date input[type='date'] {
   display: block;
 }
 
+/* TESTING CSS */
+.maintenance-card {
+    background: var(--color-white);
+    padding: 1rem;
+    border-radius: var(--border-radius-2);
+    box-shadow: var(--box-shadow);
+    margin-top: 1rem;
+}
+
+.maintenance-row {
+    display:flex;
+    gap:0.8rem;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.maintenance-row input[type="number"] {
+    width:6.5rem;
+    padding:0.45rem;
+    border-radius:0.4rem;
+    border:1px solid rgba(0,0,0,0.08);
+}
+
+.muted {
+    color:var(--color-info-dark);
+    font-size:0.9rem;
+}
+
+.notice {
+    padding:0.8rem;
+    border-radius:0.4rem;
+    background:#fff8e6;
+    color:#5b4a10;
+    margin-top:0.8rem;
+}
+
+/* modal minimal styles */
+.modal {
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:1100;
+}
+
+.modal-backdrop {
+    position:fixed;
+    inset:0; 
+    background: rgba(0,0,0,0.45);
+}
+
+.modal-content {
+    background:var(--color-white);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    width: 92%;
+    max-width:520px;
+    box-shadow: var(--box-shadow);
+    z-index:1101;
+}
+
+.hidden {
+    display:none !important;
+}
+
+/* Table */
+
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#fff; color:#111; }
+h2 { margin-bottom: 8px; }
+
+.table-wrapper { display:flex; gap:10px; align-items:flex-start; }
+.table-container { flex:1; overflow:hidden; border:1px solid #ddd; border-radius:6px; }
+#auditTable { width:100%; border-collapse:collapse; table-layout:fixed; }
+#auditTable thead th { background:#f4f6f8; padding:8px; text-align:left; font-size:13px; border-bottom:1px solid #e0e0e0; }
+#auditTable tbody td { padding:8px; font-size:13px; border-bottom:1px solid #f0f0f0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+/* Make tbody scrollable and show only ~5 rows height.
+   Adjust rowHeight if your rows are taller. */
+#auditTable tbody {
+  display:block;
+  max-height: calc(5 * 40px); /* show 5 rows (assumes ~40px per row) */
+  overflow-y: auto;
+  /* align table columns by setting table cells as display: table-cell when not in thead */
+}
+#auditTable thead, #auditTable tbody tr { display:table; width:100%; table-layout:fixed; }
+
+/* Slider area styling */
+.slider-container {
+  width: 32px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:6px;
+}
+input[type="range"] {
+  writing-mode: bt-lr;
+  width: 24px;
+  height: calc(5 * 40px);
+}
+
+/* Small page buttons */
+#pagination button { margin-right:6px; }
+#pagination .active { font-weight:bold; }
+
+/* container keeps layout as vertical control */
+.vertical-range {
+  /* treat as custom control */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  /* make the control tall and thin, then rotate it to be vertical */
+  width: calc(5 * 40px);   /* the length of the slider */
+  height: 24px;            /* thickness after rotate */
+  transform: rotate(-90deg);  /* rotate so it appears vertical */
+  display: inline-block;
+  margin: 0 8px;
+}
+
+/* WebKit track */
+.vertical-range::-webkit-slider-runnable-track {
+  height: 8px;
+  background: #e6e6e6;
+  border-radius: 6px;
+}
+
+/* WebKit thumb */
+.vertical-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #777;
+  margin-top: -4px; /* center thumb on track */
+}
+
+/* Firefox track */
+.vertical-range::-moz-range-track {
+  height: 8px;
+  background: #e6e6e6;
+  border-radius: 6px;
+}
+
+/* Firefox thumb */
+.vertical-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #777;
+  border: none;
+}
+
+/* Optional: focus outline */
+.vertical-range:focus { outline: none; box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
 
 
 
