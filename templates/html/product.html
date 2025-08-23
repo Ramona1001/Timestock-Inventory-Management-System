@@ -224,6 +224,12 @@
   overflow-y: auto;
 }
 
+#unavailableSection {
+  height: calc(100vh - (65px + 90px)); /* header + filters */
+  width: 100%;
+  overflow-y: auto;
+}
+
 #productTable {
   width: 100%;
   border-collapse: collapse;
@@ -231,6 +237,16 @@
 }
 
 #productTable th, #productTable td {
+  padding: 8px;
+  word-wrap: break-word; /* Prevents overflow text */
+}
+#unavalTableProducts {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Makes columns scale properly */
+}
+
+#unavalTableProducts th, #unavalTableProducts td {
   padding: 8px;
   word-wrap: break-word; /* Prevents overflow text */
 }

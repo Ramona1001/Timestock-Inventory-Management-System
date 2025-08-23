@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, List
 
 # --- Product Category ---
@@ -171,6 +171,7 @@ class QuotationRequest(BaseModel):
     client_address: str
     items_quote: List[QuotationItem]    
     
+
 # SETTINGS
 
 
@@ -187,3 +188,21 @@ class EmployeeStatusUpdate(BaseModel):
 class ChangeEmployeePassword(BaseModel):
     target_employee_id: str
     new_password: str
+
+class CreateAuditLog(BaseModel):
+    entity: str = Field(..., description="Entity name, e.g 'order_transaction', 'items', 'products', etc.")
+    entity_id: str
+    action: str
+    details: Optional[str]
+    admin_id: Optional[str]
+    employee_id: Optional[str]
+
+    @model_validator(mode='after')
+    def check_actor(cls, values):
+        if bool(values.admin_id) == bool(values.employee_id):
+            raise ValueError("Provide exactly one of admin_id employee_id")
+        return values
+    
+class ReadAuditLog(BaseModel):
+    id: str = Field(..., description="Audit Log record id")
+    action_time: str = Field(..., description="ISO timestamp when action was recorded")

@@ -20,9 +20,14 @@ from .app_schemas import (
 from backend import database, reciept, graphs, analytics
 router = APIRouter()
 
+
     
-@router.put("/products/update")
-def update_product_data(product: ProductUpdate):
+@router.put("/products/update") # DONE
+def update_product_data(request: Request, product: ProductUpdate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
     try:
         database.update_product(
             con=database.con,
@@ -32,14 +37,20 @@ def update_product_data(product: ProductUpdate):
             status=product.status,
             category_id=product.category_id,
             item_name=product.item_name,
-            item_description=product.item_description
+            item_description=product.item_description,
+            admin_id=user["id"]
         )
         return {"message": "Product updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.put("/material/update")
-def update_material_api(material: MaterialUpdate) -> Any:
+
+@router.put("/material/update") # DONE
+def update_material_api(request: Request, material: MaterialUpdate) -> Any:
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
     try:
         database.update_materials(
             con=database.con,
@@ -52,7 +63,8 @@ def update_material_api(material: MaterialUpdate) -> Any:
             current_stock=material.current_stock,
             minimum_stock=material.minimum_stock,
             maximum_stock=material.maximum_stock,
-            supplier_id=material.supplier_id
+            supplier_id=material.supplier_id,
+            admin_id=user["id"]
         )
         return {"message": "Material updated successfully"}
     except ValueError as ve:
@@ -161,6 +173,7 @@ def get_all_alerts():
 def low_stock_alerts():
     alerts = analytics.get_low_stock_alerts()
     return {"alerts": alerts}
+
 # ---- Dashboard Summary ---
 @router.get("/dashboard/summary")
 def get_inventory_dashboard_summary():
@@ -175,40 +188,71 @@ def sales_summary():
 def read_product_materials():
     return database.get_product_materials_grouped()
 
-@router.post("/product-materials/add")
-def create_product_materials(data: ProductMaterialBulkCreate):
+@router.post("/product-materials/add") # DONE
+def create_product_materials(data: ProductMaterialBulkCreate, request: Request):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
     try:
-        database.add_product_materials(data.dict())
-        return {"message": "Product materials added successfully."}
+        # pass admin_id so DB can audit the action
+        result = database.add_product_materials(data.dict(), admin_id=user["id"])
+        # return success plus the insert/skip counts from DB function
+        return {"message": "Product materials added successfully.", **(result or {})}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+    except Exception:
+        # keep generic 500 to avoid leaking internals
         raise HTTPException(status_code=500, detail="Internal server error.")
     
 @router.get("/product-materials/{product_id}")
 def api_get_product_materials(product_id: str):
     return database.get_product_materials_by_product_id(product_id)
 
-@router.put("/product-materials/update")
-def api_update_product_material(data: dict):
-    try:
-        database.update_product_material(
-            product_id=data['product_id'],
-            material_id=data['material_id'],
-            used_quantity=data['used_quantity'],
-            unit_cost=data['unit_cost']
-        )
-        return {"message": "Material updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/product-materials/delete")
+@router.put("/product-materials/update") # DONE
+def api_update_product_material(payload: dict, request: Request):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    admin_id = user["id"]
+
+    # Basic validation
+    if "product_id" not in payload:
+        raise HTTPException(status_code=400, detail="product_id is required")
+
+    try:
+        # single update
+        missing = [k for k in ("material_id", "used_quantity", "unit_cost") if k not in payload]
+        if missing:
+            raise HTTPException(status_code=400, detail=f"Missing fields: {', '.join(missing)}")
+        result = database.update_product_material(
+            product_id=payload["product_id"],
+            material_id=payload["material_id"],
+            used_quantity=float(payload["used_quantity"]),
+            unit_cost=float(payload["unit_cost"]),
+            admin_id=admin_id
+        )
+        return result or {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error.")
+
+@router.delete("/product-materials/delete") # DONE
 def api_delete_product_material(request: Request):
     data = request.query_params
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
     try:
         database.delete_product_material(
             product_id=data['product_id'],
-            material_id=data['material_id']
+            material_id=data['material_id'],
+            admin_id=user["id"]
         )
         return {"message": "Material deleted successfully"}
     except Exception as e:
@@ -216,7 +260,7 @@ def api_delete_product_material(request: Request):
 
 
 # --- Product Categories ---
-@router.get("/product-categories")
+@router.get("/product-categories", response_model=List[dict])
 def get_categories():
     try:
         categories = database.get_product_categories()
@@ -225,9 +269,13 @@ def get_categories():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/product-categories")
-def create_product_category(data: ProductCategoryCreate):
-    new_id = database.add_product_category(data.dict())
+@router.post("/product-categories") # DONE
+def create_product_category(request: Request, data: ProductCategoryCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    new_id = database.add_product_category(data.dict(), admin_id=user["id"])
     if new_id is None:
         raise HTTPException(status_code=400, detail="Product Category already exists")
     return {"id": new_id}
@@ -238,27 +286,39 @@ def create_product_category(data: ProductCategoryCreate):
 def get_material_categories():
     return database.get_material_categories().to_dict(orient="records")
 
-@router.post("/material-categories")
-def create_material_category(data: MaterialCategoryCreate):
-    new_id = database.add_material_category(data.dict())
+@router.post("/material-categories") # DONE
+def create_material_category(request: Request, data: MaterialCategoryCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    new_id = database.add_material_category(data.dict(), admin_id=user["id"])
     if new_id is None:
         raise HTTPException(status_code=400, detail="Category already exists")
     return {"id": new_id}
 
-@router.put("/material-categories/{id}")
-def update_material_category(id: str, data: MaterialCategoryUpdate):
-    database.update_material_category(id, data.dict())
+@router.put("/material-categories/{id}") # DONE
+def update_material_category(request: Request, id: str, data: MaterialCategoryUpdate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    database.update_material_category(id, data.dict(), admin_id=user["id"])
     return {"message": "Updated successfully"}
 
-@router.delete("/material-categories/{id}")
-def delete_material_category(id: str):
-    database.delete_material_category(id)
+@router.delete("/material-categories/{id}") # DONE
+def delete_material_category(id: str, request: Request):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    database.delete_material_category(id, admin_id=user["id"])
     return {"message": "Deleted successfully"}
 
 
 # --- Materials ---
 
-@router.post("/stock-materials")
+@router.post("/stock-materials") # DONE
 def stock_materials_endpoint(
     request: Request,
     data: StockTransactionCreate,
@@ -288,8 +348,6 @@ def stock_materials_endpoint(
     return database.stock_materials(data_dict)
 
 
-
-
 @router.get("/stock-transactions")
 def read_stock_transactions():
     return database.get_stock_transactions_detailed().to_dict(orient="records")
@@ -311,21 +369,28 @@ def get_materials():
     return materials
  
 
-@router.post("/materials")
-def create_material(data: MaterialCreate):
+
+@router.post("/materials") # DONE
+def create_material(request: Request, data: MaterialCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
     try:
-        item_id = database.add_material(data.dict())
+        # pass admin_id for audit logging (DB function expected to accept it)
+        item_id = database.add_material(data.dict(), admin_id=user["id"])
         return {"message": "Material and item added", "item_id": item_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-
-
-
 @router.delete("/materials/{id}")
-def delete_material(id: str):
-    database.delete_material(id)
+def delete_material(id: str, request: Request):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    database.delete_material(id, admin_id=user["id"])
     return {"message": "Deleted successfully"}
 
 
@@ -334,21 +399,35 @@ def delete_material(id: str):
 def get_customers():
     return database.get_customers().to_dict(orient="records")
 
-@router.post("/customers")
-def create_customer(data: CustomerCreate):
-    result = database.add_customer(data.dict())
+@router.post("/customers") # DONE
+def create_customer(request: Request, data: CustomerCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    result = database.add_customer(data.dict(), admin_id=user["id"])
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     return {"message": result["message"]}
 
-@router.put("/customers/{id}")
-def update_customer(id: str, data: CustomerUpdate):
-    database.update_customer(id, data.dict())
+
+@router.put("/customers/{id}") # DONE
+def update_customer(request: Request, id: str, data: CustomerUpdate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    database.update_customer(id, data.dict(), admin_id=user["id"])
     return {"message": "Updated successfully"}
 
-@router.delete("/customers/{id}")
-def delete_customer(id: str):
-    database.delete_customer(id)
+
+@router.delete("/customers/{id}") # DONE
+def delete_customer(request: Request, id: str):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
+    database.delete_customer(id, admin_id=user["id"])
     return {"message": "Deleted successfully"}
 
 
@@ -365,16 +444,37 @@ def get_product_quote(product_id: str):
 def get_products():
     return database.get_products().to_dict(orient="records")
 
-@router.post("/products")
-def create_product(data: ProductCreate):
-    result = database.add_product(data.dict())
+@router.post("/products") # DONE
+def create_product(request: Request, data: ProductCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        # pass admin_id for audit logging (DB function expected to accept it)
+        result = database.add_product(data.dict(), admin_id=user["id"])
+    except TypeError:
+        # fallback if DB signature wasn't changed
+        result = database.add_product(data.dict())
+
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
     return result
 
-@router.delete("/products/{id}")
-def delete_product(id: str):
-    return database.delete_product(id)
+@router.delete("/products/{id}") # DONE
+def delete_product(request: Request, id: str):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        # try with admin_id if DB was updated
+        try:
+            return database.delete_product(id, admin_id=user["id"])
+        except TypeError:
+            return database.delete_product(id)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # --- Suppliers ---
@@ -382,27 +482,57 @@ def delete_product(id: str):
 def get_suppliers():
     return database.get_suppliers().to_dict(orient="records")
 
-@router.post("/suppliers")
-def create_supplier(data: SupplierCreate):
-    result = database.add_supplier(data.dict())
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["message"])
-    return {"message": result["message"]}
+@router.post("/suppliers") # DONE
+def create_supplier(request: Request, data: SupplierCreate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
+    try:
+        try:
+            result = database.add_supplier(data.dict(), admin_id=user["id"])
+        except TypeError:
+            result = database.add_supplier(data.dict())
 
-@router.put("/suppliers/{id}")
-def update_supplier(id: str, data: SupplierUpdate):
-    database.update_supplier(id, data.dict())
-    return {"message": "Updated successfully"}
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["message"])
+        return {"message": result["message"]}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/suppliers/{id}")
-def delete_supplier(id: str):
-    database.delete_supplier(id)
-    return {"message": "Deleted successfully"}
+@router.put("/suppliers/{id}") # DONE
+def update_supplier(request: Request, id: str, data: SupplierUpdate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
+    try:
+        try:
+            database.update_supplier(id, data.dict(), admin_id=user["id"])
+        except TypeError:
+            database.update_supplier(id, data.dict())
+        return {"message": "Updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/suppliers/{id}") # DONE
+def delete_supplier(request: Request, id: str):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        try:
+            database.delete_supplier(id, admin_id=user["id"])
+        except TypeError:
+            database.delete_supplier(id)
+        return {"message": "Deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 # ----- Ordering Transaction ----
 
-@router.post("/orders")
+@router.post("/orders") # DONE
 def place_order(request: Request, order: OrderTransactionCreate):
     user = request.session.get("user")
     if not user or user.get("role") != "admin":
@@ -413,7 +543,6 @@ def place_order(request: Request, order: OrderTransactionCreate):
     # Include admin_id in the order object before saving
     order_data = order.dict()
     order_data["admin_id"] = admin_id
-    
 
     result = database.create_order_transaction(order_data)
     return result
@@ -423,8 +552,14 @@ def order_statuses():
     result = database.get_order_statuses()
     return result.to_dict(orient="records")
 
-@router.put("/orders/update-status")
-def update_order_transaction_status(data: OrderStatusUpdate):
+@router.put("/orders/update-status") # DONE
+def update_order_transaction_status(request: Request, data: OrderStatusUpdate):
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # keep DB call same as before (minimal change). If DB was updated to accept admin_id,
+    # we can add it here similarly to the other endpoints.
     result = database.update_order_status(data.transaction_id, data.status_code, database.con)
 
     if "error" in result:
@@ -487,7 +622,6 @@ def recent_transactions_api():
 @router.get("/dashboard/metrics")
 def dashboard_metrics():
     return analytics.get_all_time_metrics()
-
 
 # ------------ Receipt and Quote -----------
 
@@ -552,28 +686,62 @@ def generate_report_pdf_endpoint(year: int, month: int = None, user: dict = Depe
     return FileResponse(filepath, media_type="application/pdf", filename=filepath.split("/")[-1])
 
 
-
 # ------------ SETTINGS -------------
 
-@router.post("/settings/add-employees", status_code=201)
+@router.post("/settings/add-employees", status_code=201) # DONE
 def api_add_employee(
     payload: EmployeeCreate,
+    request: Request
 ):
-    result = database.add_employee(payload.model_dump())
+    # require admin to add employees
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    if not result.get("success", False):
-        raise HTTPException(status_code=400, detail=result["message"])
+    data = payload.model_dump()
+    try:
+        # prefer new signature with admin_id if DB supports it
+        try:
+            result = database.add_employee(data, admin_id=user["id"])
+        except TypeError:
+            result = database.add_employee(data)
+
+        if not result.get("success", False):
+            raise HTTPException(status_code=400, detail=result["message"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/settings/{id}/status") # DONE
+def api_update_employee_status(
+    id: str,
+    payload: EmployeeStatusUpdate,
+    request: Request
+):
+    # require admin to change employee status
+    user = request.session.get("user")
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        try:
+            # if DB update_account_status now accepts admin_id (audit), pass it
+            result = database.update_account_status(id, payload.is_active, admin_id=user["id"])
+        except TypeError:
+            # fallback to original signature
+            result = database.update_account_status(id, payload.is_active)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     return result
 
-@router.put("/settings/{id}/status")
-def api_update_employee_status(
-    id: str,
-    payload: EmployeeStatusUpdate
-):
-    return database.update_account_status(id, payload.is_active)
 
-@router.post("/settings/change-employee-password", status_code=200)
+@router.post("/settings/change-employee-password", status_code=200) # DONE
 def api_change_employee_password(
     payload: ChangeEmployeePassword,
     request: Request
@@ -598,8 +766,43 @@ def api_change_employee_password(
     return result
 
 
+@router.get("/maintenance/preview-delete/{years}")
+def preview_transactions_to_delete(years: int, current_admin = Depends(database.get_current_admin)):
+    result = database.delete_old_transactions(years, admin_id=current_admin["id"], dry_run=True)
+    total = (
+        result.get("old_order_items", 0)
+        + result.get("old_orders", 0)
+        + result.get("old_stock_items", 0)
+        + result.get("old_stocks", 0)
+    )
+    if total == 0:
+        return {"message": f"Data still hasn't reached {years} years old", "cutoff_date": result.get("cutoff_date")}
+    return result
 
+@router.delete("/maintenance/delete-old-transactions/{years}") # DONE
+def perform_delete_old_transactions(years: int, current_admin = Depends(database.get_current_admin)):
+    try:
+        admin_id = current_admin["id"]
+        result = database.delete_old_transactions(years, admin_id=admin_id, dry_run=False)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/audit-logs")
+def fetch_audit_logs(limit: int = 100, offset: int = 0, request: Request = None):
+    # admin-only
+    user = request.session.get("user") if request else None
+    if not user or user.get("role") != "admin":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        logs = database.get_audit_logs(limit=limit, offset=offset)
+        return {"logs": logs}
+    except Exception as e:
+        # return a helpful message during development; you can remove detail in production
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/settings/migrate-hashes")    
 def api_migrate_password_hashes():
     return database.migrate_plaintext_passwords_to_hash()
+
