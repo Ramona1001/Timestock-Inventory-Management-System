@@ -248,7 +248,7 @@ def generate_modern_quotation_pdf(filename, client_name, client_address, items_q
 
 #----------- Reports ----------
 
-def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month=None):
+def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, stock_movement_report,products_sold_report, year, month=None):
     # File setup
     month_name = calendar.month_name[month] if month else "ALL"
     filename = f"report_{month_name}_{year}.pdf"
@@ -330,6 +330,61 @@ def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_rep
             story.append(Paragraph(f"<b>6-Month Moving Average:</b> Php{moving_avg_report['ma6']:,.2f}", styles["Normal"]))
         else:
             story.append(Paragraph("<b>6-Month Moving Average:</b> Not enough data", styles["Normal"]))
+
+        # --- Stock Movement Report (NEW) ---
+    if stock_movement_report and not stock_movement_report.get("empty", False):
+        story.append(Paragraph(stock_movement_report["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>Total Stock-In Events:</b> {stock_movement_report['total_stock_in_events']}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Total Stock-Out Events:</b> {stock_movement_report['total_stock_out_events']}", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # Material breakdown table
+        data = [["Material", "Stock-In Events", "Stock-Out Events"]]
+        for row in stock_movement_report["breakdown"]:
+            data.append([
+                row["material_name"],
+                row["stock_in_events"],
+                row["stock_out_events"]
+            ])
+        table = Table(data, colWidths=[200, 100, 100])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 20))
+    elif stock_movement_report and stock_movement_report.get("empty", False):
+        story.append(Paragraph(stock_movement_report["message"], styles["Normal"]))
+        story.append(Spacer(1, 20))
+
+    # --- Products Sold Report ---
+    if products_sold_report and not products_sold_report.get("empty", False):
+        story.append(Paragraph(products_sold_report["title"], styles["SectionTitle"]))
+        story.append(Paragraph(f"<b>Total Quantity Sold (All Products):</b> {products_sold_report['total_quantity_all']}", styles["Normal"]))
+        story.append(Paragraph(f"<b>Total Sales (All Products):</b> Php{products_sold_report['total_sales_all']:,.2f}", styles["Normal"]))
+        story.append(Spacer(1, 10))
+
+        # Product breakdown table
+        data = [["Product", "Quantity Sold", "Total Sales"]]
+        for row in products_sold_report["breakdown"]:
+            data.append([
+                row["product_name"],
+                row["total_quantity"],
+                f"Php{row['total_sales']:,.2f}"
+            ])
+        table = Table(data, colWidths=[200, 100, 100])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 20))
+    elif products_sold_report and products_sold_report.get("empty", False):
+        story.append(Paragraph(products_sold_report["message"], styles["Normal"]))
+        story.append(Spacer(1, 20))
+
 
     # Build PDF
     doc.build(story)

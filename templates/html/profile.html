@@ -1,0 +1,39 @@
+<p class="greeting">
+  Hey, <b>{{ request.session['user']['firstname'] }} {{ request.session['user']['lastname'] }}</b>
+</p>
+<small class="text-muted">
+  {{ request.session['user']['role']|capitalize }}
+</small>
+<div class="profile-photo">
+  <div class="profile-icon">
+    {% if request.session['user']['role'] == 'admin' %}
+      A
+    {% else %}
+      E
+    {% endif %}
+  </div>
+</div>
+
+
+<style>
+
+#greeting {
+  font-size: 1rem;
+}
+
+.profile-icon {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background: #ff7782;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+
+    
+</style>

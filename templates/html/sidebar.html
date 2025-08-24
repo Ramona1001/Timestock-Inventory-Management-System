@@ -1,0 +1,135 @@
+<div class="sidebar">
+  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
+
+  {% if request.session['user']['role'] == 'employee' %}
+    <!-- Employee Tabs -->
+    <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
+    <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
+    <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
+    <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
+    <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
+  
+  {% elif request.session['user']['role'] == 'admin' %}
+    <!-- Admin Tabs -->
+    <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
+    <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
+    <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
+    <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
+    <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
+    <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
+    <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
+    <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
+    <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
+  {% endif %}
+
+  <a href="/logout">
+    <span class="material-symbols-sharp">logout</span>    
+    <h3>Sign-out</h3>
+  </a>
+</div>
+
+<style>
+aside {
+    height: 100vh;
+    position: sticky;   
+
+}
+
+aside .top {
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.4rem;
+}
+
+aside .logo {
+    display: flex;
+    gap: 0.8rem;
+}
+
+aside .logo img {
+    width: 4rem;
+    height: 4rem;
+}
+
+aside .close {
+    display: none;
+}
+
+aside .sidebar {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;   /* fill parent height */
+    position: relative;
+    top: 0;             /* remove the 3rem offset */
+
+}
+
+aside h3 {
+    font-weight: 500;
+}
+
+aside .sidebar a {
+    display: flex;
+    color: var(--color-info-dark);
+    margin-left: 2rem;
+    gap: 1rem;
+    align-items: center;
+    position: relative;
+    height: 3.7rem;
+    transition: all 300ms ease;
+}
+
+aside .sidebar a span {
+    font-size: 1.6rem;
+    transition: all 300ms ease;
+}
+
+aside .sidebar a:last-child {
+    position: absolute;
+    bottom: 2rem;
+    width: 100%;
+}
+
+aside .sidebar a.active {
+    background: var(--color-light);
+    color: var(--color-primary);
+    margin-left: 0;
+}
+
+aside .sidebar a.active:before {
+    content: "";
+    width: 6px;
+    height: 100%;
+    background: var(--color-primary);
+}
+
+aside .sidebar a.active span {
+    color: var(--color-primary);
+    margin-left: calc(1rem - 3px);
+}
+
+aside .sidebar a:hover {
+    color: var(--color-primary);
+}
+
+aside .sidebar a:hover span {
+    margin-left: 1rem;
+}
+</style>
+
+<script>
+      // Highlight the current tab
+  document.addEventListener("DOMContentLoaded", function () {
+    const currentPage = window.location.pathname.split("/").pop(); 
+    const menuLinks = document.querySelectorAll(".sidebar a");
+
+    menuLinks.forEach(link => {
+      if (link.getAttribute("href") === currentPage) {
+        link.classList.add("active");
+      }
+    });
+  });
+</script>

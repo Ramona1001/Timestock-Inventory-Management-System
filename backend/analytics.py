@@ -125,6 +125,7 @@ def get_all_time_metrics():
         SUM(ot.total_amount) AS total_revenue
     FROM order_transactions ot
     LEFT JOIN order_items oi ON ot.id = oi.order_id
+    WHERE ot.status_id = 'OS005'
     """
 
     result = con.execute(query).fetchone()
@@ -232,6 +233,57 @@ def get_product_usage_summary():
         "highest_revenue_product": get_highest_revenue_product(),
         "in_production_count": get_total_in_production()
 
+    }
+
+
+def get_stock_summary():
+    con = duckdb.connect('backend/db_timestock')
+
+    query = """
+        WITH stock_totals AS (
+            SELECT 
+                stt.type_code,
+                SUM(sti.quantity) AS total_qty
+            FROM stock_transaction_items sti
+            JOIN stock_transactions st ON st.id = sti.stock_transaction_id
+            JOIN stock_transaction_types stt ON stt.id = st.stock_type_id
+		        WHERE st.date_created >= CURRENT_DATE - INTERVAL '1 month'
+		        AND st.date_created < CURRENT_DATE + INTERVAL '1 day'
+            GROUP BY stt.type_code
+        ),
+        supplier_totals AS (
+            SELECT 
+                s.contact_name,
+                SUM(sti.quantity) AS total_supplied
+            FROM stock_transaction_items sti
+            JOIN stock_transactions st ON st.id = sti.stock_transaction_id
+            JOIN stock_transaction_types stt ON stt.id = st.stock_type_id
+            JOIN suppliers s ON s.id = st.supplier_id
+            WHERE stt.type_code = 'stock-in'
+                AND st.date_created >= CURRENT_DATE - INTERVAL '1 month'
+                AND st.date_created < CURRENT_DATE + INTERVAL '1 day'
+            GROUP BY s.contact_name
+            ORDER BY total_supplied DESC
+            LIMIT 1
+        )
+        SELECT 
+            COALESCE((SELECT total_qty FROM stock_totals WHERE type_code = 'stock-in'), 0) AS stock_in,
+            COALESCE((SELECT total_qty FROM stock_totals WHERE type_code = 'stock-out'), 0) AS stock_out,
+            COALESCE((SELECT total_qty FROM stock_totals WHERE type_code = 'stock-in'), 0) 
+              - COALESCE((SELECT total_qty FROM stock_totals WHERE type_code = 'stock-out'), 0) AS net_flow,
+            (SELECT contact_name FROM supplier_totals) AS top_supplier,
+            (SELECT total_supplied FROM supplier_totals) AS top_supplier_total
+    """
+
+    result = con.execute(query).fetchone()
+    con.close()
+
+    return {
+        "stock_in": result[0],
+        "stock_out": result[1],
+        "net_flow": result[2],
+        "top_supplier": result[3],
+        "top_supplier_total": result[4],
     }
 
 # Orders

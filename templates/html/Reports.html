@@ -7,7 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/reports.css?v=1">
   <style>
-    
+    .top h2 {
+  margin: 0;
+  position: relative;
+  left: -20px;  /* adjust this value to move left */
+}
   </style>
 </head>
 <body>
@@ -16,29 +20,14 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+      <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
 
-<div class="sidebar">
-  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-  <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-  <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-  <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-  <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-  <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
-  <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-  <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-  <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-  <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-  <a href="/logout">
-    <span class="material-symbols-sharp">logout</span>    
-    <h3>Sign-out</h3>
-  </a>
-</div>
+       {% include "sidebar.html" %}
 </aside>
 <!-----END OF ASIDE MUENU----->
 <main>
@@ -46,142 +35,322 @@
   <h1>Reports</h1>
   <div class="top-bar">
         {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
-    </div>
+   {% include "profile.html" %}
   </div>
 </div>
 
-  <form method="get" action="/Reports.html">
-    <label for="year">Year:</label>
-    <input type="number" name="year" id="year" min="2020" max="2100" required>
-    
-    <label for="month">Month:</label>
-    <input type="number" name="month" id="month" min="1" max="12" required>
-
-    <button type="submit">Generate Report</button>
-  </form>
-
-
-{% if report_text and not report_text.empty %}
-  <div class="report-section">
-    <h3>{{ report_text.title }}</h3>
-    <p><strong>Total Orders:</strong> {{ report_text.total_orders }}</p>
-    <p><strong>Total Sales:</strong> {{ report_text.total_sales }}</p>
-    <p><strong>Total Revenue:</strong> Php{{ "{:,.2f}".format(report_text.total_revenue) }}</p>
-
-    <h4>Daily Breakdown</h4>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Orders</th>
-          <th>Sales</th>
-          <th>Revenue</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in report_text.breakdown %}
-        <tr>
-          <td>{{ row.day }}</td>
-          <td>{{ row.orders }}</td>
-          <td>{{ row.sales }}</td>
-          <td>Php{{ "{:,.2f}".format(row.revenue) }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% elif report_text and report_text.empty %}
-  <p>{{ report_text.message }}</p>
-{% endif %}
-
-
-{% if turnover_report and not turnover_report.empty %}
-  <div class="report-section">
-    <h3>{{ turnover_report.title }}</h3>
-    <p><strong>COGS:</strong> Php{{ "{:,.2f}".format(turnover_report.cogs) }}</p>
-    <p><strong>Average Inventory:</strong> Php{{ "{:,.2f}".format(turnover_report.avg_inventory) }}</p>
-    <p><strong>Turnover Rate:</strong> {{ "%.2f"|format(turnover_report.turnover_rate) }} times</p>
-    <p><em>{{ turnover_report.interpretation }}</em></p>
-  </div>
-{% elif turnover_report and turnover_report.empty %}
-  <p>{{ turnover_report.message }}</p>
-{% endif %}
-
-
-{% if stl_report and not stl_report.empty %}
-  <div class="report-section">
-    <h3>{{ stl_report.title }}</h3>
-    <p><strong>Top-Ordered Product:</strong> {{ stl_report.top_product }}</p>
-    <p><strong>Trend Component:</strong> {{ "%.2f"|format(stl_report.trend) }}</p>
-    <p><strong>Seasonal Component:</strong> {{ "%.2f"|format(stl_report.seasonal) }}</p>
-    <p><strong>Residual Component:</strong> {{ "%.2f"|format(stl_report.residual) }}</p>
-
-    <h4>Interpretation</h4>
-    <ul>
-      {% for interp in stl_report.interpretations %}
-        <li>{{ interp }}</li>
-      {% endfor %}
-    </ul>
-  </div>
-{% elif stl_report and stl_report.empty %}
-  <p>{{ stl_report.message }}</p>
-{% endif %}
-
-
-{% if moving_avg_report and not moving_avg_report.empty %}
-  <section class="report-section card" style="margin-top:1rem;">
-    <div class="card-body">
-      <h3 class="card-title">{{ moving_avg_report.title }}</h3>
-
-      <div class="row" style="margin: .5rem 0;">
-        <div class="col">
-          <p><strong>Total Sales:</strong>
-            Php{{ "{:,.2f}".format(moving_avg_report.total_sales) }}
-          </p>
+<div class="report-container">
+  <!-- Report Generation Form -->
+  <div class="report-form">
+    <h2>📊 Generate Reports</h2>
+    <form method="get" action="/Reports.html">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="year">Year:</label>
+          <input type="number" name="year" id="year" min="2010" max="2100" required>
         </div>
-        <div class="col">
-          <p><strong>Top-Selling Product:</strong>
-            {{ moving_avg_report.top_product }}
-          </p>
+        
+        <div class="form-group">
+          <label for="month">Month:</label>
+          <input type="number" name="month" id="month" min="1" max="12" required>
+        </div>
+        
+        <div class="form-group">
+          <button type="submit" class="generate-btn">Generate Report</button>
         </div>
       </div>
+    </form>
+  </div>
 
-      <div class="row" style="margin: .5rem 0;">
-        <div class="col">
-          <p><strong>3-Month Moving Average:</strong>
-            {% if moving_avg_report.ma3 is not none %}
-              Php{{ "{:,.2f}".format(moving_avg_report.ma3) }}
-            {% else %}
-              <em>Not enough data</em>
-            {% endif %}
-          </p>
+  <!-- Sales Report -->
+  {% if report_text and not report_text.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>📈 {{ report_text.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">Total Orders</div>
+            <div class="stat-value">{{ report_text.total_orders }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Sales</div>
+            <div class="stat-value">{{ report_text.total_sales }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-value">₱{{ "{:,.2f}".format(report_text.total_revenue) }}</div>
+          </div>
         </div>
-        <div class="col">
-          <p><strong>6-Month Moving Average:</strong>
-            {% if moving_avg_report.ma6 is not none %}
-              Php{{ "{:,.2f}".format(moving_avg_report.ma6) }}
-            {% else %}
-              <em>Not enough data</em>
-            {% endif %}
-          </p>
+
+        <h4>📅 Daily Breakdown</h4>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Orders</th>
+              <th>Sales</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in report_text.breakdown %}
+            <tr>
+              <td>{{ row.day }}</td>
+              <td>{{ row.orders }}</td>
+              <td>{{ row.sales }}</td>
+              <td class="revenue-cell">₱{{ "{:,.2f}".format(row.revenue) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% elif report_text and report_text.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ report_text.message }}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Turnover Report -->
+  {% if turnover_report and not turnover_report.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>🔄 {{ turnover_report.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">COGS</div>
+            <div class="stat-value">₱{{ "{:,.2f}".format(turnover_report.cogs) }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Average Inventory</div>
+            <div class="stat-value">₱{{ "{:,.2f}".format(turnover_report.avg_inventory) }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Turnover Rate</div>
+            <div class="stat-value">{{ "%.2f"|format(turnover_report.turnover_rate) }}x</div>
+          </div>
+        </div>
+        
+        <div class="interpretation-list">
+          <h4>📋 Analysis</h4>
+          <p><em>{{ turnover_report.interpretation }}</em></p>
         </div>
       </div>
     </div>
-  </section>
-{% elif moving_avg_report and moving_avg_report.empty %}
-  <section class="report-section" style="margin-top:1rem;">
-    <p>{{ moving_avg_report.message }}</p>
-  </section>
+  {% elif turnover_report and turnover_report.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ turnover_report.message }}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- STL Report -->
+  {% if stl_report and not stl_report.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>📊 {{ stl_report.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">Top Product</div>
+            <div class="stat-value" style="font-size: 16px;">{{ stl_report.top_product }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Trend</div>
+            <div class="stat-value">{{ "%.2f"|format(stl_report.trend) }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Seasonal</div>
+            <div class="stat-value">{{ "%.2f"|format(stl_report.seasonal) }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Residual</div>
+            <div class="stat-value">{{ "%.2f"|format(stl_report.residual) }}</div>
+          </div>
+        </div>
+
+        <div class="interpretation-list">
+          <h4>📋 Interpretation</h4>
+          <ul>
+            {% for interp in stl_report.interpretations %}
+              <li>{{ interp }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  {% elif stl_report and stl_report.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ stl_report.message }}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Moving Average Report -->
+  {% if moving_avg_report and not moving_avg_report.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>📈 {{ moving_avg_report.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">Total Sales</div>
+            <div class="stat-value">₱{{ "{:,.2f}".format(moving_avg_report.total_sales) }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Top Product</div>
+            <div class="stat-value" style="font-size: 16px;">{{ moving_avg_report.top_product }}</div>
+          </div>
+        </div>
+
+        <div class="ma-grid">
+          <div class="ma-card">
+            <div class="ma-label">3-Month Moving Average</div>
+            <div class="ma-value">
+              {% if moving_avg_report.ma3 is not none %}
+                ₱{{ "{:,.2f}".format(moving_avg_report.ma3) }}
+              {% else %}
+                <em>Not enough data</em>
+              {% endif %}
+            </div>
+          </div>
+          <div class="ma-card">
+            <div class="ma-label">6-Month Moving Average</div>
+            <div class="ma-value">
+              {% if moving_avg_report.ma6 is not none %}
+                ₱{{ "{:,.2f}".format(moving_avg_report.ma6) }}
+              {% else %}
+                <em>Not enough data</em>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% elif moving_avg_report and moving_avg_report.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ moving_avg_report.message }}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Stock Movement Report -->
+  {% if stock_movement_report and not stock_movement_report.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>📦 {{ stock_movement_report.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">Stock-In Events</div>
+            <div class="stat-value">{{ stock_movement_report.total_stock_in_events }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Stock-Out Events</div>
+            <div class="stat-value">{{ stock_movement_report.total_stock_out_events }}</div>
+          </div>
+        </div>
+
+        <h4>📋 Material Breakdown</h4>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Stock-In Events</th>
+              <th>Stock-Out Events</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in stock_movement_report.breakdown %}
+            <tr>
+              <td>{{ row.material_name }}</td>
+              <td>{{ row.stock_in_events }}</td>
+              <td>{{ row.stock_out_events }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% elif stock_movement_report and stock_movement_report.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ stock_movement_report.message }}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Products Sold Report -->
+  {% if products_sold_report and not products_sold_report.empty %}
+    <div class="report-section">
+      <div class="report-header">
+        <h3>🛍️ {{ products_sold_report.title }}</h3>
+      </div>
+      <div class="report-content">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-label">Total Quantity</div>
+            <div class="stat-value">{{ products_sold_report.total_quantity_all }}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Sales</div>
+            <div class="stat-value">₱{{ "{:,.2f}".format(products_sold_report.total_sales_all) }}</div>
+          </div>
+        </div>
+
+        <h4>📋 Product Breakdown</h4>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Quantity Sold</th>
+              <th>Total Sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in products_sold_report.breakdown %}
+            <tr>
+              <td>{{ row.product_name }}</td>
+              <td>{{ row.total_quantity }}</td>
+              <td class="revenue-cell">₱{{ "{:,.2f}".format(row.total_sales) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% elif products_sold_report and products_sold_report.empty %}
+    <div class="report-section">
+      <div class="empty-message">
+        {{ products_sold_report.message }}
+      </div>
+    </div>
+  {% endif %}
+  
+
+  {% if error_message %}
+  <p class="error">{{ error_message }}</p>
 {% endif %}
 
 
+  <!-- Download Section -->
+  <div class="download-section">
+    <button id="downloadPdfBtn" class="download-btn">📄 Download PDF Report</button>
+  </div>
+</div>
 
-<!-- Download PDF Button -->
-<button id="downloadPdfBtn" class="btn btn-primary">Download PDF</button>
   </div>
 </body>
 </html>
@@ -203,23 +372,33 @@
 </script>
 
 <script>
-  document.getElementById("downloadPdfBtn").addEventListener("click", function () {
-    const urlParams = new URLSearchParams(window.location.search);
-    const year = urlParams.get("year");
-    const month = urlParams.get("month");
+document.getElementById("downloadPdfBtn").addEventListener("click", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  let year = urlParams.get("year");
+  let month = urlParams.get("month");
 
-    if (!year) {
-      alert("Please select a year before downloading the report.");
-      return;
-    }
+  // Fallback to template defaults if not in URL
+  if (!year) {
+    year = "{{ year }}";
+  }
+  if (!month) {
+    month = "{{ month }}";
+  }
 
-    // Build API URL
-    let apiUrl = `/api/reports/pdf?year=${year}`;
-    if (month) {
-      apiUrl += `&month=${month}`;
-    }
+  // Still validate year just in case
+  if (!year) {
+    alert("Please select a year before downloading the report.");
+    return;
+  }
 
-    // Trigger PDF download
-    window.location.href = apiUrl;
-  });
+  // Build API URL
+  let apiUrl = `/api/reports/pdf?year=${year}`;
+  if (month) {
+    apiUrl += `&month=${month}`;
+  }
+
+  // Trigger PDF download
+  window.location.href = apiUrl;
+});
+
 </script>

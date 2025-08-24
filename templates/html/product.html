@@ -7,6 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/product.css?v=2">
   <style>
+  .top h2 {
+  margin: 0;
+  position: relative;
+  left: -20px;  /* adjust this value to move left */
+}
 .prodMats-btn  { background-color: #ffc107; color: black; }
 .prodMats-btn:hover { background-color: #e0a800; color: black; }
 /* Modal Overlay */
@@ -304,29 +309,14 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+        <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
 
-<div class="sidebar">
-  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-  <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-  <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-  <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-  <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-  <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
-  <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-  <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-  <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-  <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-  <a href="/logout">
-    <span class="material-symbols-sharp">logout</span>    
-    <h3>Sign-out</h3>
-  </a>
-</div>
+       {% include "sidebar.html" %}
 </aside>
 <!-----END OF ASIDE MUENU----->
 <main>
@@ -334,11 +324,7 @@
   <h1>Product Management</h1>
  <div class="top-bar">
         {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
-    </div>
+        {% include "profile.html" %}
   </div>
 </div>
 
@@ -354,7 +340,7 @@
 <!-- Card 2 -->
 <div class="col-lg-4 col-md-6 mb-3 d-flex">
   <div class="card top-product flex-fill p-4 shadow-sm d-flex flex-column">
-    <h3>Most Used Product</h3>
+    <h3>Most Ordered Product</h3>
     <div class="inline-pair align-items-center">
       <h1 id="top-product-name" class="mb-0">Loading...</h1>
       <h1 id="top-product-count" class="text-muted mb-0 ms-3" >-</h1>

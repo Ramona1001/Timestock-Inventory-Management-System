@@ -7,6 +7,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Materials.css?v=6">
 <style>
+.top h2 {
+  margin: 0;
+  position: relative;
+  left: -20px;  /* adjust this value to move left */
+}
 .delete-btn {
   background-color: #ff0000;
   color: white;
@@ -134,6 +139,40 @@
     flex: 1;
   }
 }
+.action-buttons {
+  display: flex;
+  gap: 5px;          /* spacing between buttons */
+  justify-content: flex-start;
+  flex-wrap: wrap;    /* wrap buttons if needed on smaller screens */
+}
+.action-buttons button {
+  flex: 1 0 auto;     
+  min-width: 60px;    /* optional: maintain readable size */
+}
+#productTable th:last-child,
+#productTable td:last-child {
+  width: 180px; /* enough for 3 buttons */
+  white-space: nowrap; /* prevent line breaks */
+}
+.stock-btn {
+  background-color: #dfdcdc; 
+  color: rgb(0, 0, 0);
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.stock-btn:hover {
+  background-color: #aca9a9; /* darker orange */
+}
+
+.stock-btn:active {
+  transform: scale(0.97);
+}
 
 .edit-btn {
   background-color: #007bff; /* Bootstrap green */
@@ -172,6 +211,11 @@
   padding: 8px;
   word-wrap: break-word; /* Prevents overflow text */
 }
+#productTable th:last-child,
+#productTable td:last-child {
+  min-width: 140px; /* adjust as needed */
+}
+
 
 /* Pagination styling remains the same */
 .pagination {
@@ -206,29 +250,14 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+            <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
 
-      <div class="sidebar">
-        <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-        <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-        <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-        <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-        <a href="Reports.html"><span class="material-symbols-sharp">monitoring</span>    <h3>Reports</h3></a>
-        <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-        <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-        <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-        <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-        <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-        <a href="/logout">
-          <span class="material-symbols-sharp">logout</span>    
-          <h3>Sign-out</h3>
-        </a>
-      </div>
+       {% include "sidebar.html" %}
 </aside>
 <!-----END OF ASIDE MUENU----->
 <main>
@@ -236,13 +265,10 @@
   <h1>Materials Management</h1>
  <div class="top-bar">
         {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
-    </div>
+        {% include "profile.html" %}
   </div>
 </div>
+
    <div class="row" id="summary-cards">
   <!-- Card 1 -->
   <div class="col-lg-4 col-md-6 mb-3 d-flex">
@@ -287,9 +313,6 @@
   </div>
 </div>
 
-
-<!--------END OF THE OUT OF STOCKS---------->
-
 <!--------END OF THE OUT OF STOCKS---------->
 
 
@@ -299,7 +322,7 @@
   <!-- Buttons -->
 <div class="crud-buttons">
   <button class="create-btn" onclick="openModal('createModal')">Add Materials</button>
-  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Stock Materials</button>
+  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Bulk Stock Materials</button>
   <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
 </div>
 
@@ -461,17 +484,40 @@
   </div>
 </div>
 
+<!-- Single Stock Modal -->
+<div id="singleStockModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal('singleStockModal')">&times;</span>
+    <h4>Stock Material</h4>
+    
+    <label>Material:</label>
+    <input type="text" id="stockMaterialName" readonly class="form-control mb-2">
+    
+    <label>Current Stock:</label>
+    <input type="number" id="stockMaterialCurrent" readonly class="form-control mb-2">
+    
+    <label>Quantity to Add:</label>
+    <input type="number" id="stockMaterialQty" min="1" value="1" class="form-control mb-2">
+    
+    <label>Supplier (optional):</label>
+    <select id="singleStockSupplier" class="form-select mb-3">
+      <option value="">-- Select Supplier --</option>
+    </select>
+    
+    <button class="btn btn-primary w-100" onclick="submitSingleStock()">Stock Material</button>
+  </div>
+</div>
+
+
 <!-- Filters -->
 <div class="filters">
   
   <!-- Search -->
 <div class="filter-left">
   <div class="filter-group">
-
     <button type="button" class="clear-filters-btn" onclick="clearMaterialFilters()">Clear Filters</button>
     <label for="searchInput">Search</label>
     <input type="text" id="searchInput" placeholder="Search materials...">
-
 
   </div>
 </div>
@@ -786,8 +832,11 @@ function clearMaterialFilters() {
         </td>
         <td class="${statusClass}">${status}</td>
         <td>
-          <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
-           <button class="delete-btn" onclick="deleteMaterial('${material.material_id}')">Delete</button>
+           <div class="action-buttons">
+              <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
+              <button class="delete-btn" onclick="deleteMaterial('${material.material_id}')">Delete</button>
+              <button class="stock-btn" onclick="openSingleStockModal('${material.material_id}')">Stock</button>
+            </div>
         </td>
       `;
       tableBody.appendChild(row);
@@ -1226,6 +1275,10 @@ window.onclick = function(event) {
 async function openModal(id) {
   await loadSuppliers();
   await loadMaterials(); // preload material options
+
+  const container = document.getElementById("materialsList");
+  container.innerHTML = ""; // clear previous entries
+
   addMaterialInput();    // add one material input initially
   document.getElementById(id).style.display = "block";
 }
@@ -1329,6 +1382,85 @@ async function submitStockMaterials(event) {
     alert("Request failed: " + err.message);
   }
 }
+
+async function openSingleStockModal(materialId) {
+  if (!materialOptions || materialOptions.length === 0) {
+    await loadMaterials();
+  }
+
+  const material = materialOptions.find(m => m.material_id === materialId);
+  if (!material) return alert("Material not found!");
+
+  // Populate modal fields
+  const qtyInput = document.getElementById("stockMaterialQty");
+  const currentStockInput = document.getElementById("stockMaterialCurrent");
+
+  document.getElementById("stockMaterialName").value = material.item_name;
+  currentStockInput.value = material.current_stock || 0;
+  qtyInput.value = 1;
+  document.getElementById("singleStockModal").dataset.materialId = materialId;
+
+  // Validation: Ensure quantity is a positive integer
+  qtyInput.min = 1;
+  qtyInput.addEventListener("input", () => {
+    if (qtyInput.value === "" || qtyInput.value < 1) {
+      qtyInput.value = 1;
+    } else {
+      qtyInput.value = Math.floor(qtyInput.value);
+    }
+  });
+
+  // Load suppliers into dropdown
+  const supplierSelect = document.getElementById("singleStockSupplier");
+  supplierSelect.innerHTML = `<option value="">-- Select Supplier --</option>`;
+  try {
+    const response = await fetch("/api/suppliers");
+    const suppliers = await response.json();
+    suppliers.forEach(s => {
+      supplierSelect.innerHTML += `<option value="${s.id}">${s.contact_name}</option>`;
+    });
+  } catch (err) {
+    alert("Failed to load suppliers: " + err.message);
+  }
+
+  // Show modal
+  document.getElementById("singleStockModal").style.display = "block";
+}
+
+
+async function submitSingleStock() {
+  const materialId = document.getElementById("singleStockModal").dataset.materialId;
+  const quantity = parseInt(document.getElementById("stockMaterialQty").value);
+  const supplierId = document.getElementById("singleStockSupplier").value || null;
+
+  if (!quantity || quantity < 1) return alert("Enter a valid quantity");
+
+  try {
+    const payload = {
+      stock_type_id: "STT001",
+      supplier_id: supplierId,
+      items: [{ material_id: materialId, quantity }]
+    };
+
+    const response = await fetch("/api/stock-materials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (response.ok) {
+      alert("Material stocked successfully!");
+      closeModal("singleStockModal");
+      location.reload();
+    } else {
+      alert("Error: " + result.detail);
+    }
+  } catch (err) {
+    alert("Request failed: " + err.message);
+  }
+}
+
 </script>
 
 <!-- Product Materials -->
