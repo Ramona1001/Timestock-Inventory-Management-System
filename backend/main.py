@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from datetime import datetime, timedelta
 from .api import router as api_router
 from .auth import router as auth_router, get_current_user
 import os
@@ -136,23 +137,48 @@ def transactions_page(request: Request, user: dict = Depends(get_current_user)):
     return templates.TemplateResponse("Transactions.html", {"request": request, "user": user})
 
 @app.get("/Reports.html", response_class=HTMLResponse)
-def settings_page(request: Request, user: dict = Depends(get_current_user),month: int = None, year: int = None):
+def reports_page(request: Request, user: dict = Depends(get_current_user), month: int = None, year: int = None):
     if not user:
         return RedirectResponse(url="/login")
-    
-    report_text, turnover_report, stl_report, moving_avg_report = None, None, None, None
 
-    if year and month:
+    # Default to last month if not provided
+    today = datetime.today()
+    if not year or not month:
+        first_of_this_month = today.replace(day=1)
+        last_month_date = first_of_this_month - timedelta(days=1)
+        year, month = last_month_date.year, last_month_date.month
+
+    # Validate year/month inputs
+    try:
+        report_date = datetime(year=year, month=month, day=1)
+        if report_date > today:
+            raise ValueError("Selected month/year is in the future.")
+    except ValueError as ve:
+        # Return template with error message
+        return templates.TemplateResponse("Reports.html", {
+            "request": request,
+            "user": user,
+            "error_message": f"Invalid month/year: {ve}",
+            "year": year,
+            "month": month
+        })
+
+    # Try generating reports, catch any errors (e.g., no data)
+    try:
         report_text = graphs.get_text_report_for_month(year, month)
         turnover_report = graphs.get_turnover_text_report_for_month(year, month)
         stl_report = graphs.get_stl_text_report_for_month(year, month)
         moving_avg_report = graphs.get_sales_moving_average_text_report(month=month, year=year)
-
-    elif year:  # allow whole year view
-        report_text = graphs.get_text_report_for_month(year, None)
-        turnover_report = graphs.get_turnover_text_report_for_month(year, None)
-        stl_report = graphs.get_stl_text_report_for_month(year, None)
-        moving_avg_report = graphs.get_sales_moving_average_text_report(year=year)
+        stock_movement_report = graphs.get_stock_movement_report_for_month(year, month)
+        products_sold_report = graphs.get_products_sold_for_month(year, month)
+    except Exception as e:
+        return templates.TemplateResponse("Reports.html", {
+            "request": request,
+            "user": user,
+            "error_message": f"No data found or an error occurred for {month}/{year}: {e}",
+            "year": year,
+            "month": month
+        })
 
     return templates.TemplateResponse("Reports.html", {
         "request": request,
@@ -160,8 +186,13 @@ def settings_page(request: Request, user: dict = Depends(get_current_user),month
         "report_text": report_text,
         "turnover_report": turnover_report,
         "stl_report": stl_report,
-        "moving_avg_report": moving_avg_report
+        "moving_avg_report": moving_avg_report,
+        "stock_movement_report": stock_movement_report, 
+        "products_sold_report": products_sold_report,
+        "year": year,
+        "month": month
     })
+
 
 @app.get("/Customer.html", response_class=HTMLResponse)
 def customer_page(request: Request, user: dict = Depends(get_current_user)):

@@ -623,6 +623,16 @@ def recent_transactions_api():
 def dashboard_metrics():
     return analytics.get_all_time_metrics()
 
+@router.get("/dashboard/stock-flow")
+def stock_flow_summary():
+    try:
+        result = analytics.get_stock_summary()
+        return JSONResponse(content=result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
 # ------------ Receipt and Quote -----------
 
 @router.post("/generate-receipt")
@@ -679,9 +689,11 @@ def generate_report_pdf_endpoint(year: int, month: int = None, user: dict = Depe
     turnover_report = graphs.get_turnover_text_report_for_month(year, month)
     stl_report = graphs.get_stl_text_report_for_month(year, month)
     moving_avg_report = graphs.get_sales_moving_average_text_report(month=month, year=year)
+    stock_movement_report = graphs.get_stock_movement_report_for_month(year, month)  
+    products_sold_report = graphs.get_products_sold_for_month(year, month)
 
     # Generate PDF
-    filepath = reciept.generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report, year, month)
+    filepath = reciept.generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_report,stock_movement_report,products_sold_report, year, month)
 
     return FileResponse(filepath, media_type="application/pdf", filename=filepath.split("/")[-1])
 

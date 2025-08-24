@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Supplier.css?v=3">
+  <link rel="stylesheet" href="../css/Supplier.css?v=5">
 <style>
 
 </style>
@@ -16,29 +16,14 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+        <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
 
-      <div class="sidebar">
-        <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-        <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-        <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-        <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-        <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-        <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
-        <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-        <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-        <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-        <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-        <a href="/logout">
-          <span class="material-symbols-sharp">logout</span>    
-          <h3>Sign-out</h3>
-        </a>
-      </div>
+       {% include "sidebar.html" %}
 </aside>
 <!-----END OF ASIDE MUENU----->
 <main>
@@ -46,24 +31,91 @@
   <h1>Supplier Management</h1>
    <div class="top-bar">
         {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
+        {% include "profile.html" %}
+  </div>
+</div>
+
+<div class="row" id="supplier-summary-cards">
+  <!-- Card 1: Total Stock In -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-stock-in flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Total Stock In</h3>
+          <h1 id="total-stock-in" class="mt-auto">Loading...</h1>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Quantity of Stock Received (Last Month)</small>
+    </div>
+  </div>
+
+  <!-- Card 2: Total Stock Out -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card total-stock-out flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Total Stock Out</h3>
+          <h1 id="total-stock-out" class="mt-auto">Loading...</h1>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Quantity of Stock Issued (Last Month)</small>
+    </div>
+  </div>
+
+  <!-- Card 3: Top Supplier -->
+  <div class="col-lg-4 col-md-6 mb-3 d-flex">
+    <div class="card top-supplier flex-fill p-4 shadow-sm d-flex flex-column">
+      <div class="middle flex-grow-1 d-flex flex-column">
+        <div class="left flex-grow-1">
+          <h3>Top Supplier</h3>
+          <div class="inline-pair align-items-center">
+            <h1 id="top-supplier" class="mb-0">Loading...</h1>
+            <h1 id="top-supplier-total" class="text-muted mb-0 ms-3">-</h1>
+          </div>
+        </div>
+      </div>
+      <small class="text-muted mt-2">Supplier With Highest Stock In (Last Month)</small>
     </div>
   </div>
 </div>
 
-  
-  <section class="supplier-table">
-  <h2>Supplier List</h2>
+
+<h2>Supplier List</h2>
+
+<div class="table-container">
+<!-- Supplier Filters -->
+
+<div class="filters">
+  <!-- Search -->
+  <div class="filter-left">
+    <div class="filter-group">
+      <label for="supplierSearchInput">Search</label>
+      <input type="text" id="supplierSearchInput" placeholder="Search suppliers...">
+    </div>
+      <button type="button" class="clear-filters-btn" onclick="clearSupplierFilters()">Clear Filters</button>
+  </div>
+
+  <div class="filter-right">
+    <!-- Sorting -->
+    <div class="filter-group">
+      <label for="supplierSortFilter">Sort By</label>
+      <select id="supplierSortFilter">
+        <option value="">Default</option>
+        <option value="nameAsc">Name A-Z</option>
+        <option value="nameDesc">Name Z-A</option>
+        <option value="dateAsc">Date Created ↑</option>
+        <option value="dateDesc">Date Created ↓</option>
+      </select>
+    </div>
+  </div>
+</div>
+
   <table id="supplierTable">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>First Name</th>
-        <th>Last Name</th>
+        <th>ID</th> 
         <th>Contact Name</th>
+        <th>Contact Person</th>
         <th>Contact Number</th>
         <th>Email</th>
         <th>Address</th>
@@ -74,7 +126,12 @@
       <!-- Rows will be inserted here by JavaScript -->
     </tbody>
   </table>
-</section>
+</div>
+
+<!-- Supplier pagination -->
+<div class="pagination" id="supplierPagination"></div>
+
+
 
   </div>
 </body>
@@ -97,31 +154,170 @@
 </Script>
 
 <script>
+  let supplierData = [];
+  let supplierFilteredData = [];
+  let supplierCurrentPage = 1;
+  const supplierRowsPerPage = 5;
+
   async function fetchSuppliers() {
     try {
       const response = await fetch("/api/suppliers");
       const data = await response.json();
-      const tbody = document.getElementById("supplierTableBody");
-
-      data.forEach(supplier => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${supplier.id}</td>
-          <td>${supplier.firstname}</td>
-          <td>${supplier.lastname}</td>
-          <td>${supplier.contact_name}</td>
-          <td>${supplier.contact_number}</td>
-          <td>${supplier.email}</td>
-          <td>${supplier.address}</td>
-          <td>${new Date(supplier.date_created).toLocaleString()}</td>
-        `;
-        tbody.appendChild(row);
-      });
+      supplierData = data;
+      supplierFilteredData = [...supplierData]; // ✅ initialize filtered copy
+      applySupplierFilters(); // ✅ immediately apply filters
     } catch (error) {
       console.error("Failed to fetch suppliers:", error);
     }
   }
 
-  // Call on page load
+  function applySupplierFilters() {
+    const searchValue = document.getElementById("supplierSearchInput").value.toLowerCase();
+    const sortValue = document.getElementById("supplierSortFilter").value;
+
+    // Filter by search
+    supplierFilteredData = supplierData.filter(supplier => {
+      return (
+        supplier.contact_name.toLowerCase().includes(searchValue) ||
+        (`${supplier.lastname}, ${supplier.firstname}`).toLowerCase().includes(searchValue) ||
+        supplier.email.toLowerCase().includes(searchValue)
+      );
+    });
+
+    // Sorting
+    if (sortValue === "nameAsc") {
+      supplierFilteredData.sort((a, b) =>
+        a.contact_name.localeCompare(b.contact_name)
+      );
+    } else if (sortValue === "nameDesc") {
+      supplierFilteredData.sort((a, b) =>
+        b.contact_name.localeCompare(a.contact_name)
+      );
+    } else if (sortValue === "dateAsc") {
+      supplierFilteredData.sort(
+        (a, b) => new Date(a.date_created) - new Date(b.date_created)
+      );
+    } else if (sortValue === "dateDesc") {
+      supplierFilteredData.sort(
+        (a, b) => new Date(b.date_created) - new Date(a.date_created)
+      );
+    }
+
+    supplierCurrentPage = 1;
+    renderSupplierTablePage(supplierCurrentPage);
+    renderSupplierPagination();
+  }
+
+  function clearSupplierFilters() {
+    document.getElementById("supplierSearchInput").value = "";
+    document.getElementById("supplierSortFilter").value = "";
+    supplierFilteredData = [...supplierData]; // ✅ reset to original
+    supplierCurrentPage = 1;
+    renderSupplierTablePage(supplierCurrentPage);
+    renderSupplierPagination();
+  }
+
+  // Event listeners
+  document.getElementById("supplierSearchInput").addEventListener("input", applySupplierFilters);
+  document.getElementById("supplierSortFilter").addEventListener("change", applySupplierFilters);
+
+  function renderSupplierTablePage(page) {
+    const tbody = document.getElementById("supplierTableBody");
+    tbody.innerHTML = "";
+
+    const start = (page - 1) * supplierRowsPerPage;
+    const end = start + supplierRowsPerPage;
+    const pageData = supplierFilteredData.slice(start, end); // ✅ use filtered
+
+    pageData.forEach(supplier => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${supplier.id}</td>
+        <td>${supplier.contact_name}</td>
+        <td>${supplier.firstname} ${supplier.lastname}</td>
+        <td>${supplier.contact_number}</td>
+        <td>${supplier.email}</td>
+        <td>${supplier.address}</td>
+        <td>${new Date(supplier.date_created).toLocaleString()}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function renderSupplierPagination() {
+    const paginationDiv = document.getElementById("supplierPagination");
+    paginationDiv.innerHTML = "";
+
+    const totalPages = Math.ceil(supplierFilteredData.length / supplierRowsPerPage); // ✅ use filtered
+
+    // Prev button
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "Prev";
+    prevBtn.disabled = supplierCurrentPage === 1;
+    prevBtn.onclick = () => {
+      if (supplierCurrentPage > 1) {
+        supplierCurrentPage--;
+        renderSupplierTablePage(supplierCurrentPage);
+        renderSupplierPagination();
+      }
+    };
+    paginationDiv.appendChild(prevBtn);
+
+    // Page number buttons
+    for (let i = 1; i <= totalPages; i++) {
+      const pageBtn = document.createElement("button");
+      pageBtn.textContent = i;
+      if (i === supplierCurrentPage) {
+        pageBtn.disabled = true;
+        pageBtn.style.fontWeight = "bold";
+      }
+      pageBtn.onclick = () => {
+        supplierCurrentPage = i;
+        renderSupplierTablePage(supplierCurrentPage);
+        renderSupplierPagination();
+      };
+      paginationDiv.appendChild(pageBtn);
+    }
+
+    // Next button
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "Next";
+    nextBtn.disabled = supplierCurrentPage === totalPages;
+    nextBtn.onclick = () => {
+      if (supplierCurrentPage < totalPages) {
+        supplierCurrentPage++;
+        renderSupplierTablePage(supplierCurrentPage);
+        renderSupplierPagination();
+      }
+    };
+    paginationDiv.appendChild(nextBtn);
+  }
+
+  // Load on page start
   fetchSuppliers();
+</script>
+
+<script>
+  async function loadSupplierSummary() {
+    try {
+      const response = await fetch("/api/dashboard/stock-flow");
+      const data = await response.json();
+
+      if (data.error) {
+        console.error("Error from API:", data.error);
+        return;
+      }
+
+      // Update values
+      document.getElementById("total-stock-in").textContent = data.stock_in ?? 0;
+      document.getElementById("total-stock-out").textContent = data.stock_out ?? 0;
+      document.getElementById("top-supplier").textContent = data.top_supplier || "N/A";
+      document.getElementById("top-supplier-total").textContent = data.top_supplier_total ?? "-";
+    } catch (error) {
+      console.error("Failed to fetch supplier summary:", error);
+    }
+  }
+
+  // Load on page ready
+  document.addEventListener("DOMContentLoaded", loadSupplierSummary);
 </script>

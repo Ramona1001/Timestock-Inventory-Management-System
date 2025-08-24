@@ -9,27 +9,62 @@ import plotly.subplots as sp
 from statsmodels.tsa.seasonal import STL
 import json
 
-
 def get_graph_html(period='month'):
     con = duckdb.connect('backend/db_timestock')
 
-    query = f"""
+    # Total Orders
+    df_orders = con.execute(f"""
         SELECT 
             DATE_TRUNC('{period}', ot.date_created) AS period,
-            COUNT(DISTINCT ot.id) AS total_orders,
-            SUM(oi.quantity) AS total_sales,
-            SUM(ot.total_amount) AS total_revenue
+            COUNT(DISTINCT ot.id) AS total_orders
         FROM order_transactions ot
-        JOIN order_items oi ON ot.id = oi.order_id
+        WHERE ot.status_id = 'OS005'
         GROUP BY period
         ORDER BY period;
-    """
-    df = con.execute(query).fetchdf()
-    
+    """).fetchdf()
+
+    # Total Sales (quantity)
+    df_sales = con.execute(f"""
+        SELECT 
+            DATE_TRUNC('{period}', ot.date_created) AS period,
+            SUM(oi.quantity) AS total_sales
+        FROM order_transactions ot
+        JOIN order_items oi ON ot.id = oi.order_id
+        WHERE ot.status_id = 'OS005'
+        GROUP BY period
+        ORDER BY period;
+    """).fetchdf()
+
+    # Total Revenue
+    df_revenue = con.execute(f"""
+        SELECT 
+            DATE_TRUNC('{period}', ot.date_created) AS period,
+            SUM(ot.total_amount) AS total_revenue
+        FROM order_transactions ot
+        WHERE ot.status_id = 'OS005'
+        GROUP BY period
+        ORDER BY period;
+    """).fetchdf()
+
+    # Merge the three metrics
+    df = df_orders.merge(df_sales, on='period', how='outer').merge(df_revenue, on='period', how='outer')
+    df = df.sort_values('period')
+
+    # Plotting
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df['period'], y=df['total_orders'], name='Total Orders', mode='lines+markers', yaxis='y1'))
-    fig.add_trace(go.Scatter(x=df['period'], y=df['total_sales'], name='Total Sales', mode='lines+markers', yaxis='y1'))
-    fig.add_trace(go.Scatter(x=df['period'], y=df['total_revenue'], name='Total Revenue (₱)', mode='lines+markers', yaxis='y2', line=dict(color='green')))
+    fig.add_trace(go.Scatter(
+        x=df['period'], y=df['total_orders'],
+        name='Total Orders', mode='lines+markers', yaxis='y1'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df['period'], y=df['total_sales'],
+        name='Total Sales', mode='lines+markers', yaxis='y1'
+    ))
+    fig.add_trace(go.Scatter(
+        x=df['period'], y=df['total_revenue'],
+        name='Total Revenue (₱)', mode='lines+markers',
+        line=dict(color='green'), yaxis='y2'
+    ))
 
     fig.update_layout(
         title=f"Orders, Sales, and Revenue per {period.capitalize()}",
@@ -609,8 +644,9 @@ def get_sales_moving_average_chart():
             DATE_TRUNC('month', ot.date_created) AS month,
             SUM(ot.total_amount) AS total_sales
         FROM order_transactions ot
+        WHERE ot.status_id = 'OS005'
         GROUP BY month
-        ORDER BY month
+        ORDER BY month;
     """).fetchdf()
     df['month'] = pd.to_datetime(df['month'])
 
@@ -629,9 +665,10 @@ def get_sales_moving_average_chart():
                 JOIN order_items oi ON ot.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
                 JOIN items i ON p.item_id = i.id
+                WHERE ot.status_id = 'OS005'
                 GROUP BY month, product_name
             ) 
-            WHERE rnk = 1
+            WHERE rnk = 1;
 
     """).fetchdf()
     top_products_df['month'] = pd.to_datetime(top_products_df['month'])
@@ -683,6 +720,7 @@ def get_sales_moving_average_chart():
 
     html = fig.to_html(full_html=False, config={'responsive': True})
     return html, df
+
 
 def generate_moving_average_recommendations(df: pd.DataFrame) -> list:
     recommendations = []
@@ -799,15 +837,22 @@ def get_text_report_for_month(year: int, month: int):
         SELECT 
             DATE_TRUNC('day', ot.date_created) AS period,
             COUNT(DISTINCT ot.id) AS total_orders,
-            SUM(oi.quantity) AS total_sales,
-            SUM(ot.total_amount) AS total_revenue
+            COALESCE(SUM(oi.quantity), 0) AS total_sales,
+            COALESCE(SUM(ot.total_amount), 0) AS total_revenue
         FROM order_transactions ot
-        JOIN order_items oi ON ot.id = oi.order_id
-        WHERE EXTRACT(YEAR FROM ot.date_created) = {year}
-          AND EXTRACT(MONTH FROM ot.date_created) = {month}
+        LEFT JOIN (
+            SELECT order_id, SUM(quantity) AS quantity
+            FROM order_items
+            GROUP BY order_id
+        ) oi ON ot.id = oi.order_id
+        WHERE ot.status_id = 'OS005'
+        AND EXTRACT(YEAR FROM ot.date_created) = {year}
+        AND EXTRACT(MONTH FROM ot.date_created) = {month}
         GROUP BY period
         ORDER BY period;
+
     """
+
     df = con.execute(query).fetchdf()
 
     if df.empty:
@@ -994,12 +1039,13 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
     with duckdb.connect('backend/db_timestock') as con:
         # --- get full dataset (no filtering here) ---
         df = con.execute("""
-            SELECT
-                DATE_TRUNC('month', ot.date_created) AS month,
-                SUM(ot.total_amount) AS total_sales
-            FROM order_transactions ot
-            GROUP BY month
-            ORDER BY month
+        SELECT
+            DATE_TRUNC('month', ot.date_created) AS month,
+            SUM(ot.total_amount) AS total_sales
+        FROM order_transactions ot
+        WHERE ot.status_id = 'OS005'
+        GROUP BY month
+        ORDER BY month;
         """).fetchdf()
 
         if df.empty:
@@ -1022,6 +1068,7 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
                 JOIN order_items oi ON ot.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
                 JOIN items i ON p.item_id = i.id
+                WHERE ot.status_id = 'OS005'
                 GROUP BY month, product_name
             ) 
             WHERE rnk = 1
@@ -1064,3 +1111,96 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
             "ma3": ma3,
             "ma6": ma6
         }
+
+def get_stock_movement_report_for_month(year: int, month: int):
+    con = duckdb.connect('backend/db_timestock')
+
+    query = f"""
+        SELECT 
+            m.id AS material_id,
+            i.item_name AS material_name,
+            COUNT(CASE WHEN stt.type_code = 'stock-in' THEN 1 END) AS stock_in_count,
+            COUNT(CASE WHEN stt.type_code = 'stock-out' THEN 1 END) AS stock_out_count
+        FROM stock_transaction_items sti
+        JOIN stock_transactions st ON st.id = sti.stock_transaction_id
+        JOIN stock_transaction_types stt ON stt.id = st.stock_type_id
+        JOIN materials m ON m.id = sti.material_id
+        JOIN items i ON i.id = m.item_id
+        WHERE EXTRACT(YEAR FROM st.date_created) = {year}
+        AND EXTRACT(MONTH FROM st.date_created) = {month}
+        GROUP BY m.id, i.item_name
+        ORDER BY i.item_name;
+    """
+
+    df = con.execute(query).fetchdf()
+
+    if df.empty:
+        return {"empty": True, "message": f"No stock movement found for {year}-{month:02d}"}
+    
+
+    # --- totals across all materials ---
+    total_stock_in_events = int(df["stock_in_count"].sum())
+    total_stock_out_events = int(df["stock_out_count"].sum())
+
+    # --- material-level breakdown ---
+    breakdown = [
+        {
+            "material_id": row["material_id"],
+            "material_name": row["material_name"],
+            "stock_in_events": int(row["stock_in_count"]),
+            "stock_out_events": int(row["stock_out_count"])
+        }
+        for _, row in df.iterrows()
+    ]
+
+    return {
+        "empty": False,
+        "title": f"Stock Movement Report for {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')} (By Frequency)",
+        "total_stock_in_events": total_stock_in_events,
+        "total_stock_out_events": total_stock_out_events,
+        "breakdown": breakdown
+    }
+
+def get_products_sold_for_month(year: int, month: int):
+    con = duckdb.connect('backend/db_timestock')
+
+    query = f"""
+        SELECT 
+            i.item_name AS product_name,
+            SUM(oi.quantity) AS total_quantity,
+            SUM(oi.line_total) AS total_sales
+        FROM order_transactions ot
+        JOIN order_items oi ON ot.id = oi.order_id
+        JOIN products p ON oi.product_id = p.id
+        JOIN items i ON p.item_id = i.id
+        WHERE ot.status_id = 'OS005'  -- only completed orders
+        AND EXTRACT(YEAR FROM ot.date_created) = {year}
+        AND EXTRACT(MONTH FROM ot.date_created) = {month}
+        GROUP BY i.item_name
+        ORDER BY total_quantity DESC;
+    """
+
+    df = con.execute(query).fetchdf()
+
+    if df.empty:
+        return {"empty": True, "message": f"No products sold in {year}-{month:02d}"}
+
+    breakdown = [
+        {
+            "product_name": row["product_name"],
+            "total_quantity": int(row["total_quantity"]),
+            "total_sales": float(row["total_sales"])
+        }
+        for _, row in df.iterrows()
+    ]
+
+    total_quantity_all = int(df["total_quantity"].sum())
+    total_sales_all = float(df["total_sales"].sum())
+
+    return {
+        "empty": False,
+        "title": f"Products Sold in {pd.Timestamp(year=year, month=month, day=1).strftime('%B %Y')}",
+        "total_quantity_all": total_quantity_all,
+        "total_sales_all": total_sales_all,
+        "breakdown": breakdown
+    }

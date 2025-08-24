@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=3">
+  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=4">
 <style>
+  .top h2 {
+  margin: 0;
+  position: relative;
+  left: -20px;  /* adjust this value to move left */
+}
 </style>
 </head>
 <body>
@@ -15,29 +20,14 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+          <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
 
-<div class="sidebar">
-  <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-  <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-  <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-  <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-  <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-  <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
-  <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-  <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-  <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-  <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-  <a href="/logout">
-    <span class="material-symbols-sharp">logout</span>    
-    <h3>Sign-out</h3>
-  </a>
-</div>
+       {% include "sidebar.html" %}
 
 </aside>
 
@@ -47,25 +37,23 @@
   <h1>Order and Quotation</h1>
    <div class="top-bar">
         {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
-    </div>
+        {% include "profile.html" %}
   </div>
 </div>
 
 
 <div class="container_quote mt-5">
-  <h1 class="text-center mb-4">🧾 Product Quotation</h1>
-
+  <h1 class="text-center mb-4">🧾 Product Quotation</h1><br>
+    <div class="mt-3">
+      <button class="btn btn-outline-danger" id="clearAllBtn">🗑️ Clear Quote & Cart</button>
+    </div>
   <div class="quote-grid">
     <!-- LEFT PANEL -->
     <div class="left-panel">
       <!-- Materials Table -->
       <div class="card section-wrapper">
         <h5 class="card-header">Material Details</h5>
-        <div class="card-body table-responsive">
+        <div class="card-body table-responsive" id="materialTableContainer">
           <table class="table table-striped" id="materialTable">
             <thead>
               <tr>
@@ -75,31 +63,44 @@
                 <th>Line Cost</th>
               </tr>
             </thead>
-            <tbody id="materialList"></tbody>
+            <tbody id="materialList">
+              <tr class="placeholder-row">
+                <td colspan="4" class="text-center text-muted">Please select a product to see material details</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
 
       <!-- Quotation Section -->
-      <div class="card mt-4">
-        <h5 class="card-header">Quotation</h5>
-        <div class="card-body" id="quotation"></div>
+      <div class="card section-wrapper mt-4">
+        <h5 class="card-header" >Quotation</h5>
+        <div class="card-body" id="quotation">
+          <div class="placeholder-text text-center text-muted">Please select a product to see the quotation</div>
+        </div>
       </div>
 
       <!-- Products Table -->
       <div class="card section-wrapper mt-4">
         <h5 class="card-header">Products</h5>
         <div class="card-body table-responsive">
-          <table class="table table-hover" id="productTable">
-            <thead>
-              <tr>
-                <th>Product ID</th>
-                <th>Product Name</th>
-                <th>Unit Price</th>
-              </tr>
-            </thead>
-            <tbody id="productList"></tbody>
-          </table>
+         <label for="productSelect" class="form-label">Quick Select:</label>
+          <select id="productSelect" class="form-select quick-select mb-3">
+            <option value="">-- Select a product --</option>
+          </select>
+          <div id="productTableContainer" class="table-scroll">
+            <table class="table table-hover" id="productTable">
+              <thead>
+                <tr>
+                  <th>Product ID</th>
+                  <th>Product Name</th>
+                  <th>Unit Price</th>
+                </tr>
+              </thead>
+              <tbody id="productList"></tbody>
+            </table>
+          </div>
+
         </div>
       </div>
     </div>
@@ -109,8 +110,8 @@
       <!-- Order Cart -->
       <div class="card section-wrapper">
         <h5 class="card-header">🛒 Order Cart</h5>
-        <div class="card-body table-responsive">
-          <table class="table table-bordered">
+          <div class="card-body table-responsive" id="orderCartContainer">
+            <table class="table table-bordered" id="orderCartTable">
             <thead>
               <tr>
                 <th>Product ID</th>
@@ -121,23 +122,36 @@
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody id="orderCart"></tbody>
+            <tbody id="orderCart">
+              <tr class="placeholder-row">
+                <td colspan="6" class="text-center text-muted">No products added to the order cart</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
 
+      <!-- Order Totals Section -->
+      <div class="card section-wrapper mt-4">
+        <h5 class="card-header">Order Totals</h5>
+          <div class="card-body" id="orderTotals">
+            <div class="placeholder-text text-center text-muted">No items in the cart yet</div>
+          </div>
+      </div>
+
+
       <!-- Customer Info -->
-      <div class="card mt-4">
+      <div class="card section-wrapper mt-4">
         <h5 class="card-header">👤 Customer Details</h5>
         <div class="card-body">
-          <input type="text" id="firstname" class="form-control mb-2" placeholder="First Name" required />
-          <input type="text" id="lastname" class="form-control mb-2" placeholder="Last Name" required />
-          <input type="text" id="contact_number" class="form-control mb-2" placeholder="Contact Number" required />
-          <input type="email" id="email" class="form-control mb-2" placeholder="Email" required />
-          <input type="text" id="address" class="form-control mb-3" placeholder="Address" required />
+          <input type="text" id="firstname" class="custom-input mb-2" placeholder="First Name" required />
+          <input type="text" id="lastname" class="custom-input mb-2" placeholder="Last Name" required />
+          <input type="text" id="contact_number" class="custom-input mb-2" placeholder="Contact Number" required />
+          <input type="email" id="email" class="custom-input mb-2" placeholder="Email" required />
+          <input type="text" id="address" class="custom-input mb-3" placeholder="Address" required />
 
           <label for="status_id" class="form-label">Order Status:</label>
-          <select id="status_id" class="form-select mb-3" required></select>
+          <select id="status_id" class="custom-input mb-3" required></select>
 
           <div class="d-flex flex-wrap gap-2">
             <button class="btn btn-outline-success" onclick="openModal('receiptModal')">🧾 Receipt</button>
@@ -146,6 +160,7 @@
           </div>
         </div>
       </div>
+      
     </div>
   </div>
 </div>
@@ -211,12 +226,21 @@
 let orderCart = [];
 
 document.addEventListener("DOMContentLoaded", function () {
-  loadStatusOptions();
+  const productList = document.getElementById('productList');
+  const productSelect = document.getElementById('productSelect');
+
   fetch('api/products')
     .then(res => res.json())
     .then(data => {
-      const productList = document.getElementById('productList');
       data.forEach(product => {
+        // --- Populate dropdown ---
+        const option = document.createElement('option');
+        option.value = product.product_id;
+        option.textContent = product.item_name;
+        option.dataset.unitPrice = product.unit_price;
+        productSelect.appendChild(option);
+
+        // --- Populate table ---
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${product.product_id}</td>
@@ -226,6 +250,21 @@ document.addEventListener("DOMContentLoaded", function () {
         productList.appendChild(row);
       });
     });
+
+  // Handle dropdown selection
+  productSelect.addEventListener('change', function () {
+    const selectedOption = productSelect.selectedOptions[0];
+    if (selectedOption && selectedOption.value) {
+      const productId = selectedOption.value;
+      const itemName = selectedOption.textContent;
+      const unitPrice = parseFloat(selectedOption.dataset.unitPrice);
+      handleProductClick(productId, itemName, unitPrice);
+
+      // Optional: scroll table to the selected product row
+      const row = Array.from(productList.children).find(r => r.cells[0].textContent === productId);
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 });
 
 function handleProductClick(productId, itemName, unitPrice) {
@@ -246,7 +285,10 @@ function handleProductClick(productId, itemName, unitPrice) {
       });
 
       const quotation = document.getElementById('quotation');
-      quotation.innerHTML = `<strong>Total Cost:</strong> ₱${parseFloat(data.total_cost).toFixed(2)}`;
+      quotation.innerHTML = `
+        <strong>Product Name:</strong> ${itemName} <br>
+        <strong>Total Cost:</strong> ₱${parseFloat(data.total_cost).toFixed(2)}
+      `;
 
       const existing = orderCart.find(p => p.product_id === productId);
       if (existing) {
@@ -280,17 +322,30 @@ function handleProductClick(productId, itemName, unitPrice) {
     });
 }
 
+
+
 function renderCart() {
   const cart = document.getElementById('orderCart');
+  const totalsDiv = document.getElementById('orderTotals'); // new totals div
   cart.innerHTML = '';
   let totalProductCost = 0;
   let totalMaterialCost = 0;
+
+    if (orderCart.length === 0) {
+    // Placeholder row if cart is empty
+    cart.innerHTML = '<tr class="placeholder-row"><td colspan="6" class="text-center text-muted">No products added to the order cart</td></tr>';
+    totalsDiv.innerHTML = '<div class="placeholder-text text-center text-muted">No items in the cart yet</div>';
+    return;
+  }
 
   orderCart.forEach(item => {
     const feePercent = parseFloat(item.misc_fee || 0);
     const adjustedUnitPrice = item.unit_price * (1 + feePercent / 100);
     const productTotal = adjustedUnitPrice * item.quantity;
-    const materialTotal = item.materials?.reduce((sum, m) => sum + (m.line_cost || 0), 0) || 0;
+    const materialTotal = item.materials?.reduce(
+      (sum, m) => sum + ((m.line_cost || 0) * item.quantity),
+      0
+    ) || 0;
 
     totalProductCost += productTotal;
     totalMaterialCost += materialTotal;
@@ -317,11 +372,9 @@ function renderCart() {
               style="width: 60px;" 
               onchange="updateQuantity('${item.product_id}', this.value)" />
       </td>
-
       <td>
         <button class="btn-remove" onclick="removeFromCart('${item.product_id}')" title="Remove">🗑️</button>
       </td>
-
     `;
     cart.appendChild(row);
 
@@ -342,7 +395,7 @@ function renderCart() {
               ${item.materials.map((m, mIndex) => `
                 <tr>
                   <td>${m.item_name}</td>
-                 <td>
+                  <td>
                     <input type="number" min="0" step="0.01" value="${m.used_quantity}" 
                           onchange="updateUsedQuantity('${item.product_id}', ${mIndex}, this.value)" 
                           class="form-control form-control-sm" 
@@ -360,16 +413,30 @@ function renderCart() {
     }
   });
 
-  const totalRow = document.createElement('tr');
-  totalRow.innerHTML = `
-    <td colspan="6" class="text-end fw-bold">
-      <div>Grand Total Product Cost (with Misc Fees): ₱${totalProductCost.toFixed(2)}</div>
-      <div>Total Material Quotation Cost: ₱${totalMaterialCost.toFixed(2)}</div>
-      <hr>
-    </td>
+  // Populate the new totals div
+  totalsDiv.innerHTML = `
+    <div><strong>Grand Total Product Cost (with Misc Fees):</strong> ₱${totalProductCost.toFixed(2)}</div>
+    <div><strong>Total Material Quotation Cost:</strong> ₱${totalMaterialCost.toFixed(2)}</div>
   `;
-  cart.appendChild(totalRow);
 }
+
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  // Clear the quotation
+  const quotation = document.getElementById('quotation');
+  quotation.innerHTML = '<div class="placeholder-text text-center text-muted">Please select a product to see the quotation</div>';
+
+  // Clear the material table
+  const materialList = document.getElementById('materialList');
+  materialList.innerHTML = '<tr class="placeholder-row"><td colspan="4" class="text-center text-muted">Please select a product to see material details</td></tr>';
+
+  // Clear the order cart array
+  orderCart.length = 0;
+
+  // Re-render the cart (will show placeholder)
+  renderCart();
+});
+
+
 
 function updateUnitPrice(productId, newPrice) {
   const item = orderCart.find(p => p.product_id === productId);

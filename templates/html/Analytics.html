@@ -8,6 +8,11 @@
   <link rel="stylesheet" href="../css/Analytics.css?v=4">
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <style>
+  .top h2 {
+  margin: 0;
+  position: relative;
+  left: -20px;  /* adjust this value to move left */
+}
   .recommendation-box {
   background: #f9f9f9;
   padding: 1rem;
@@ -86,28 +91,13 @@
       <div class="top">
         <div class="logo">
           <img src="../images/TIMESTOCK_BG.png">
-          <h2>TIME<span class="danger">STOCK</span></h2>
         </div>
+        <h2>TIME<span class="danger">STOCK</span></h2>
         <div class="close" id="close-btn">
             <span class="material-symbols-sharp">close </span>        
       </div>
     </div>
-      <div class="sidebar">
-        <a href="index.html"><span class="material-symbols-sharp">dashboard</span><h3>Overview</h3></a>
-        <a href="product.html"><span class="material-symbols-sharp">package_2</span><h3>Product</h3></a>
-        <a href="Materials.html"><span class="material-symbols-sharp">handyman</span><h3>Materials</h3></a>
-        <a href="Analytics.html"><span class="material-symbols-sharp">monitoring</span><h3>Analytics</h3></a>
-        <a href="Reports.html"><span class="material-symbols-sharp">lab_profile</span><h3>Reports</h3></a>
-        <a href="Transactions.html"><span class="material-symbols-sharp">dashboard</span><h3>Transactions</h3></a>
-        <a href="Customer.html"><span class="material-symbols-sharp">groups</span><h3>Customer</h3></a>
-        <a href="Supplier.html"><span class="material-symbols-sharp">factory</span><h3>Supplier</h3></a>
-        <a href="Order_and_Quotation.html"><span class="material-symbols-sharp">contract_edit</span><h3>Order & Quotation</h3></a>
-        <a href="Settings.html"><span class="material-symbols-sharp">settings</span><h3>Settings</h3></a>
-        <a href="/logout">
-          <span class="material-symbols-sharp">logout</span>    
-          <h3>Sign-out</h3>
-        </a>
-      </div>
+       {% include "sidebar.html" %}
 </aside>
 <!-----END OF ASIDE MUENU----->
 <main>
@@ -115,17 +105,13 @@
   <h1>Analytics Management</h1>
   <div class="top-bar">
     {% include 'alert.html' %}
-    <p class="greeting">Hey, <b>Emma-Nulle</b></p>
-    <small class="text-muted">Admin</small>
-    <div class="profile-photo">
-      <img src="../images/admin-profile!.png" />
-    </div>
+    {% include "profile.html" %}
   </div>
 </div>
 
  <!-- Filter Buttons -->
 <div class="filter-buttons mb-4">
-  <button onclick="fetchSummary('week')" class="btn btn-primary">Week</button>
+  <button onclick="fetchSummary('week')" class="btn btn-primary active" >Week</button>
   <button onclick="fetchSummary('month')" class="btn btn-outline-primary">Month</button>
   <button onclick="fetchSummary('year')" class="btn btn-outline-primary">Year</button>
 </div>

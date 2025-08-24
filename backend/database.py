@@ -4,7 +4,8 @@ from collections import defaultdict
 from fastapi import HTTPException, Request 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from typing import Optional
+from typing import List, Dict, Any, Optional
+
 
 
 con = duckdb.connect('backend/db_timestock')
@@ -1289,8 +1290,12 @@ def stock_materials(
 
     except Exception as e:
         if own_cursor and conn_used is not None:
-            conn_used.rollback()  # <-- undo all changes
+            try:
+                conn_used.rollback()  # <-- undo all changes
+            except Exception:
+                pass  # no transaction active, ignore
         raise e
+
 
 
 def get_stock_transactions_detailed():
@@ -1612,49 +1617,6 @@ def get_products():
         """).fetchdf()
 
 
-# def add_product(data: dict):
-#    # Normalize item fields
-#     item_name = data['item_name'].strip().title()
-#     item_description = data['item_decription'].strip()
-#     category_id = data['category_id']
-
-#     # Check for duplicate item name
-#     existing = con.execute("""
-#         SELECT id FROM items WHERE LOWER(TRIM(item_name)) = ?
-#     """, (item_name.lower(),)).fetchone()
-
-#     if existing:
-#         return {"success": False, "message": f"Item already exists with name: {item_name}"}
-
-#     cur = con.cursor()
-
-#     # Step 1: Insert into items first and get item_id
-#     item_id = cur.execute("""
-#         INSERT INTO items (
-#             item_name, item_decription, category_id, date_created, date_updated
-#         ) VALUES (?, ?, ?, ?, ?)
-#         RETURNING id
-#     """, (item_name, item_description, category_id, datetime.utcnow(), datetime.utcnow())).fetchone()[0]
-
-#     # Step 2: Insert into products with that item_id
-#     cur.execute("""
-#         INSERT INTO products (
-#             item_id, category_id, unit_price, materials_cost, status,
-#             date_created, date_updated
-#         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-#     """, (
-#         item_id,
-#         category_id,
-#         data['unit_price'],
-#         data['materials_cost'],
-#         data['status'].strip().title(),
-#         datetime.utcnow(),
-#         datetime.utcnow()
-#     ))
-
-#     con.commit()
-#     return {"success": True, "product_id": item_id, "message": "Product added successfully."}
-
 # THIS IS DONE
 def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
     if admin_id is None:
@@ -1731,58 +1693,6 @@ def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
             conn_used.rollback()
         raise
 
-
-# def update_product(
-#     con,
-#     product_id: str,
-#     unit_price: float,
-#     materials_cost: float,
-#     status: str,
-#     category_id: str,
-#     item_name: str,
-#     item_description: str
-# ):
-#     # Get the item_id linked to the product
-#     item_id_result = con.execute(
-#         "SELECT item_id FROM products WHERE id = ?", (product_id,)
-#     ).fetchone()
-
-#     if item_id_result is None:
-#         raise ValueError(f"No product found with id {product_id}")
-
-#     item_id = item_id_result[0]
-
-#     # Validate uniqueness of item_name (excluding current item_id)
-#     duplicate_check = con.execute("""
-#         SELECT 1 FROM items
-#         WHERE item_name = ? AND id != ?
-#         LIMIT 1
-#     """, (item_name, item_id)).fetchone()
-
-#     if duplicate_check:
-#         raise ValueError(f"Item name '{item_name}' already exists.")
-
-#     # Update products table
-#     con.execute("""
-#         UPDATE products 
-#         SET 
-#             unit_price = ?, 
-#             materials_cost = ?, 
-#             status = ?, 
-#             date_updated = CURRENT_TIMESTAMP
-#         WHERE id = ?
-#     """, (unit_price, materials_cost, status, product_id))
-
-#     # Update items table
-#     con.execute("""
-#         UPDATE items
-#         SET 
-#             item_name = ?, 
-#             item_decription = ?, 
-#             category_id = ?, 
-#             date_updated = CURRENT_TIMESTAMP
-#         WHERE id = ?
-#     """, (item_name, item_description, category_id, item_id))
 
 # THIS IS DONE
 def update_product(
@@ -1880,30 +1790,6 @@ def update_product(
         if own_cursor and conn_used is not None:
             conn_used.rollback()
         raise
-
-
-# def delete_product(product_id: str):
-#     with duckdb.connect('backend/db_timestock') as conn:
-#         try:
-#             # Get the corresponding item_id from the product
-#             item_result = conn.execute("SELECT item_id FROM products WHERE id = ?", (product_id,)).fetchone()
-#             if not item_result:
-#                 return {"success": False, "message": "Product not found."}
-            
-#             item_id = item_result[0]
-
-#             # Delete from referencing tables first to avoid FK constraint issues
-#             conn.execute("DELETE FROM product_materials WHERE product_id = ?", (product_id,))
-#             conn.execute("DELETE FROM order_items WHERE product_id = ?", (product_id,))
-            
-#             # Then delete from main product and item tables
-#             conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
-#             conn.execute("DELETE FROM items WHERE id = ?", (item_id,))  # Use the correct item_id
-            
-#             con.commit()
-#             return {"success": True, "message": "Product, item, and all references deleted."}
-#         except Exception as e:
-#             return {"success": False, "message": str(e)}
 
 # THIS IS DONE
 def delete_product(product_id: str, admin_id: Optional[str] = None, cur=None):
@@ -2564,38 +2450,6 @@ def get_employees():
         """).fetchdf()
 
 
-# def add_employee(data: dict):
-#     firstname = data['firstname'].strip().title()
-#     lastname = data['lastname'].strip().title()
-#     email = data['email'].strip().lower()
-#     password = data['password'].strip()
-
-#     ph = PasswordHasher()
-#     pw_hash = ph.hash(password)
-
-#     contact_number = data['contact_number'].strip()
-
-#     if con.execute(
-#         "SELECT 1 FROM employees WHERE email = ?",
-#         (email,)
-#     ).fetchone():
-#         return {"success": False, "message": "Email is already registered."}
-
-#     if con.execute(
-#         "SELECT 1 FROM employees WHERE contact_number = ?",
-#         (contact_number,)
-#     ).fetchone():
-#         return {"success": False, "message": "Contact number is already in use."}
-
-#     cur = con.cursor()
-#     cur.execute("""
-#         INSERT into employees(firstname, lastname, email, password, contact_number)
-#         VALUES (?, ?, ?, ?, ?)
-#     """, (firstname, lastname, email, pw_hash, contact_number))
-
-#     con.commit()
-#     return {"success": True, "Message": "Employee added successfully!"}
-
 # THIS IS DONE
 def add_employee(data: dict, admin_id: Optional[str] = None, cur=None):
     """
@@ -2765,45 +2619,6 @@ def update_account_status(id: str, is_active: bool, admin_id: Optional[str] = No
             conn_used.rollback()
         raise
 
-# def change_employee_password(
-#         admin_id: str,
-#         target_employee_id: str,
-#         new_password: str
-#     ) -> dict:
-
-#     ph = PasswordHasher()
-
-#     row = con.execute(
-#         "SELECT password FROM admin WHERE id = ?", (admin_id,)
-#     ).fetchone()
-
-#     if not row:
-#         raise HTTPException(status_code=404, detail="Admin account not found.")
-    
-#     new_password = new_password.strip()
-#     if len(new_password) < 8:
-#         return {"success": False, "message": "New password must be at least 8 characters."}
-    
-#     try:
-#         new_hash = ph.hash(new_password)
-#     except Exception:
-#         raise HTTPException(status_code=500, detail="Error hashing new password.")
-    
-#     res = con.execute(
-#         """
-#         UPDATE employees
-#         SET password = ?,
-#             date_updated = NOW()
-#         WHERE id = ?
-#         """,
-#         (new_hash, target_employee_id)
-#     )
-
-#     if res.rowcount == 0:
-#         return {"success": False, "message": "Target user not found."}
-    
-#     con.commit()
-#     return {"success": True, "message": "Employee password changed successfully."}
 
 # THIS IS DONE
 def change_employee_password(
@@ -2898,99 +2713,6 @@ def get_current_admin(request: Request):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
-# def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False):
-#     if admin_id is None:
-#         raise ValueError("Error: Admin ID is required (admin only)")
-    
-#     if years < 2:
-#         raise ValueError("Error: Cutoff year should be at least 5 years ago or older")
-    
-#     admin_exists = con.execute("SELECT 1 FROM admin WHERE id = ?", (admin_id,)).fetchone()
-#     if not admin_exists:
-#         raise ValueError("Error: Admin ID not found")
-
-#     cutoff_date = datetime.now() - timedelta(days= years*365)
-#     cutoff_param = cutoff_date.isoformat()
-    
-#     deleted = {
-#                "old_order_items": 0,
-#                "old_orders": 0,
-#                "old_stock_items": 0,
-#                "old_stocks": 0
-#     }
-
-#     try:
-#         cur = con.cursor()
-
-#         if dry_run:
-#             deleted["old_order_items"] = cur.execute(
-#                 """
-#                 SELECT COUNT(*) FROM order_items
-#                 WHERE order_id
-#                 IN  (
-#                     SELECT id 
-#                     FROM order_transactions
-#                     WHERE date_created < ?
-#                     )
-#                 """, (cutoff_param,)
-#             ).fetchone()[0]
-#             deleted["old_orders"] = cur.execute(
-#               "SELECT COUNT(*) FROM order_transactions WHERE date_created < ?", (cutoff_param,)
-#             ).fetchone()[0]
-
-#             deleted["old_stock_items"] = cur.execute(
-#                 """
-#                 SELECT COUNT(*) FROM stock_transaction_items
-#                 WHERE stock_transaction_id
-#                 IN  (
-#                     SELECT id
-#                     FROM stock_transactions
-#                     WHERE date_created < ?
-#                     )
-#                 """, (cutoff_param,)
-#             ).fetchone()[0]
-#             deleted["old_stocks"] = cur.execute(
-#                 "SELECT COUNT(*) FROM stock_transactions WHERE date_created < ?", (cutoff_param,)
-#             ).fetchone()[0]
-        
-#         else:
-#             deleted["old_order_items"] = cur.execute(
-#                 """
-#                 DELETE FROM order_items
-#                 WHERE order_id
-#                 IN  (
-#                     SELECT id 
-#                    FROM order_transactions
-#                    WHERE date_created < ?
-#                    )
-#                 """, (cutoff_param,)
-#             ).rowcount
-#             deleted["old_orders"] = cur.execute(
-#               "DELETE FROM order_transactions WHERE date_created < ?", (cutoff_param,)
-#             ).rowcount
-
-#             deleted["old_stock_items"] = cur.execute(
-#                 """
-#                 DELETE FROM stock_transaction_items
-#                 WHERE stock_transaction_id
-#                 IN  (
-#                     SELECT id
-#                     FROM stock_transactions
-#                     WHERE date_created < ?
-#                     )
-#                 """, (cutoff_param,)
-#             ).rowcount
-#             deleted["old_stocks"] = cur.execute(
-#                 "DELETE FROM stock_transactions WHERE date_created < ?", (cutoff_param,)
-#             ).rowcount
-
-#             con.commit()
-
-#     except Exception:
-#         con.rollback()
-#         raise
-
-#     return {"success": True, "cutoff_date": cutoff_date.isoformat(), **deleted}
 
 def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False):
     if admin_id is None:
@@ -3109,10 +2831,6 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
 
     return {"success": True, "cutoff_date": cutoff_date.isoformat(), **deleted}
 
-
-# database.py (add/replace this function)
-import duckdb
-from typing import List, Dict, Any, Optional
 
 def get_audit_logs(limit: int = 100, offset: int = 0, cur=None) -> List[Dict[str, Any]]:
     """
