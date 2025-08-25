@@ -548,10 +548,14 @@
 <div class="Products">
   <h2>Materials Inventory</h2>
   <!-- Buttons -->
+
 <div class="crud-buttons">
+  {% if request.session['user']['role'] == 'admin' %}
   <button class="create-btn" onclick="openModal('createModal')">Add Materials</button>
-  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Bulk Stock Materials</button>
   <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
+
+  {% endif %}
+  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Bulk Stock Materials</button>
 </div>
 
 <div id="productMaterialModal" class="modal" style="display:none;">
@@ -1123,11 +1127,14 @@ function clearMaterialFilters() {
         <td class="${statusClass}">${status}</td>
         <td>
            <div class="action-buttons">
+              {% if request.session['user']['role'] == 'admin' %}
               <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
               <button class="delete-btn" onclick="deleteMaterial('${material.material_id}')">Delete</button>
+              {% endif %}
               <button class="stock-btn" onclick="openSingleStockModal('${material.material_id}')">Stock</button>
             </div>
         </td>
+
       `;
       tableBody.appendChild(row);
     });
