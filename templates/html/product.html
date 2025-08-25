@@ -7,6 +7,173 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/product.css?v=2">
   <style>
+        :root {
+            --border-radius-1: 4px;
+            --border-radius-2: 8px;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background: #fff;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: var(--border-radius-2);
+            width: 90%;
+            max-width: 450px;
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+
+        .modal-header {
+            padding: 20px 20px 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2,
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .close {
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            background: none;
+            border: none;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 0 20px 20px 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .modal-content input,
+        .modal-content select,
+        .modal-content textarea {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius-1);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .modal-content input:focus,
+        .modal-content select:focus,
+        .modal-content textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-actions {
+            padding: 15px 20px 20px 20px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .create-btn-modal,
+        .modal-actions button[type="submit"] {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-1);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .create-btn:hover,
+        .modal-actions button[type="submit"]:hover {
+            background: #0056b3;
+        }
+
+        .modal-actions button[type="button"] {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-1);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-actions button[type="button"]:hover {
+            background: #545b62;
+        }
+
+        @media (max-width: 480px) {
+            .modal-content {
+                margin: 10% auto;
+                max-width: 95%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .modal-actions {
+                flex-direction: column-reverse;
+            }
+        }
+
   .top h2 {
   margin: 0;
   position: relative;
@@ -385,23 +552,55 @@
 
 <!-- Create Product Modal -->
 <div id="createModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('createModal')">&times;</span>
-    <h3>Add a Product</h3>
-    <input type="datetime" id="createDate" readonly>
-    <input type="text" id="createName" placeholder="Product Name">
-    <textarea id="createDescription" placeholder="Product Description"></textarea>
-    <select id="createCategory">
-      <!-- Categories will be populated dynamically -->
-    </select>
-    <input type="number" id="createPrice" placeholder="Unit Price">
-    <input type="number" id="createCost" placeholder="Materials Cost">
-    <select id="createStatus">
-      <option value="Available">Available</option>
-      <option value="Unavailable">Unavailable</option>
-    </select>
-    <button class="create-btn" onclick="addProduct()">Save Product</button>
-  </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add a Product</h3>
+            <span class="close" onclick="closeModal('createModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="createDate">Date Created</label>
+                    <input type="datetime" id="createDate" readonly>
+                </div>
+                <div class="form-group full-width">
+                    <label for="createName">Product Name</label>
+                    <input type="text" id="createName" placeholder="Enter product name">
+                </div>
+                <div class="form-group full-width">
+                    <label for="createDescription">Description</label>
+                    <textarea id="createDescription" placeholder="Enter product description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="createCategory">Category</label>
+                    <select id="createCategory">
+                        <option value="">Select Category</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="food">Food</option>
+                        <option value="desserts">Desserts</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createStatus">Status</label>
+                    <select id="createStatus">
+                        <option value="Available">Available</option>
+                        <option value="Unavailable">Unavailable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createPrice">Unit Price (₱)</label>
+                    <input type="number" id="createPrice" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="createCost">Materials Cost (₱)</label>
+                    <input type="number" id="createCost" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="create-btn-modal" onclick="addProduct()">Save Product</button>
+        </div>
+    </div>
 </div>
 
 
@@ -425,41 +624,61 @@
   </div>
 </div>
 
-<!-- Edit Product Modal -->
-<div id="editModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeEditModal()">&times;</span>
-    <h2>Edit Product</h2>
-    <form id="editProductForm">
-      <!-- Hidden product ID -->
-      <input type="hidden" id="edit-item-id">
+   <!-- Edit Product Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Product</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editProductForm">
+                <div class="modal-body">
+                    <!-- Hidden product ID -->
+                    <input type="hidden" id="edit-item-id">
+                    
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="edit-item-name">Item Name</label>
+                            <input type="text" id="edit-item-name" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="edit-item-description">Item Description</label>
+                            <input type="text" id="edit-item-description" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-category-id">Category</label>
+                            <select id="edit-category-id" required>
+                                <option value="">Select Category</option>
+                                <option value="beverages">Beverages</option>
+                                <option value="food">Food</option>
+                                <option value="desserts">Desserts</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-status">Status</label>
+                            <select id="edit-status" required>
+                                <option value="Available">Available</option>
+                                <option value="Unavailable">Unavailable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-unit-price">Unit Price (₱)</label>
+                            <input type="number" id="edit-unit-price" step="0.01" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-materials-cost">Materials Cost (₱)</label>
+                            <input type="number" id="edit-materials-cost" step="0.01" required min="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-      <label for="edit-item-name">Item Name:</label>
-      <input type="text" id="edit-item-name" required>
-
-      <label for="edit-item-description">Item Description:</label>
-      <input type="text" id="edit-item-description" required>
-
-      <label for="edit-category-id">Category:</label>
-      <select id="edit-category-id" required></select>
-
-      <label for="edit-unit-price">Unit Price:</label>
-      <input type="number" id="edit-unit-price" step="0.01" required>
-
-      <label for="edit-materials-cost">Materials Cost:</label>
-      <input type="number" id="edit-materials-cost" step="0.01" required>
-
-      <label for="edit-status">Status:</label>
-      <select id="edit-status" required>
-        <option value="Available">Available</option>
-        <option value="Unavailable">Unavailable</option>
-      </select>
-
-      <button type="submit">Save Changes</button>
-      <button type="button" onclick="closeEditModal()">Cancel</button>
-    </form>
-  </div>
-</div>
 
 <!-- Filters -->
 <div class="filters">
