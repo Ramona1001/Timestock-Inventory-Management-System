@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/reports.css?v=1">
+  <link rel="stylesheet" href="../css/reports.css?v=2">
   <style>
-    .top h2 {
-  margin: 0;
-  position: relative;
-  left: -20px;  /* adjust this value to move left */
-}
+
   </style>
 </head>
 <body>
@@ -62,8 +58,9 @@
     </form>
   </div>
 
-  <!-- Sales Report -->
-  {% if report_text and not report_text.empty %}
+  <div class="reports-grid">
+    <!-- Sales Report -->
+    {% if report_text and not report_text.empty %}
     <div class="report-section">
       <div class="report-header">
         <h3>📈 {{ report_text.title }}</h3>
@@ -84,39 +81,39 @@
           </div>
         </div>
 
-        <h4>📅 Daily Breakdown</h4>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Orders</th>
-              <th>Sales</th>
-              <th>Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in report_text.breakdown %}
-            <tr>
-              <td>{{ row.day }}</td>
-              <td>{{ row.orders }}</td>
-              <td>{{ row.sales }}</td>
-              <td class="revenue-cell">₱{{ "{:,.2f}".format(row.revenue) }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <h4 style="font-size: 14px; margin-bottom: 10px; font-weight: 600;">📅 Daily Breakdown</h4>
+        <div style="max-height: 200px; overflow-y: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Orders</th>
+                <th>Sales</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in report_text.breakdown %}
+              <tr>
+                <td>{{ row.day }}</td>
+                <td>{{ row.orders }}</td>
+                <td>{{ row.sales }}</td>
+                <td class="revenue-cell">₱{{ "{:,.2f}".format(row.revenue) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  {% elif report_text and report_text.empty %}
+    {% elif report_text and report_text.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ report_text.message }}
-      </div>
+      <div class="empty-message">{{ report_text.message }}</div>
     </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Turnover Report -->
-  {% if turnover_report and not turnover_report.empty %}
+    <!-- Turnover Report -->
+    {% if turnover_report and not turnover_report.empty %}
     <div class="report-section">
       <div class="report-header">
         <h3>🔄 {{ turnover_report.title }}</h3>
@@ -128,7 +125,7 @@
             <div class="stat-value">₱{{ "{:,.2f}".format(turnover_report.cogs) }}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Average Inventory</div>
+            <div class="stat-label">Avg Inventory</div>
             <div class="stat-value">₱{{ "{:,.2f}".format(turnover_report.avg_inventory) }}</div>
           </div>
           <div class="stat-card">
@@ -143,16 +140,14 @@
         </div>
       </div>
     </div>
-  {% elif turnover_report and turnover_report.empty %}
+    {% elif turnover_report and turnover_report.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ turnover_report.message }}
-      </div>
+      <div class="empty-message">{{ turnover_report.message }}</div>
     </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- STL Report -->
-  {% if stl_report and not stl_report.empty %}
+    <!-- STL Report -->
+    {% if stl_report and not stl_report.empty %}
     <div class="report-section">
       <div class="report-header">
         <h3>📊 {{ stl_report.title }}</h3>
@@ -161,7 +156,7 @@
         <div class="summary-stats">
           <div class="stat-card">
             <div class="stat-label">Top Product</div>
-            <div class="stat-value" style="font-size: 16px;">{{ stl_report.top_product }}</div>
+            <div class="stat-value" style="font-size: 14px;">{{ stl_report.top_product }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Trend</div>
@@ -187,16 +182,14 @@
         </div>
       </div>
     </div>
-  {% elif stl_report and stl_report.empty %}
+    {% elif stl_report and stl_report.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ stl_report.message }}
-      </div>
+      <div class="empty-message">{{ stl_report.message }}</div>
     </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Moving Average Report -->
-  {% if moving_avg_report and not moving_avg_report.empty %}
+    <!-- Moving Average Report -->
+    {% if moving_avg_report and not moving_avg_report.empty %}
     <div class="report-section">
       <div class="report-header">
         <h3>📈 {{ moving_avg_report.title }}</h3>
@@ -209,13 +202,13 @@
           </div>
           <div class="stat-card">
             <div class="stat-label">Top Product</div>
-            <div class="stat-value" style="font-size: 16px;">{{ moving_avg_report.top_product }}</div>
+            <div class="stat-value" style="font-size: 14px;">{{ moving_avg_report.top_product }}</div>
           </div>
         </div>
 
         <div class="ma-grid">
           <div class="ma-card">
-            <div class="ma-label">3-Month Moving Average</div>
+            <div class="ma-label">3-Month Moving Avg</div>
             <div class="ma-value">
               {% if moving_avg_report.ma3 is not none %}
                 ₱{{ "{:,.2f}".format(moving_avg_report.ma3) }}
@@ -225,7 +218,7 @@
             </div>
           </div>
           <div class="ma-card">
-            <div class="ma-label">6-Month Moving Average</div>
+            <div class="ma-label">6-Month Moving Avg</div>
             <div class="ma-value">
               {% if moving_avg_report.ma6 is not none %}
                 ₱{{ "{:,.2f}".format(moving_avg_report.ma6) }}
@@ -237,17 +230,15 @@
         </div>
       </div>
     </div>
-  {% elif moving_avg_report and moving_avg_report.empty %}
+    {% elif moving_avg_report and moving_avg_report.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ moving_avg_report.message }}
-      </div>
+      <div class="empty-message">{{ moving_avg_report.message }}</div>
     </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Stock Movement Report -->
-  {% if stock_movement_report and not stock_movement_report.empty %}
-    <div class="report-section">
+    <!-- Stock Movement Report -->
+    {% if stock_movement_report and not stock_movement_report.empty %}
+    <div class="report-section full-width">
       <div class="report-header">
         <h3>📦 {{ stock_movement_report.title }}</h3>
       </div>
@@ -263,38 +254,38 @@
           </div>
         </div>
 
-        <h4>📋 Material Breakdown</h4>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Material</th>
-              <th>Stock-In Events</th>
-              <th>Stock-Out Events</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in stock_movement_report.breakdown %}
-            <tr>
-              <td>{{ row.material_name }}</td>
-              <td>{{ row.stock_in_events }}</td>
-              <td>{{ row.stock_out_events }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <h4 style="font-size: 14px; margin-bottom: 10px; font-weight: 600;">📋 Material Breakdown</h4>
+        <div style="max-height: 180px; overflow-y: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Stock-In Events</th>
+                <th>Stock-Out Events</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in stock_movement_report.breakdown %}
+              <tr>
+                <td>{{ row.material_name }}</td>
+                <td>{{ row.stock_in_events }}</td>
+                <td>{{ row.stock_out_events }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  {% elif stock_movement_report and stock_movement_report.empty %}
+    {% elif stock_movement_report and stock_movement_report.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ stock_movement_report.message }}
-      </div>
+      <div class="empty-message">{{ stock_movement_report.message }}</div>
     </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Products Sold Report -->
-  {% if products_sold_report and not products_sold_report.empty %}
-    <div class="report-section">
+    <!-- Products Sold Report -->
+    {% if products_sold_report and not products_sold_report.empty %}
+    <div class="report-section full-width">
       <div class="report-header">
         <h3>🛍️ {{ products_sold_report.title }}</h3>
       </div>
@@ -310,46 +301,46 @@
           </div>
         </div>
 
-        <h4>📋 Product Breakdown</h4>
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Quantity Sold</th>
-              <th>Total Sales</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in products_sold_report.breakdown %}
-            <tr>
-              <td>{{ row.product_name }}</td>
-              <td>{{ row.total_quantity }}</td>
-              <td class="revenue-cell">₱{{ "{:,.2f}".format(row.total_sales) }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <h4 style="font-size: 14px; margin-bottom: 10px; font-weight: 600;">📋 Product Breakdown</h4>
+        <div style="max-height: 180px; overflow-y: auto;">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity Sold</th>
+                <th>Total Sales</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in products_sold_report.breakdown %}
+              <tr>
+                <td>{{ row.product_name }}</td>
+                <td>{{ row.total_quantity }}</td>
+                <td class="revenue-cell">₱{{ "{:,.2f}".format(row.total_sales) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  {% elif products_sold_report and products_sold_report.empty %}
+    {% elif products_sold_report and products_sold_report.empty %}
     <div class="report-section">
-      <div class="empty-message">
-        {{ products_sold_report.message }}
-      </div>
+      <div class="empty-message">{{ products_sold_report.message }}</div>
     </div>
-  {% endif %}
-  
+    {% endif %}
+  </div>
 
   {% if error_message %}
   <p class="error">{{ error_message }}</p>
-{% endif %}
-
+  {% endif %}
 
   <!-- Download Section -->
   <div class="download-section">
     <button id="downloadPdfBtn" class="download-btn">📄 Download PDF Report</button>
   </div>
 </div>
+
 
   </div>
 </body>

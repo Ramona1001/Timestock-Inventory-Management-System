@@ -7,6 +7,234 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Materials.css?v=6">
 <style>
+:root {
+    --border-radius-1: 4px;
+    --border-radius-2: 8px;
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background: #fff;
+    margin: 3% auto;
+    padding: 0;
+    border-radius: var(--border-radius-2);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--box-shadow);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 20px 20px 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+.modal-header h3,
+.modal-header h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 0 20px 20px 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.modal-content input,
+.modal-content select,
+.form-control,
+.form-select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.modal-content input:focus,
+.modal-content select:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.modal-content input[readonly] {
+    background-color: #f8f9fa;
+    color: #666;
+}
+
+.modal-actions {
+    padding: 15px 20px 20px 20px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: white;
+}
+
+.create-btn-modal,
+.update-btn-modal,
+.btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.create-btn-modal:hover,
+.update-btn-modal:hover,
+.btn:hover {
+    background: #0056b3;
+}
+
+.btn-primary {
+    background: #007bff;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.mb-2 {
+    margin-bottom: 10px;
+}
+
+.mb-3 {
+    margin-bottom: 15px;
+}
+
+/* Stock modal specific styling */
+.stock-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.info-card {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: var(--border-radius-1);
+    border: 1px solid #e9ecef;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+}
+
+@media (max-width: 600px) {
+    .modal-content {
+        margin: 5% auto;
+        max-width: 95%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stock-info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+/* Demo button for testing */
+.demo-buttons {
+    padding: 20px;
+    text-align: center;
+}
+
+.demo-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 0 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
 .top h2 {
   margin: 0;
   position: relative;
@@ -320,10 +548,14 @@
 <div class="Products">
   <h2>Materials Inventory</h2>
   <!-- Buttons -->
+
 <div class="crud-buttons">
+  {% if request.session['user']['role'] == 'admin' %}
   <button class="create-btn" onclick="openModal('createModal')">Add Materials</button>
-  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Bulk Stock Materials</button>
   <button class="prodMats-btn" onclick="openAddProductMaterialModal()">Add Product Materials</button>
+
+  {% endif %}
+  <button class="stocking-btn" onclick="openModal('stockMaterialsModal')">Bulk Stock Materials</button>
 </div>
 
 <div id="productMaterialModal" class="modal" style="display:none;">
@@ -384,127 +616,189 @@
 </div>
 
 
-
 <!-- Create Modal -->
 <div id="createModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('createModal')">&times;</span>
-    <h3>Add Materials</h3>
-
-    <label for="createDate">Date:</label>
-    <input type="date" id="createDate" readonly>
-
-    <label for="createItemName">Item Name:</label>
-    <input type="text" id="createItemName" placeholder="Item-name" required>
-
-    <label for="createDescription">Item Description:</label>
-    <input type="text" id="createDescription" placeholder="Item-Description" required>
-
-    <label for="createSupplier">Supplier:</label>
-    <select id="createSupplier">
-      <option value="" disabled selected>Select a supplier</option>
-    </select>
-
-    <label for="createCategory">Category:</label>
-    <select id="createCategory">
-      <option value="" disabled selected>Select a category</option>
-    </select>
-
-    <label for="createUnitMeasurement">Unit Measurement:</label>
-    <select id="createUnitMeasurement">
-      <option value="ft">ft (Feet)</option>
-      <option value="sqft">sqft (Square Feet)</option>
-      <option value="pcs">pcs (Pieces)</option>
-      <option value="m">m (Meters)</option>
-      <option value="cm">cm (Centimeters)</option>
-      <option value="mm">mm (Millimeters)</option>
-      <option value="sqm">sqm (Square Meters)</option>
-    </select>
-
-    <label for="createUnitCost">Unit Cost:</label>
-    <input type="number" id="createUnitCost" placeholder="Unit-cost" required>
-
-    <label for="createQuantity">Quantity:</label>
-    <input type="number" id="createQuantity" placeholder="Quantity" required>
-
-    <label for="createMinStock">Minimum Stock:</label>
-    <input type="number" id="createMinStock" placeholder="Minimum Stock" required>
-
-    <label for="createMaxStock">Maximum Stock:</label>
-    <input type="number" id="createMaxStock" placeholder="Maximum Stock" required>
-
-    <button class="create-btn" onclick="addMaterial()">Submit</button>
-  </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Materials</h3>
+            <span class="close" onclick="closeModal('createModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="createDate">Date</label>
+                    <input type="date" id="createDate" readonly>
+                </div>
+                <div class="form-group full-width">
+                    <label for="createItemName">Item Name</label>
+                    <input type="text" id="createItemName" placeholder="Enter item name" required>
+                </div>
+                <div class="form-group full-width">
+                    <label for="createDescription">Item Description</label>
+                    <input type="text" id="createDescription" placeholder="Enter item description" required>
+                </div>
+                <div class="form-group">
+                    <label for="createSupplier">Supplier</label>
+                    <select id="createSupplier">
+                        <option value="" disabled selected>Select a supplier</option>
+                        <option value="supplier1">Supplier 1</option>
+                        <option value="supplier2">Supplier 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createCategory">Category</label>
+                    <select id="createCategory">
+                        <option value="" disabled selected>Select a category</option>
+                        <option value="raw-materials">Raw Materials</option>
+                        <option value="packaging">Packaging</option>
+                        <option value="supplies">Supplies</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createUnitMeasurement">Unit Measurement</label>
+                    <select id="createUnitMeasurement">
+                        <option value="ft">ft (Feet)</option>
+                        <option value="sqft">sqft (Square Feet)</option>
+                        <option value="pcs">pcs (Pieces)</option>
+                        <option value="m">m (Meters)</option>
+                        <option value="cm">cm (Centimeters)</option>
+                        <option value="mm">mm (Millimeters)</option>
+                        <option value="sqm">sqm (Square Meters)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createUnitCost">Unit Cost (₱)</label>
+                    <input type="number" id="createUnitCost" placeholder="0.00" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="createQuantity">Quantity</label>
+                    <input type="number" id="createQuantity" placeholder="Enter quantity" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="createMinStock">Minimum Stock</label>
+                    <input type="number" id="createMinStock" placeholder="Min stock level" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="createMaxStock">Maximum Stock</label>
+                    <input type="number" id="createMaxStock" placeholder="Max stock level" min="0" required>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="create-btn-modal" onclick="addMaterial()">Submit</button>
+        </div>
+    </div>
 </div>
 
 <!-- Edit Modal -->
 <div id="editModal" class="modal" style="display: none;">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal('editModal')">&times;</span>
-    <h3>Edit Material</h3>
-    
-    <input type="hidden" id="editMaterialId">
-    
-    <label for="editItemName">Item Name:</label>
-    <input type="text" id="editItemName" placeholder="Item Name" required>
-    
-    <label for="editItemDescription">Description:</label>
-    <input type="text" id="editItemDescription" placeholder="Description" required>
-    
-    <label for="editCategory">Category:</label>
-    <select id="editCategory"></select>
-    
-    <label for="editSupplier">Supplier:</label>
-    <select id="editSupplier"></select>
-    
-    <label for="editUnitMeasurement">Unit Measurement:</label>
-    <select id="editUnitMeasurement">
-      <option value="ft">ft (Feet)</option>
-      <option value="sqft">sqft (Square Feet)</option>
-      <option value="pcs">pcs (Pieces)</option>
-      <option value="m">m (Meters)</option>
-      <option value="cm">cm (Centimeters)</option>
-      <option value="mm">mm (Millimeters)</option>
-      <option value="sqm">sqm (Square Meters)</option>
-    </select>
-    
-    <label for="editMaterialCost">Material Cost:</label>
-    <input type="number" id="editMaterialCost" placeholder="Material Cost" required>
-    
-    <label for="editCurrentStock">Current Stock:</label>
-    <input type="number" id="editCurrentStock" placeholder="Current Stock" required>
-    
-    <label for="editMinStock">Minimum Stock:</label>
-    <input type="number" id="editMinStock" placeholder="Minimum Stock" required>
-    
-    <label for="editMaxStock">Maximum Stock:</label>
-    <input type="number" id="editMaxStock" placeholder="Maximum Stock" required>
-    
-    <button class="update-btn" onclick="updateMaterial()">Update</button>
-  </div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Material</h3>
+            <span class="close" onclick="closeModal('editModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editMaterialId">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="editItemName">Item Name</label>
+                    <input type="text" id="editItemName" placeholder="Item Name" required>
+                </div>
+                <div class="form-group full-width">
+                    <label for="editItemDescription">Description</label>
+                    <input type="text" id="editItemDescription" placeholder="Description" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCategory">Category</label>
+                    <select id="editCategory">
+                        <option value="raw-materials">Raw Materials</option>
+                        <option value="packaging">Packaging</option>
+                        <option value="supplies">Supplies</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editSupplier">Supplier</label>
+                    <select id="editSupplier">
+                        <option value="supplier1">Supplier 1</option>
+                        <option value="supplier2">Supplier 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editUnitMeasurement">Unit Measurement</label>
+                    <select id="editUnitMeasurement">
+                        <option value="ft">ft (Feet)</option>
+                        <option value="sqft">sqft (Square Feet)</option>
+                        <option value="pcs">pcs (Pieces)</option>
+                        <option value="m">m (Meters)</option>
+                        <option value="cm">cm (Centimeters)</option>
+                        <option value="mm">mm (Millimeters)</option>
+                        <option value="sqm">sqm (Square Meters)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editMaterialCost">Material Cost (₱)</label>
+                    <input type="number" id="editMaterialCost" placeholder="Material Cost" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="editCurrentStock">Current Stock</label>
+                    <input type="number" id="editCurrentStock" placeholder="Current Stock" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMinStock">Minimum Stock</label>
+                    <input type="number" id="editMinStock" placeholder="Minimum Stock" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMaxStock">Maximum Stock</label>
+                    <input type="number" id="editMaxStock" placeholder="Maximum Stock" min="0" required>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="update-btn-modal" onclick="updateMaterial()">Update</button>
+        </div>
+    </div>
 </div>
 
 <!-- Single Stock Modal -->
 <div id="singleStockModal" class="modal">
   <div class="modal-content">
-    <span class="close" onclick="closeModal('singleStockModal')">&times;</span>
-    <h4>Stock Material</h4>
-    
-    <label>Material:</label>
-    <input type="text" id="stockMaterialName" readonly class="form-control mb-2">
-    
-    <label>Current Stock:</label>
-    <input type="number" id="stockMaterialCurrent" readonly class="form-control mb-2">
-    
-    <label>Quantity to Add:</label>
-    <input type="number" id="stockMaterialQty" min="1" value="1" class="form-control mb-2">
-    
-    <label>Supplier (optional):</label>
-    <select id="singleStockSupplier" class="form-select mb-3">
-      <option value="">-- Select Supplier --</option>
-    </select>
-    
-    <button class="btn btn-primary w-100" onclick="submitSingleStock()">Stock Material</button>
+    <div class="modal-header">
+      <h4>Stock Material</h4>
+      <span class="close" onclick="closeModal('singleStockModal')">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="stock-info-grid">
+        <div class="info-card">
+          <div class="info-label">Material</div>
+          <!-- Changed to input so script can populate -->
+          <input type="text" id="stockMaterialName" readonly class="info-value form-control-plaintext">
+        </div>
+        <div class="info-card">
+          <div class="info-label">Current Stock</div>
+          <!-- Changed to input so script can populate -->
+          <input type="number" id="stockMaterialCurrent" readonly class="info-value form-control-plaintext">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="stockMaterialQty">Quantity to Add</label>
+          <input type="number" id="stockMaterialQty" min="1" value="1" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="singleStockSupplier">Supplier (optional)</label>
+          <select id="singleStockSupplier" class="form-select">
+            <option value="">-- Select Supplier --</option>
+            <option value="supplier1">Supplier 1</option>
+            <option value="supplier2">Supplier 2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary w-100" onclick="submitSingleStock()">Stock Material</button>
+    </div>
   </div>
 </div>
 
@@ -833,11 +1127,14 @@ function clearMaterialFilters() {
         <td class="${statusClass}">${status}</td>
         <td>
            <div class="action-buttons">
+              {% if request.session['user']['role'] == 'admin' %}
               <button class="edit-btn" onclick="openEditModal('${material.material_id}')">Edit</button>
               <button class="delete-btn" onclick="deleteMaterial('${material.material_id}')">Delete</button>
+              {% endif %}
               <button class="stock-btn" onclick="openSingleStockModal('${material.material_id}')">Stock</button>
             </div>
         </td>
+
       `;
       tableBody.appendChild(row);
     });
@@ -1751,7 +2048,8 @@ window.onclick = function(event) {
     "deleteModal",
     "stockMaterialsModal",
     "editModal",
-    "productMaterialModal"
+    "productMaterialModal",
+    "singleStockModal"
   ];
   
   modalIds.forEach(modalId => {

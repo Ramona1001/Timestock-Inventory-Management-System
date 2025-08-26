@@ -239,20 +239,41 @@ main .date input[type='date'] {
   font-weight: 500;
 }
 
-.recent-transaction .pending {
-  color: #ff9800;
+.recent-transaction .placed {
+  color: #2196f3; /* Blue */
+  font-weight: bold;
+}
+
+.recent-transaction .confirmed {
+  color: #3f51b5; /* Indigo */
+  font-weight: bold;
+}
+
+.recent-transaction .scheduled {
+  color: #009688; /* Teal */
+  font-weight: bold;
+}
+
+.recent-transaction .in_production {
+  color: #ff9800; /* Orange */
   font-weight: bold;
 }
 
 .recent-transaction .completed {
-  color: #4caf50;
+  color: #4caf50; /* Green */
+  font-weight: bold;
+}
+
+.recent-transaction .on_hold {
+  color: #9c27b0; /* Purple */
   font-weight: bold;
 }
 
 .recent-transaction .cancelled {
-  color: #f44336;
+  color: #f44336; /* Red */
   font-weight: bold;
 }
+
 
 
 /*==============RIGHT==================*/

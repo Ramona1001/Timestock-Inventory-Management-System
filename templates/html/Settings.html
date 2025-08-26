@@ -7,6 +7,204 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Settings.css?v=3">
   <style>
+:root {
+    --border-radius-1: 4px;
+    --border-radius-2: 8px;
+    --box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background: #fff;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: var(--border-radius-2);
+    width: 90%;
+    max-width: 450px;
+    box-shadow: var(--box-shadow);
+    position: relative;
+}
+
+.modal-header {
+    padding: 20px 20px 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.close:hover {
+    color: #333;
+}
+
+.modal-body {
+    padding: 0 20px 20px 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.modal-content input,
+.modal-content select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.modal-actions {
+    padding: 15px 20px 20px 20px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-actions button[type="submit"],
+.modal-actions button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-actions button[type="submit"]:hover,
+.modal-actions button:hover {
+    background: #0056b3;
+}
+
+/* Migration modal specific styling */
+.migration-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: var(--border-radius-1);
+    border-left: 4px solid #007bff;
+    margin-bottom: 20px;
+}
+
+.migration-info p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+#migrateBtn {
+    background: #cbe3d1;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+#migrateBtn:hover {
+    background: #1e7e34;
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 10% auto;
+        max-width: 95%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+    }
+}
+
+/* Demo button for testing */
+.demo-buttons {
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.demo-btn {
+    background: #007bff;
+    color: rgb(255, 255, 255);
+    border: none;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+
+
     .top h2 {
   margin: 0;
   position: relative;
@@ -38,44 +236,125 @@
         {% include "profile.html" %}
   </div>
 </div>
+    <div class="demo-buttons">
+        <button class="demo-btn" onclick="openModal('addEmployeeModal')">Add Employee</button>
+        <button class="demo-btn" onclick="openModal('statusModal')">Change Status</button>
+        <button class="demo-btn" onclick="openModal('passwordModal')">Change Password</button>
+        <button class="demo-btn" onclick="openModal('migrateModal')">Migration</button>
+    </div>
 
-<section>
-  <h2>Add Employee</h2>
-  <form id="addEmployeeForm">
-    <input type="text" name="firstname" placeholder="First Name" required>
-    <input type="text" name="lastname" placeholder="Last Name" required>
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <input type="text" name="contact_number" placeholder="Contact Number" required>
-    <button type="submit">Add Employee</button>
-  </form>
-</section>
+    <!-- Add Employee Modal -->
+    <div id="addEmployeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Employee</h2>
+                <span class="close" onclick="closeModal('addEmployeeModal')">&times;</span>
+            </div>
+            <form id="addEmployeeForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="firstname">First Name</label>
+                            <input type="text" name="firstname" placeholder="First Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastname">Last Name</label>
+                            <input type="text" name="lastname" placeholder="Last Name" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="email">Email Address</label>
+                            <input type="email" name="email" placeholder="Email" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="password">Password</label>
+                            <input type="password" name="password" placeholder="Password" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="contact_number">Contact Number</label>
+                            <input type="text" name="contact_number" placeholder="Contact Number" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit">Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<section>
-  <h2>Change Employee Status</h2>
-  <form id="statusForm">
-    <input type="text" name="id" placeholder="Employee ID" required>
-    <select name="is_active" required>
-      <option value="true">Active</option>
-      <option value="false">Inactive</option>
-    </select>
-    <button type="submit">Update Status</button>
-  </form>
-</section>
+    <!-- Change Employee Status Modal -->
+    <div id="statusModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Employee Status</h2>
+                <span class="close" onclick="closeModal('statusModal')">&times;</span>
+            </div>
+            <form id="statusForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="employee_id">Employee ID</label>
+                            <input type="text" name="id" placeholder="Employee ID" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select name="is_active" required>
+                                <option value="" disabled selected>Select Status</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<section>
-  <h2>Change Employee Password</h2>
-  <form id="passwordForm">
-    <input type="text" name="target_employee_id" placeholder="Employee ID" required>
-    <input type="password" name="new_password" placeholder="New Password" required>
-    <button type="submit">Change Password</button>
-  </form>
-</section>
+    <!-- Change Employee Password Modal -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Change Employee Password</h2>
+                <span class="close" onclick="closeModal('passwordModal')">&times;</span>
+            </div>
+            <form id="passwordForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="target_employee_id">Employee ID</label>
+                            <input type="text" name="target_employee_id" placeholder="Employee ID" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="new_password">New Password</label>
+                            <input type="password" name="new_password" placeholder="New Password" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<section>
-  <h2>Migrate Password Hashes</h2>
-  <button id="migrateBtn">Run Migration</button>
-</section>
+    <!-- Migrate Password Hashes Modal -->
+    <div id="migrateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Migrate Password Hashes</h2>
+                <span class="close" onclick="closeModal('migrateModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="migration-info">
+                    <p><strong>Warning:</strong> This will update all employee password hashes in the database. This action cannot be undone. Please ensure you have a backup before proceeding.</p>
+                </div>
+                <button id="migrateBtn">Run Migration</button>
+            </div>
+        </div>
+    </div>
 <!-- START OF TESTING HTML -->
 
 <section class="maintenance-card" aria-labelledby="maintenance-title">
@@ -257,7 +536,7 @@ document.getElementById('migrateBtn').addEventListener('click', async () => {
 </script>
 
 <script>
-const API_BASE = '/api'; // <-- change this to '' or 'http://127.0.0.1:8000' as needed
+const API_BASE = '/api';
 
 const previewUrl = years => `${API_BASE}/maintenance/preview-delete/${encodeURIComponent(years)}`;
 const deleteUrl  = years => `${API_BASE}/maintenance/delete-old-transactions/${encodeURIComponent(years)}`;
@@ -570,3 +849,52 @@ document.addEventListener('DOMContentLoaded', init);
 
 /* End of maintenance JS */
 </script>
+
+
+    <script>
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Demo form submission handlers
+        document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Employee would be added here');
+            closeModal('addEmployeeModal');
+        });
+
+        document.getElementById('statusForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Employee status would be updated here');
+            closeModal('statusModal');
+        });
+
+        document.getElementById('passwordForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Employee password would be changed here');
+            closeModal('passwordModal');
+        });
+
+        document.getElementById('migrateBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to run the password migration? This cannot be undone.')) {
+                alert('Migration would run here');
+                closeModal('migrateModal');
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = ['addEmployeeModal', 'statusModal', 'passwordModal', 'migrateModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
