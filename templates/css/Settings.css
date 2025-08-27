@@ -300,9 +300,6 @@ main .date input[type='date'] {
     z-index:1101;
 }
 
-.hidden {
-    display:none !important;
-}
 
 /* Table */
 
