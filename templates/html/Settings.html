@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Settings.css?v=3">
+  <link rel="stylesheet" href="../css/Settings.css?v=4">
   <style>
 :root {
     --border-radius-1: 4px;
@@ -13,27 +13,142 @@
     --box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 10000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
+  .modal {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+  }
+
+  .modal-content {
+      background: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: var(--border-radius-2);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--box-shadow);
+      position: relative;
+  }
+
+.modal-content h3 {
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
 }
 
-.modal-content {
+.modal-content p {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.5;
+}
+
+.modal-content ul {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: var(--border-radius-1);
+    border-left: 4px solid #dc3545;
+    margin: 0;
+    list-style: none;
+}
+
+.modal-content ul li {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-content ul li:last-child {
+    margin-bottom: 0;
+}
+
+.modal-content ul li strong {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.muted {
+    color: #6c757d !important;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
     background: #fff;
-    margin: 5% auto;
-    padding: 0;
-    border-radius: var(--border-radius-2);
-    width: 90%;
-    max-width: 450px;
-    box-shadow: var(--box-shadow);
-    position: relative;
+    color: #333;
+}
+
+.btn:hover {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    border-color: #bd2130;
+}
+
+/* Demo styles */
+.demo-container {
+    padding: 40px 20px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.demo-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    font-weight: bold;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-1);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.demo-btn:hover {
+    background: #0056b3;
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 10% auto;
+        max-width: 95%;
+        padding: 15px;
+    }
+
+    .modal-content div[style*="display:flex"] {
+        flex-direction: column-reverse !important;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 8px;
+    }
 }
 
 .modal-header {
@@ -240,7 +355,7 @@
         <button class="demo-btn" onclick="openModal('addEmployeeModal')">Add Employee</button>
         <button class="demo-btn" onclick="openModal('statusModal')">Change Status</button>
         <button class="demo-btn" onclick="openModal('passwordModal')">Change Password</button>
-        <button class="demo-btn" onclick="openModal('migrateModal')">Migration</button>
+        <!-- <button class="demo-btn" onclick="openModal('migrateModal')">Migration</button> -->
     </div>
 
     <!-- Add Employee Modal -->
@@ -341,7 +456,7 @@
     </div>
 
     <!-- Migrate Password Hashes Modal -->
-    <div id="migrateModal" class="modal">
+    <!-- <div id="migrateModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Migrate Password Hashes</h2>
@@ -354,7 +469,7 @@
                 <button id="migrateBtn">Run Migration</button>
             </div>
         </div>
-    </div>
+    </div> -->
 <!-- START OF TESTING HTML -->
 
 <section class="maintenance-card" aria-labelledby="maintenance-title">
@@ -389,7 +504,7 @@
 </section>
 
 <!-- Confirmation Modal (hidden by default) -->
-<div id="deleteConfirmModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+<div id="deleteConfirmModal" class="modal hidden" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal-backdrop"></div>
   <div class="modal-content" role="document">
     <h3 id="confirmTitle">Confirm Delete</h3>
@@ -594,8 +709,7 @@ function showPreviewBlock() {
 function hidePreviewBlock() {
   previewBlock.classList.add('hidden');
 }
-function openModal() { modal.classList.remove('hidden'); }
-function closeModal() { modal.classList.add('hidden'); }
+
 
 /* compute total helper */
 function totalFromResult(res) {
@@ -666,12 +780,12 @@ deleteBtn.addEventListener('click', (e) => {
   confirmCutoffDate.textContent = data.cutoff_date ?? '—';
 
   // show modal and make Accept clickable
-  openModal();
+  openModal('deleteConfirmModal');
 });
 
 /* Cancel modal */
 cancelDeleteBtn.addEventListener('click', () => {
-  closeModal();
+  closeModal('deleteConfirmModal');
 });
 
 /* Confirm delete (perform destructive action) */
@@ -684,25 +798,16 @@ confirmDeleteBtn.addEventListener('click', async () => {
   try {
     const res = await fetchJson(deleteUrl(years), { method: 'DELETE' });
 
-    const totalDeleted = (res.old_order_items || 0) + (res.old_orders || 0) + (res.old_stock_items || 0) + (res.old_stocks || 0);
-    // show success in modal and preview area
-    confirmTotal.textContent = totalDeleted;
-    previewMessage.innerHTML = `<strong>Success:</strong> Deleted ${totalDeleted} rows.`;
-    previewOrders.textContent = res.old_orders ?? 0;
-    previewOrderItems.textContent = res.old_order_items ?? 0;
-    previewStocks.textContent = res.old_stocks ?? 0;
-    previewStockItems.textContent = res.old_stock_items ?? 0;
-    previewCutoffDate.textContent = res.cutoff_date ?? '—';
-
     // close modal after a short delay
     setTimeout(() => {
-      closeModal();
+      closeModal('deleteConfirmModal');
       confirmDeleteBtn.disabled = false;
       confirmDeleteBtn.textContent = 'Accept';
       // disable Delete button now (nothing left to delete)
       deleteBtn.disabled = true;
     }, 1200);
 
+  window.location.reload();
   } catch (err) {
     console.error(err);
     alert('Delete failed: ' + (err.message || 'server error'));
@@ -717,7 +822,7 @@ document.addEventListener('click', (ev) => {
   // if the click target is the backdrop, close
   const backdrop = modal.querySelector('.modal-backdrop');
   if (backdrop && backdrop.contains(ev.target)) {
-    closeModal();
+    closeModal('deleteConfirmModal');
   }
 });
 
@@ -851,50 +956,50 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 
 
-    <script>
-        // Modal functions
-        function openModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
+<script>
+    // Modal functions
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Demo form submission handlers
+    document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Employee would be added here');
+        closeModal('addEmployeeModal');
+    });
+
+    document.getElementById('statusForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Employee status would be updated here');
+        closeModal('statusModal');
+    });
+
+    document.getElementById('passwordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Employee password would be changed here');
+        closeModal('passwordModal');
+    });
+
+    document.getElementById('migrateBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to run the password migration? This cannot be undone.')) {
+            alert('Migration would run here');
+            closeModal('migrateModal');
         }
+    });
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Demo form submission handlers
-        document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Employee would be added here');
-            closeModal('addEmployeeModal');
-        });
-
-        document.getElementById('statusForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Employee status would be updated here');
-            closeModal('statusModal');
-        });
-
-        document.getElementById('passwordForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Employee password would be changed here');
-            closeModal('passwordModal');
-        });
-
-        document.getElementById('migrateBtn').addEventListener('click', function() {
-            if (confirm('Are you sure you want to run the password migration? This cannot be undone.')) {
-                alert('Migration would run here');
-                closeModal('migrateModal');
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modals = ['addEmployeeModal', 'statusModal', 'passwordModal', 'migrateModal'];
+        modals.forEach(modalId => {
+            const modal = document.getElementById(modalId);
+            if (event.target === modal) {
+                modal.style.display = 'none';
             }
         });
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modals = ['addEmployeeModal', 'statusModal', 'passwordModal', 'migrateModal'];
-            modals.forEach(modalId => {
-                const modal = document.getElementById(modalId);
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
-    </script>
+    }
+</script>

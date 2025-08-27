@@ -97,7 +97,7 @@ def generate_chart_report(df):
     📊 Average Orders/Month: {avg_orders:.1f}<br>
     💵 Average Monthly Revenue: ₱{avg_revenue:,.2f}
     """
-
+    
 def get_turnover_combined_graph():
     con = duckdb.connect('backend/db_timestock')
 
@@ -721,7 +721,7 @@ def get_sales_moving_average_chart():
     html = fig.to_html(full_html=False, config={'responsive': True})
     return html, df
 
-
+    
 def generate_moving_average_recommendations(df: pd.DataFrame) -> list:
     recommendations = []
 
