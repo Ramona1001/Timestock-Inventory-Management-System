@@ -5,17 +5,44 @@ from fastapi import HTTPException, Request
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from typing import List, Dict, Any, Optional
+import requests
+from email.mime.text import MIMEText
 import secrets
 import string
 import smtplib
+import shutil
 from email.mime.text import MIMEText
 import os
 
-MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-if not MOTHERDUCK_TOKEN:
-    raise RuntimeError("MOTHERDUCK_TOKEN not set")
+# MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
+# if not MOTHERDUCK_TOKEN:
+#     raise RuntimeError("MOTHERDUCK_TOKEN not set")
 
-con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+# con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+REPO_DB_PATH = "backend/db_timestock1"
+
+# If running locally, use a local file
+if os.environ.get("RAILWAY") == "1":
+    # Production (Railway) path: the mounted volume
+    DB_PATH = "/data/db_timestock1"
+else:
+    # Local path
+    DB_PATH = "backend/db_timestock1"
+
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# Copy starter DB if it doesn't exist yet
+if not os.path.exists(DB_PATH):
+    if os.path.exists(REPO_DB_PATH):
+        shutil.copy(REPO_DB_PATH, DB_PATH)
+        print(f"Copied starter DB to {DB_PATH}")
+    else:
+        print(f"No starter DB found at {REPO_DB_PATH}. A new DB will be created.")
+
+
+# Connect to DuckDB
+con = duckdb.connect(DB_PATH)
+print(f"Connected to DB at {DB_PATH}")
 
 # con = duckdb.connect('backend/db_timestock')
 
@@ -23,8 +50,10 @@ con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_
 ph = PasswordHasher()
 
 def get_db_connection():
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
     return con
+
 # Forgot Password
 
 def generate_new_password(length: int = 12) -> str:
@@ -32,21 +61,43 @@ def generate_new_password(length: int = 12) -> str:
     return ''.join(secrets.choice(chars) for _ in range(length))
 
 def send_email(to_email: str, new_password: str):
-    """Sends the new password via email."""
-    sender_email = "time.stock.ims@gmail.com"
-    sender_password = "beox ukjg fpsj lrpq"
+    """Sends the new password via Resend API."""
+    api_key = os.getenv("RESEND_API_KEY")
 
-    msg = MIMEText(
-        f"Hello,\n\nYour new password is: {new_password}\n\nPlease log in and change it immediately.\n\n- TimeStock Team"
-    )
-    msg["Subject"] = "Password Reset Request"
-    msg["From"] = sender_email
-    msg["To"] = to_email
+    if not api_key:
+        raise ValueError("Missing RESEND_API_KEY environment variable")
 
-    # Example with Gmail SMTP (change for your provider)
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
+    data = {
+        "from": "TimeStock <noreply@resend.dev>",  # or your verified domain later
+        "to": [to_email],
+        "subject": "Password Reset Request",
+        "html": f"""
+            <p>Hello,</p>
+            <p>Your new password is: <strong>{new_password}</strong></p>
+            <p>Please log in and change it immediately.</p>
+            <p>- TimeStock Team</p>
+        """
+    }
+
+    try:
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json=data,
+            timeout=10  # optional, prevents hanging
+        )
+
+        if response.status_code != 200:
+            raise Exception(f"Resend API error: {response.status_code} - {response.text}")
+
+        print("✅ Email sent successfully")
+
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")
+        raise
 
 def log_audit(
     entity: str,
@@ -688,8 +739,8 @@ def delete_product_categories(
 
 # Material_categories CRUD
 def get_material_categories():
-    #   with duckdb.connect('backend/db_timestock') as conn:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+      with duckdb.connect(DB_PATH) as conn:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
         return conn.execute("SELECT * FROM material_categories").fetchdf()
 
 
@@ -1400,8 +1451,8 @@ def stock_materials(
 
 
 def get_stock_transactions_detailed():
-    # with duckdb.connect('backend/db_timestock') as conn:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+    with duckdb.connect(DB_PATH) as conn:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
         return conn.execute("""
             SELECT 
                 st.id AS transaction_id,
@@ -1700,8 +1751,8 @@ def delete_customer(id: str, admin_id: Optional[str] = None, cur=None):
 
 #Products CRUD
 def get_products():
-    # with duckdb.connect("backend/db_timestock") as conn:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+    with duckdb.connect(DB_PATH) as conn:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
 
         return conn.execute("""
             SELECT 
@@ -1904,8 +1955,8 @@ def delete_product(product_id: str, admin_id: Optional[str] = None, cur=None):
     own_cursor = False
     # prefer using provided cursor/conn; else create a local connection like before
     if cur is None:
-        # conn_used = duckdb.connect('backend/db_timestock')
-        conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+        conn_used = duckdb.connect(DB_PATH)
+        # conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
         cur = conn_used.cursor()
         own_cursor = True
     else:
@@ -1966,8 +2017,8 @@ def delete_product(product_id: str, admin_id: Optional[str] = None, cur=None):
 
 #Suppliers CRUD
 def get_suppliers():
-        # with duckdb.connect('backend/db_timestock') as conn:
-        with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+        with duckdb.connect(DB_PATH) as conn:
+        # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
             return conn.execute("SELECT * FROM suppliers").fetchdf()
 
   
@@ -1983,8 +2034,8 @@ def add_supplier(
     own_cursor = False
 
     if cur is None:
-        # conn_used = duckdb.connect('backend/db_timestock')
-        conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+        conn_used = duckdb.connect(DB_PATH)
+        # conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
         cur = conn_used.cursor()
         own_cursor = True
     else:
@@ -2053,8 +2104,8 @@ def update_supplier(
     own_cursor = False
 
     if cur is None:
-        # conn_used = duckdb.connect('backend/db_timestock')
-        conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+        conn_used = duckdb.connect(DB_PATH)
+        # conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
         cur = conn_used.cursor()
         own_cursor = True
     else:
@@ -2137,8 +2188,8 @@ def delete_supplier(
     own_cursor = False
 
     if cur is None:
-        # conn_used = duckdb.connect('backend/db_timestock')
-        conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+        conn_used = duckdb.connect(DB_PATH)
+        # conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
         cur = conn_used.cursor()
         own_cursor = True
     else:
@@ -2193,38 +2244,37 @@ def delete_supplier(
             conn_used.rollback()
         raise
 
-
-def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur = None):
+def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur=None):
     items = data.pop('items')
-    total_amount = 0
+    total_amount = 0.0
 
-    # Step 0: Create new customer if needed
     customer_id = data.get('customer_id')
     customer_data = data.get('customer')
 
-    # prepare cursor / connection handling so we can pass cur into log_audit
     conn_used = None
     own_cursor = False
-    started_txn = False            # <--- track whether we started a txn
+    started_txn = False
+
     if cur is None:
         try:
             conn_used = con
         except NameError:
-            raise RuntimeError("Database connection con is not defined in this module.")
+            raise RuntimeError("Database connection `con` is not defined.")
         cur = conn_used.cursor()
         own_cursor = True
     else:
-        # if caller passed a connection object instead of a cursor
         if hasattr(cur, "cursor") and not hasattr(cur, "execute"):
             conn_used = cur
             cur = conn_used.cursor()
             own_cursor = True
 
+    # Step 0: Create customer if needed
     if not customer_id and customer_data:
         customer_id = cur.execute("""
             INSERT INTO customers (
                 firstname, lastname, contact_number, email, address, date_created
-            ) VALUES (?, ?, ?, ?, ?, ?)
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
             RETURNING id
         """, (
             customer_data['firstname'].strip().title(),
@@ -2237,59 +2287,70 @@ def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur = N
     elif not customer_id:
         raise ValueError("Either customer_id or customer data must be provided.")
 
-    # Determine audit actor (prefer explicit admin_id param, else data['admin_id'])
     actor_admin = admin_id or data.get('admin_id')
     actor_employee = None if actor_admin else data.get('employee_id')
 
     try:
-        # start transaction using the connection (only if we own cursor/conn)
         if own_cursor and conn_used is not None:
-            # use the connection execute to start transaction (consistent with other code)
             conn_used.execute("BEGIN")
             started_txn = True
 
-        # Step 1: Pre-check ALL material stock
+        # --- Step 1: Preload all product + material requirements ---
+        product_ids = [item['product_id'] for item in items]
+        product_placeholders = ",".join(["?"] * len(product_ids))
+
+        product_materials = cur.execute(f"""
+            SELECT pm.product_id, pm.material_id, pm.used_quantity,
+                   m.current_stock, i.item_name, m.unit_measurement, m.supplier_id
+            FROM product_materials pm
+            JOIN materials m ON pm.material_id = m.id
+            JOIN items i ON m.item_id = i.id
+            WHERE pm.product_id IN ({product_placeholders})
+        """, product_ids).fetchall()
+
+        # --- Step 2: Build material requirements ---
         material_requirements = {}
+        material_map = {}
+
+        for pm in product_materials:
+            (product_id, material_id, used_qty, current_stock,
+             item_name, unit, supplier_id) = pm
+
+            material_map.setdefault(product_id, []).append({
+                "material_id": material_id,
+                "used_qty": used_qty,
+                "supplier_id": supplier_id
+            })
+
+            if material_id not in material_requirements:
+                material_requirements[material_id] = {
+                    "needed": 0,
+                    "available": current_stock,
+                    "item_name": item_name,
+                    "unit": unit
+                }
 
         for item in items:
-            product_id = item['product_id']
-            quantity = item['quantity']
+            for m in material_map.get(item['product_id'], []):
+                total_needed = m['used_qty'] * item['quantity']
+                material_requirements[m['material_id']]["needed"] += total_needed
 
-            materials = cur.execute("""
-                SELECT pm.material_id, pm.used_quantity, m.current_stock, i.item_name, m.unit_measurement
-                    FROM product_materials pm
-                    JOIN materials m ON pm.material_id = m.id
-                    JOIN items i ON m.item_id = i.id
-                    WHERE pm.product_id = ?
-            """, (product_id,)).fetchall()
-
-            for material_id, used_qty, current_stock, item_name, unit in materials:
-                total_needed = used_qty * quantity
-
-                if material_id not in material_requirements:
-                    material_requirements[material_id] = {
-                        "needed": 0,
-                        "available": current_stock,
-                        "item_name": item_name,
-                        "unit": unit
-                    }
-
-                material_requirements[material_id]["needed"] += total_needed
-
-        # Now check all at once
         lacking_materials = [
             f"{v['item_name']} (Need: {v['needed']} {v['unit']}, Available: {v['available']} {v['unit']})"
             for v in material_requirements.values() if v["needed"] > v["available"]
         ]
-
         if lacking_materials:
-            formatted_message = "Insufficient material stock for the following materials:\n\n"
-            formatted_message += "\n".join(f"• {item}" for item in lacking_materials)
+            formatted = "Insufficient material stock for:\n" + "\n".join(f"• {x}" for x in lacking_materials)
+            raise HTTPException(status_code=400, detail=formatted)
 
-            # raise HTTPException to let FastAPI return JSON error body
-            raise HTTPException(status_code=400, detail=formatted_message)
+        # --- Step 3: Fetch product prices ---
+        price_rows = cur.execute(f"""
+            SELECT id, unit_price FROM products
+            WHERE id IN ({product_placeholders})
+        """, product_ids).fetchall()
+        price_map = {r[0]: r[1] for r in price_rows}
 
-        # Step 2: Insert transaction (use whatever admin_id is present in data)
+        # --- Step 4: Insert order transaction ---
         transaction_id = cur.execute("""
             INSERT INTO order_transactions (
                 customer_id, status_id, admin_id, date_created, total_amount
@@ -2298,138 +2359,92 @@ def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur = N
         """, (
             customer_id,
             data['status_id'],
-            data.get('admin_id'),   # keep original behavior
+            actor_admin,
             datetime.utcnow(),
             0.0
         )).fetchone()[0]
 
-        # Step 3: Process order items
+        # --- Step 5: Batch inserts ---
+        order_items_data = []
+        stock_transactions_data = []
+        stock_items_data = []
+
         for item in items:
-            product_id = item['product_id']
-            quantity = item['quantity']
-
-            unit_price_row = cur.execute("""
-                SELECT unit_price FROM products WHERE id = ?
-            """, (product_id,)).fetchone()
-
-            if not unit_price_row:
-                raise HTTPException(status_code=400, detail=f"Product ID {product_id} not found.")
-
-            unit_price = unit_price_row[0]
-            line_total = quantity * unit_price
+            pid = item['product_id']
+            qty = item['quantity']
+            unit_price = float(price_map.get(pid))
+            line_total = qty * unit_price
             total_amount += line_total
+            order_items_data.append((transaction_id, pid, qty, unit_price))
 
-            # Deduct material stock and log transaction
-            materials = cur.execute("""
-                SELECT pm.material_id, pm.used_quantity
-                FROM product_materials pm
-                WHERE pm.product_id = ?
-            """, (product_id,)).fetchall()
-
-            for material_id, used_qty in materials:
-                total_used = used_qty * quantity
-
-                # Fetch supplier
-                supplier = cur.execute("""
-                    SELECT supplier_id FROM materials WHERE id = ?
-                """, (material_id,)).fetchone()
-
-                if not supplier or not supplier[0]:
-                    raise HTTPException(status_code=400, detail=f"No supplier found for material ID {material_id}.")
-
-                supplier_id = supplier[0]
-
-                # Create stock transaction
-                stock_transaction_id = cur.execute("""
-                    INSERT INTO stock_transactions (
-                        stock_type_id, supplier_id, admin_id, employee_id, date_created
-                    ) VALUES (?, ?, ?, NULL, ?)
-                    RETURNING id
-                """, (
+            for m in material_map.get(pid, []):
+                total_used = m['used_qty'] * qty
+                stock_transactions_data.append((
                     'STT002',
-                    supplier_id,
-                    data.get('admin_id'),
+                    m['supplier_id'],
+                    actor_admin,
                     datetime.utcnow()
-                )).fetchone()[0]
-
-                # Log stock item
-                cur.execute("""
-                    INSERT INTO stock_transaction_items (
-                        stock_transaction_id, material_id, quantity
-                    ) VALUES (?, ?, ?)
-                """, (
-                    stock_transaction_id,
-                    material_id,
-                    total_used
                 ))
+                stock_items_data.append((m['material_id'], total_used))
 
-                # Deduct from material stock
                 cur.execute("""
                     UPDATE materials
                     SET current_stock = current_stock - ?
                     WHERE id = ?
-                """, (total_used, material_id))
+                """, (total_used, m['material_id']))
 
-            # Add order item
+        cur.executemany("""
+            INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+            VALUES (?, ?, ?, ?)
+        """, order_items_data)
+
+        # --- Step 7: Stock transactions ---
+        for idx, tx in enumerate(stock_transactions_data):
+            stock_txn_id = cur.execute("""
+                INSERT INTO stock_transactions (
+                    stock_type_id, supplier_id, admin_id, employee_id, date_created
+                ) VALUES (?, ?, ?, NULL, ?)
+                RETURNING id
+            """, tx).fetchone()[0]
+
+            material_id, qty_used = stock_items_data[idx]
             cur.execute("""
-                INSERT INTO order_items (
-                    order_id, product_id, quantity, unit_price
-                ) VALUES (?, ?, ?, ?)
-            """, (
-                transaction_id,
-                product_id,
-                quantity,
-                unit_price
-            ))
+                INSERT INTO stock_transaction_items (
+                    stock_transaction_id, material_id, quantity
+                ) VALUES (?, ?, ?)
+            """, (stock_txn_id, material_id, qty_used))
 
-        # Update total amount
         cur.execute("""
             UPDATE order_transactions
             SET total_amount = ?
             WHERE id = ?
         """, (total_amount, transaction_id))
 
-        # Write an auditlog entry (same cursor) — exactly one of admin_id/employee_id must be passed
-        # choose actor_admin if available, otherwise actor_employee
-        audit_admin = actor_admin
-        audit_employee = actor_employee if not actor_admin else None
-
-        details = f"Order created: transaction_id={transaction_id}, customer_id={customer_id}, items={len(items)}, total_amount={total_amount:.2f}"
         log_audit(
             entity="order_transactions",
             entity_id=str(transaction_id),
             action="create",
-            details=details,
-            admin_id=audit_admin,
-            employee_id=audit_employee,
+            details=f"Order created: {len(items)} items, total={total_amount:.2f}",
+            admin_id=actor_admin,
+            employee_id=actor_employee,
             cur=cur
         )
 
-        # commit if we opened and started the txn here
         if own_cursor and conn_used is not None and started_txn:
             conn_used.execute("COMMIT")
 
-        return {"transaction_id": transaction_id, "message": "Order successfully placed."}
-    except HTTPException:
-        # Re-raise HTTPExceptions as-is (they already contain status + detail)
-        if own_cursor and conn_used is not None and started_txn:
-            try:
-                conn_used.execute("ROLLBACK")
-            except Exception:
-                # rollback failure - log if you have logger; swallow to re-raise original HTTPException
-                pass
-        raise
-    except Exception as e:
-        # rollback only if we started a txn
-        if own_cursor and conn_used is not None and started_txn:
-            try:
-                conn_used.execute("ROLLBACK")
-            except Exception:
-                # avoid raising transaction rollback errors that mask original error
-                pass
-        # raise HTTPException so FastAPI responds with JSON instead of HTML
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "transaction_id": transaction_id,
+            "message": "Order successfully placed."
+        }
 
+    except Exception as e:
+        if own_cursor and conn_used is not None and started_txn:
+            try:
+                conn_used.execute("ROLLBACK")
+            except Exception:
+                pass
+        raise HTTPException(status_code=500, detail=str(e))
 
 def get_order_transactions_detailed():
     return con.execute("""
@@ -2493,8 +2508,8 @@ def get_order_statuses():
 
 # Auth
 def get_user_by_email(email: str):
-    # conn = duckdb.connect('backend/db_timestock')
-    conn = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    conn = duckdb.connect(DB_PATH)
+    # conn = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     # Check admin
     admin_query = """
@@ -2997,8 +3012,8 @@ def get_audit_logs(limit: int = 100, offset: int = 0, cur=None) -> List[Dict[str
 
     if cur is None:
         # use a short-lived connection so callers don't need to pass one
-        # conn_used = duckdb.connect('backend/db_timestock')
-        conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+        conn_used = duckdb.connect(DB_PATH)
+        # conn_used = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
         cur = conn_used.cursor()
         own_cursor = True

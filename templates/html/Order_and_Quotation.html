@@ -821,6 +821,10 @@ function submitOrder() {
     }))
   };
 
+  // Disable submit button temporarily (optional)
+  const submitBtn = document.getElementById('submitOrderBtn');
+  if (submitBtn) submitBtn.disabled = true;
+
   fetch('/api/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -835,15 +839,22 @@ function submitOrder() {
       return res.json();
     })
     .then(result => {
-      alert("Order placed! Transaction ID: " + result.transaction_id);
+      // Updated message for background task
+      alert("✅ Your order has been processed.");
+
+      // Optional UX cleanup
       orderCart = [];
       renderCart();
       clearCustomerForm();
       hideReceiptPreview();
       hideQuotationPreview();
     })
-    .catch(err => alert("Error: " + err.message));
+    .catch(err => alert("Error: " + err.message))
+    .finally(() => {
+      if (submitBtn) submitBtn.disabled = false;
+    });
 }
+
 
 function clearCustomerForm() {
   ['firstname', 'lastname', 'contact_number', 'email', 'address']

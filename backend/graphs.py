@@ -9,15 +9,37 @@ import plotly.subplots as sp
 from statsmodels.tsa.seasonal import STL
 from dateutil.relativedelta import relativedelta
 import json
+import shutil
 import os
 
-MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-if not MOTHERDUCK_TOKEN:
-    raise RuntimeError("MOTHERDUCK_TOKEN not set")
+REPO_DB_PATH = "backend/db_timestock1"
+
+# If running locally, use a local file
+if os.environ.get("RAILWAY") == "1":
+    # Production (Railway) path: the mounted volume
+    DB_PATH = "/data/db_timestock1"
+else:
+    # Local path
+    DB_PATH = "backend/db_timestock1"
+
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+
+# Copy starter DB if it doesn't exist yet
+if not os.path.exists(DB_PATH):
+    if os.path.exists(REPO_DB_PATH):
+        shutil.copy(REPO_DB_PATH, DB_PATH)
+        print(f"Copied starter DB to {DB_PATH}")
+    else:
+        print(f"No starter DB found at {REPO_DB_PATH}. A new DB will be created.")
+
+
+# Connect to DuckDB
+con = duckdb.connect(DB_PATH)
+print(f"Connected to DB at {DB_PATH}")
 
 def get_graph_html(period='month'):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     # Total Orders
     df_orders = con.execute(f"""
@@ -57,6 +79,9 @@ def get_graph_html(period='month'):
     df = df_orders.merge(df_sales, on='period', how='outer').merge(df_revenue, on='period', how='outer')
     df = df.sort_values('period')
 
+    if df.empty or df['total_revenue'].sum() == 0:
+        return "<p>No sales data available.</p>", "<p>No data to report.</p>"
+    
     # Plotting
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -96,6 +121,9 @@ def generate_chart_report(df):
     total_sales = df['total_sales'].sum()
     avg_revenue = df['total_revenue'].mean()
 
+    if df.empty or df['total_revenue'].sum() == 0:
+        return "<p>No valid data to summarize.</p>"
+    
     return f"""
     <strong>Summary Report:</strong><br>
     📅 Highest Revenue Month: <b>{max_month}</b><br>
@@ -106,8 +134,8 @@ def generate_chart_report(df):
     """
     
 def get_turnover_combined_graph():
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     df = con.execute("""
         WITH monthly_data AS (
@@ -144,7 +172,8 @@ def get_turnover_combined_graph():
         ORDER BY label;
     """).fetchdf()
 
-    
+    if df.empty or (df[['cogs','avg_inventory']].sum().sum() == 0):
+        return "<p>No turnover data available.</p>", None, "<p>No data to summarize.</p>"
 
     fig = go.Figure()
 
@@ -201,6 +230,9 @@ def get_turnover_combined_graph():
     return fig.to_html(full_html=False, config={'responsive': True}), df, summary_html
 
 def generate_turnover_summary(df):
+    if df.empty or df['turnover_rate'].sum() == 0:
+        return "<p>No valid turnover data.</p>"
+
     max_turnover_row = df.loc[df['turnover_rate'].idxmax()]
     max_month = max_turnover_row['label']
     max_turnover = max_turnover_row['turnover_rate']
@@ -237,8 +269,8 @@ def get_fastest_moving_materials_chart():
     LIMIT 10;
     """
 
-    # with duckdb.connect("backend/db_timestock") as conn:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+    with duckdb.connect(DB_PATH) as conn:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
         df = conn.execute(query).fetchdf()
 
     if df.empty:
@@ -331,8 +363,8 @@ def get_reorder_point_chart(return_df=False):
         ORDER BY reorder_status DESC, item_name;
     """
 
-    # with duckdb.connect("backend/db_timestock") as conn:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
+    with duckdb.connect(DB_PATH) as conn:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
         df = conn.execute(query).fetchdf()
 
     if return_df:
@@ -385,8 +417,8 @@ def get_reorder_point_chart(return_df=False):
 
 
 def get_stl_decomposition_graph():
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     # Monthly order quantity
     query = """
@@ -404,6 +436,9 @@ def get_stl_decomposition_graph():
     df.set_index('order_month', inplace=True)
     df = df.asfreq('MS')
     df['total_quantity'] = df['total_quantity'].fillna(0)
+
+    if df.empty or df['total_quantity'].sum() == 0 or len(df) < 12:
+        return "<p>Insufficient data for STL decomposition.</p>", "<p>No recommendations available.</p>", df, None, None
 
     stl = STL(df['total_quantity'], period=12)
     result = stl.fit()
@@ -488,6 +523,10 @@ def get_stl_decomposition_graph():
 
 
 def get_stl_decomposition_report(df, result):
+
+    if result is None or df.empty or 'total_quantity' not in df.columns:
+        return "<p>No valid data available for STL Decomposition Report.</p>"
+    
     trend = result.trend
     seasonal = result.seasonal
     resid = result.resid
@@ -550,6 +589,10 @@ def get_stl_decomposition_report(df, result):
 
 
 def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df: pd.DataFrame):
+    if result is None or df.empty or 'total_quantity' not in df.columns:
+        flat = ["⚠️ No valid data available for STL Decomposition Recommendations."]
+        grouped = [{'month': 'N/A', 'recs': ["⚠️ No valid data available."]}]
+        return flat, grouped
 
     flat_recs = []
     grouped = []
@@ -769,8 +812,8 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
 
 
 def get_sales_moving_average_chart():
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     # Total monthly sales
     df = con.execute("""
@@ -814,6 +857,9 @@ def get_sales_moving_average_chart():
     # Moving averages
     df['3_MA'] = df['total_sales'].rolling(window=3).mean()
     df['6_MA'] = df['total_sales'].rolling(window=6).mean()
+
+    if df.empty or df['total_sales'].sum() == 0:
+        return "<p>No sales data available.</p>", df
 
     # Plotting
     fig = go.Figure()
@@ -937,6 +983,9 @@ def generate_moving_average_recommendations(df: pd.DataFrame) -> list:
 
 
 def generate_sales_moving_average_report(df: pd.DataFrame) -> str:
+
+    if df.empty or 'total_sales' not in df.columns:
+        return "<p>No sales data available for report.</p>"
     # Drop NA to avoid issues with early months having no MA
     df = df.dropna(subset=['3_MA', '6_MA'])
 
@@ -965,8 +1014,8 @@ def generate_sales_moving_average_report(df: pd.DataFrame) -> str:
 
 # ------------ Reports -----------
 def get_text_report_for_month(year: int, month: int):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     query = f"""
         SELECT 
@@ -1026,8 +1075,8 @@ def get_text_report_for_month(year: int, month: int):
     }
 
 def get_turnover_text_report_for_month(year: int, month: int):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     query = f"""
         WITH monthly_data AS (
@@ -1091,8 +1140,8 @@ def get_turnover_text_report_for_month(year: int, month: int):
     }
 
 def get_stl_text_report_for_month(year: int, month: int):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     # Monthly order quantity
     query = """
@@ -1182,8 +1231,8 @@ def get_stl_text_report_for_month(year: int, month: int):
     }
 
 def get_sales_moving_average_text_report(year: int, month: int | None = None):
-    # with duckdb.connect('backend/db_timestock') as con:
-    with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as con:
+    with duckdb.connect(DB_PATH) as con:
+    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as con:
         # --- get full dataset (no filtering here) ---
         df = con.execute("""
         SELECT
@@ -1260,8 +1309,8 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
         }
 
 def get_stock_movement_report_for_month(year: int, month: int):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     query = f"""
         SELECT 
@@ -1310,8 +1359,8 @@ def get_stock_movement_report_for_month(year: int, month: int):
     }
 
 def get_products_sold_for_month(year: int, month: int):
-    # con = duckdb.connect('backend/db_timestock')
-    con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
+    con = duckdb.connect(DB_PATH)
+    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
     query = f"""
         SELECT 

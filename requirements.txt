@@ -14,3 +14,4 @@ reportlab
 python-jose
 argon2-cffi
 pydantic[email]
+requests

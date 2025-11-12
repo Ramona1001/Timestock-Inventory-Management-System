@@ -26,16 +26,32 @@
             font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-dark);
-            position: relative;
-            overflow-x: auto;
-        }
+
+     body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    color: var(--text-dark);
+    position: relative;
+    overflow-x: auto;
+    }
+
+    /* Blueish vignette over the whole page */
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(
+            circle at center,
+            rgba(0, 100, 255, 0) 50%,
+            rgba(0, 50, 150, 0.35) 100%
+        );
+        pointer-events: none;
+        z-index: 0;
+    }
+
 
         .bg-animation {
             position: absolute;

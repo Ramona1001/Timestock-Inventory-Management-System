@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from .api import router as api_router
 from .auth import router as auth_router, get_current_user
 import os
+import asyncio
 from backend import graphs
 
 app = FastAPI(title="TimeStock Inventory API")
@@ -90,6 +91,16 @@ def materials_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
     return templates.TemplateResponse("Materials.html", {"request": request, "user": user})
+
+async def get_all_graphs():
+    tasks = [
+        asyncio.to_thread(graphs.get_graph_html),
+        asyncio.to_thread(graphs.get_turnover_combined_graph),
+        asyncio.to_thread(graphs.get_stl_decomposition_graph),
+        asyncio.to_thread(graphs.get_sales_moving_average_chart),
+    ]
+    results = await asyncio.gather(*tasks)
+    return results
 
 @app.get("/Analytics.html", response_class=HTMLResponse)
 def analytics_page(request: Request, user: dict = Depends(get_current_user)):

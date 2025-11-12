@@ -740,7 +740,10 @@ def create_admin(admin: AdminCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create admin: {str(e)}")
 
-@router.post("/settings/add-employees", status_code=201) #  
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import PlainTextResponse
+
+@router.post("/settings/add-employees", status_code=201, response_class=PlainTextResponse)
 def api_add_employee(
     payload: EmployeeCreate,
     request: Request
@@ -752,19 +755,23 @@ def api_add_employee(
 
     data = payload.model_dump()
     try:
-        # prefer new signature with admin_id if DB supports it
+        # try new signature with admin_id
         try:
             result = database.add_employee(data, admin_id=user["id"])
         except TypeError:
             result = database.add_employee(data)
 
         if not result.get("success", False):
-            raise HTTPException(status_code=400, detail=result["message"])
-        return result
+            raise HTTPException(status_code=400, detail=result.get("message", "Failed to add employee"))
+
+        # Return plain text success message
+        return "Added employee successfully"
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.put("/settings/{id}/status") # DONE
 def api_update_employee_status(
@@ -856,8 +863,8 @@ def fetch_audit_logs(limit: int = 100, offset: int = 0, request: Request = None)
 def api_migrate_password_hashes():
     return database.migrate_plaintext_passwords_to_hash()
 
-# Forgot Password
 
+# Forgot Password
 @router.post("/change-password")
 async def change_password(
     request: Request,
@@ -919,3 +926,14 @@ async def forgot_password(request: Request):
         return JSONResponse({"success": False, "message": f"Failed to send email: {e}"}, status_code=500)
 
     return JSONResponse({"success": True, "message": "New password sent to your email"})
+
+@router.get("/whoami")
+def whoami(request: Request):
+    """
+    Return the logged-in user's session info.
+    Example: {"id": 1, "email": "admin@example.com", "role": "admin"}
+    """
+    user = request.session.get("user")
+    if not user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    return user
