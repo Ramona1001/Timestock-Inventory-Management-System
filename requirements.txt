@@ -14,9 +14,5 @@ reportlab
 python-jose
 argon2-cffi
 pydantic[email]
-<<<<<<< HEAD
 requests
 pillow
-=======
-requests
->>>>>>> 998790e18aa343458a92ca046fa99446a4bb0913
