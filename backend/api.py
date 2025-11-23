@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from tempfile import NamedTemporaryFile
 from datetime import datetime, timedelta
 import pandas as pd
-import uuid
+import uuid, secrets
 import os, json
 
 from backend.auth import get_current_user, verify_token
@@ -139,6 +139,7 @@ def get_all_alerts():
 
                 alerts["Reorder"].append({
                     "message": msg,
+                    "material_id": row["material_id"],
                     "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                     "display_time": timestamp.strftime("%b %d %Y %H:%M")
                 })
@@ -149,19 +150,39 @@ def get_all_alerts():
     # --- Minimum Stock Alerts ---
     minstock_msgs = set()
     min_stock_alerts = analytics.get_minimum_stock_alerts()
+
     for item in min_stock_alerts:
-        msg = str(item[1]) if isinstance(item, tuple) and len(item) == 2 else str(item)
+        # Expect either (msg, material_id) or a single msg string
+        if isinstance(item, tuple) and len(item) == 2:
+            msg, material_id = item
+        else:
+            msg = str(item)
+            material_id = None
+
+        # Normalize material_id to string or empty
+        if material_id is None:
+            material_id_str = ""
+        else:
+            material_id_str = str(material_id)
+
         timestamp = alert_cache["Minimum Stock"].get(msg, now)
         alert_cache["Minimum Stock"][msg] = timestamp
 
         alerts["Minimum Stock"].append({
             "message": msg,
+            "material_id": material_id_str,
             "timestamp": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             "display_time": timestamp.strftime("%b %d %Y %H:%M")
         })
+
         minstock_msgs.add(msg)
 
-    alert_cache["Minimum Stock"] = {k: v for k, v in alert_cache["Minimum Stock"].items() if k in minstock_msgs}
+    # Clean up old items
+    alert_cache["Minimum Stock"] = {
+        k: v for k, v in alert_cache["Minimum Stock"].items() if k in minstock_msgs
+    }
+
+
 
     # --- Persist cache ---
     with open(CACHE_FILE, "w") as f:
@@ -903,8 +924,80 @@ def fetch_audit_logs(limit: int = 100, offset: int = 0, request: Request = None)
 def api_migrate_password_hashes():
     return database.migrate_plaintext_passwords_to_hash()
 
-
 # Forgot Password
+VERIFICATION_CODES = {}
+
+@router.post("/forgot-password/send-code")
+async def send_reset_code(email: str = Form(...)):
+    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    # Generate 6-digit verification code
+    code = secrets.randbelow(900000) + 100000
+    VERIFICATION_CODES[email] = str(code)
+
+    # Send the code using your existing send_email()
+    try:
+        database.send_email(
+            email,
+            f"""
+                <p>Hello Admin,</p>
+                <p>Your password reset verification code is:</p>
+                <h2>{code}</h2>
+                <p>This 6-Digit Code is use to verify that its you.</p>
+                <p>- TimeStock IMS Dev Team</p>
+            """
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {e}")
+
+    return {"success": True, "message": "Verification code sent to your email"}
+
+
+@router.post("/forgot-password/verify-code")
+async def verify_reset_code(email: str = Form(...), code: str = Form(...)):
+    saved_code = VERIFICATION_CODES.get(email)
+
+    if not saved_code:
+        raise HTTPException(status_code=400, detail="No reset request found for this email")
+
+    if saved_code != code:
+        raise HTTPException(status_code=400, detail="Incorrect verification code")
+
+    # Remove code after successful verification
+    del VERIFICATION_CODES[email]
+
+    # Generate new password
+    new_password = database.generate_new_password()
+    hashed_password = ph.hash(new_password)
+
+    # Update DB
+    database.con.execute(
+        "UPDATE admin SET password = ? WHERE email = ?",
+        [hashed_password, email]
+    )
+
+    # Email new password using your resend function
+    try:
+        database.send_email(
+            email,
+            f"""
+                <p>Hello Admin,</p>
+                <p>Your password has been successfully reset.</p>
+                <p>Your new password is:</p>
+                <h2>{new_password}</h2>
+                <p>Please log in and change it immediately.</p>
+                <p>- TimeStock IMS Dev Team</p>
+            """
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send new password email: {e}")
+
+    return {"success": True, "message": "New password sent to your email"}
+
+
 @router.post("/change-password")
 async def change_password(
     request: Request,
@@ -969,10 +1062,6 @@ async def forgot_password(request: Request):
 
 @router.get("/whoami")
 def whoami(request: Request):
-    """
-    Return the logged-in user's session info.
-    Example: {"id": 1, "email": "admin@example.com", "role": "admin"}
-    """
     user = request.session.get("user")
     if not user:
         raise HTTPException(status_code=401, detail="Not logged in")

@@ -61,43 +61,33 @@ def generate_new_password(length: int = 12) -> str:
     return ''.join(secrets.choice(chars) for _ in range(length))
 
 def send_email(to_email: str, new_password: str):
-    """Sends the new password via Resend API."""
     api_key = os.getenv("RESEND_API_KEY")
 
     if not api_key:
         raise ValueError("Missing RESEND_API_KEY environment variable")
 
     data = {
-        "from": "TimeStock <noreply@resend.dev>",  # or your verified domain later
+        "from": "TimeStock <noreply@resend.dev>",
         "to": [to_email],
         "subject": "Password Reset Request",
-        "html": f"""
-            <p>Hello,</p>
-            <p>Your new password is: <strong>{new_password}</strong></p>
-            <p>Please log in and change it immediately.</p>
-            <p>- TimeStock Team</p>
-        """
+        "html": new_password
     }
 
-    try:
-        response = requests.post(
-            "https://api.resend.com/emails",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=data,
-            timeout=10  
-        )
+    response = requests.post(
+        "https://api.resend.com/emails",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json=data,
+        timeout=10
+    )
 
-        if response.status_code != 200:
-            raise Exception(f"Resend API error: {response.status_code} - {response.text}")
+    if response.status_code != 200:
+        raise Exception(f"Resend API error: {response.status_code} - {response.text}")
 
-        print("✅ Email sent successfully")
+    print("Email sent successfully")
 
-    except Exception as e:
-        print(f"❌ Failed to send email: {e}")
-        raise
 
 def log_audit(
     entity: str,
@@ -1347,32 +1337,45 @@ def stock_materials(
         # Use cur for all DB operations so the audit can be in the same transaction
         # --- Step 0: Create or identify supplier
         supplier_id = data.get("supplier_id")
-        if not supplier_id and "supplier" in data:
-            supplier = data["supplier"]
-            contact_name = supplier['contact_name'].strip().title()
-            contact_number = supplier['contact_number'].strip()
-            email = supplier['email'].strip()
-            firstname = supplier['firstname'].strip().title()
-            lastname = supplier['lastname'].strip().title()
-            address = supplier['address'].strip().title()
 
-            existing = cur.execute("""
-                SELECT id FROM suppliers
-                WHERE LOWER(contact_name) = LOWER(?)
-                LIMIT 1
-            """, (contact_name,)).fetchone()
+        if not supplier_id:
+            # Try to use supplier from request first
+            supplier = data.get("supplier")
+            if supplier:
+                contact_name = supplier['contact_name'].strip().title()
+                contact_number = supplier['contact_number'].strip()
+                email = supplier['email'].strip()
+                firstname = supplier['firstname'].strip().title()
+                lastname = supplier['lastname'].strip().title()
+                address = supplier['address'].strip().title()
 
-            if existing:
-                raise ValueError(f"Supplier with contact name '{contact_name}' already exists.")
+                existing = cur.execute("""
+                    SELECT id FROM suppliers
+                    WHERE LOWER(contact_name) = LOWER(?)
+                    LIMIT 1
+                """, (contact_name,)).fetchone()
+
+                if existing:
+                    supplier_id = existing[0]
+                else:
+                    supplier_id = cur.execute("""
+                        INSERT INTO suppliers (
+                            firstname, lastname, contact_name, contact_number, email, address, date_created
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        RETURNING id
+                    """, (
+                        firstname, lastname, contact_name, contact_number, email, address, datetime.utcnow()
+                    )).fetchone()[0]
             else:
-                supplier_id = cur.execute("""
-                    INSERT INTO suppliers (
-                        firstname, lastname, contact_name, contact_number, email, address, date_created
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    RETURNING id
-                """, (
-                    firstname, lastname, contact_name, contact_number, email, address, datetime.utcnow()
-                )).fetchone()[0]
+                # Fallback: pick first supplier from DB
+                result = cur.execute("""
+                    SELECT id FROM suppliers
+                    ORDER BY date_created ASC
+                    LIMIT 1
+                """).fetchone()
+                if not result:
+                    raise ValueError("No suppliers found in the database.")
+                supplier_id = result[0]
 
         elif not supplier_id:
             raise ValueError("Either supplier_id or supplier details must be provided.")

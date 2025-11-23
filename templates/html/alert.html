@@ -208,17 +208,17 @@
 }
 
 </style>
-
 <script>
 async function fetchAllAlertsToBox() {
   try {
     const response = await fetch("/api/all-alerts");
     const data = await response.json();
 
+    console.debug("DEBUG /api/all-alerts response:", data);
+
     const categoriesContainer = document.getElementById("notificationCategories");
     const ping = document.getElementById("notifPing");
 
-    // Track expanded categories
     const expandedCategories = new Set(
       Array.from(document.querySelectorAll(".category.expanded"))
         .map(div => div.getAttribute("data-category"))
@@ -231,6 +231,21 @@ async function fetchAllAlertsToBox() {
 
     let allAlerts = [];
     let hasNew = false;
+
+    function extractIdFromMessage(msg) {
+      if (!msg) return "";
+      const patterns = [
+        /([A-Z]{2,}-\d{1,6})/,
+        /([A-Z]{2,}\d{1,6})/,
+        /([A-Z]{1,4}-[A-Z]{1,4}-\d{1,4})/,
+        /([A-Z]{2,}\d{2,6})/
+      ];
+      for (const p of patterns) {
+        const m = msg.match(p);
+        if (m) return m[1];
+      }
+      return "";
+    }
 
     for (const [category, alerts] of Object.entries(alertsByCategory)) {
       const categoryDiv = document.createElement("div");
@@ -248,18 +263,46 @@ async function fetchAllAlertsToBox() {
 
         const li = document.createElement("li");
 
-        // Use display_time if available, fallback to raw timestamp
         const displayTime = alertObj.display_time || alertObj.timestamp;
 
-        li.innerHTML = `<span>${alertObj.message}</span> 
-                        <span style="float:right; font-size:12px; color:#888;">${displayTime}</span>`;
+        const alertIdCandidate =
+          (alertObj && (alertObj.material_id || alertObj.materialId || alertObj.id || alertObj.item_id || alertObj.mat_id)) || "";
 
-        // Hide all after 1st unless category is expanded
+        const finalId = alertIdCandidate || extractIdFromMessage(String(alertObj.message || ""));
+
+        li.innerHTML = `
+          <span class="alert-link" data-id="${finalId}">
+            ${alertObj.message}
+          </span>
+          <span style="float:right; font-size:12px; color:#888;">${displayTime}</span>
+        `;
+
         if (idx >= 1 && !expandedCategories.has(category)) {
           li.style.display = "none";
         }
 
         ul.appendChild(li);
+
+        const linkEl = li.querySelector(".alert-link");
+        linkEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+
+          const msg = alertObj.message;
+          const id = linkEl.getAttribute("data-id") || "";
+
+          let seen = JSON.parse(localStorage.getItem("seenAlerts")) || [];
+          if (!seen.includes(msg)) {
+            seen.push(msg);
+            localStorage.setItem("seenAlerts", JSON.stringify(seen));
+          }
+
+          let hasUnseen = allAlerts.some(a => !seen.includes(a));
+          document.getElementById("notifPing").style.display = hasUnseen ? "block" : "none";
+
+          if (id) {
+            window.location.href = `/Materials.html?highlight=${encodeURIComponent(id)}`;
+          }
+        });
 
         if (!storedAlerts.includes(alertObj.message)) {
           hasNew = true;
@@ -268,7 +311,6 @@ async function fetchAllAlertsToBox() {
 
       categoryDiv.appendChild(ul);
 
-      // Add View More / View Less toggle
       if (alerts.length > 1) {
         const viewMore = document.createElement("span");
         viewMore.textContent = expandedCategories.has(category) ? "View Less" : "View More";
@@ -276,7 +318,6 @@ async function fetchAllAlertsToBox() {
 
         viewMore.addEventListener("click", () => {
           if (expandedCategories.has(category)) {
-            // collapse
             ul.querySelectorAll("li").forEach((li, idx) => {
               if (idx >= 1) li.style.display = "none";
             });
@@ -284,7 +325,6 @@ async function fetchAllAlertsToBox() {
             expandedCategories.delete(category);
             categoryDiv.classList.remove("expanded");
           } else {
-            // expand
             ul.querySelectorAll("li").forEach(li => li.style.display = "list-item");
             viewMore.textContent = "View Less";
             expandedCategories.add(category);
@@ -306,7 +346,6 @@ async function fetchAllAlertsToBox() {
     console.error("Error fetching alerts:", error);
   }
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
   const notifIcon = document.getElementById("notifIcon");
@@ -332,42 +371,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Toggle box when bell is clicked
-notifIcon.addEventListener("click", (e) => {
-  e.stopPropagation(); // prevent triggering document click
-  const isOpen = notificationBox.style.display === "block";
+  notifIcon.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = notificationBox.style.display === "block";
 
-  if (isOpen) {
-    // Closing the box
-    notificationBox.style.display = "none";
-    startInterval(); // resume fetch interval
-    fetchAllAlertsToBox(); // refresh alerts on close
-  } else {
-    // Opening the box
-    notificationBox.style.display = "block";
-    stopInterval(); // pause interval while open
-    const allAlerts = Array.from(
-      document.querySelectorAll("#notificationCategories li span:first-child")
-    ).map(span => span.textContent);
-    localStorage.setItem("seenAlerts", JSON.stringify(allAlerts));
-    ping.style.display = "none";
-  }
-});
+    if (isOpen) {
+      notificationBox.style.display = "none";
+      startInterval();
+      fetchAllAlertsToBox();
+    } else {
+      notificationBox.style.display = "block";
+      stopInterval();
+      ping.style.display = "none";
 
-// Close box when clicking outside
-document.addEventListener("click", (e) => {
-  const isClickInsideBox = notificationBox.contains(e.target);
-  const isClickOnIcon = notifIcon.contains(e.target);
+      // ✅ FIXED: Mark all current alerts as seen using API response
+      fetch("/api/all-alerts")
+        .then(r => r.json())
+        .then(data => {
+          const current = [];
+          Object.values(data.alerts).forEach(group =>
+            group.forEach(a => current.push(a.message))
+          );
+          localStorage.setItem("seenAlerts", JSON.stringify(current));
+        });
+    }
+  });
 
-  if (!isClickInsideBox && !isClickOnIcon && notificationBox.style.display === "block") {
-    notificationBox.style.display = "none";
-    startInterval(); // resume fetching
-    fetchAllAlertsToBox(); // refresh alerts on close
-  }
-});
+  document.addEventListener("click", (e) => {
+    const isClickInsideBox = notificationBox.contains(e.target);
+    const isClickOnIcon = notifIcon.contains(e.target);
 
+    if (!isClickInsideBox && !isClickOnIcon && notificationBox.style.display === "block") {
+      notificationBox.style.display = "none";
+      startInterval();
+      fetchAllAlertsToBox();
+    }
+  });
 
-  // Initial fetch and start interval
   fetchAllAlertsToBox();
   startInterval();
 });

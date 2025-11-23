@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Materials.css?v=7">
 <style> 
+
 /* ---------- MOBILE LAYOUT ---------- */
 @media screen and (max-width: 768px) {
 
@@ -728,6 +729,9 @@ function clearMaterialFilters() {
   let currentPage = 1;
   let materialsData = [];
   let filteredData = [];
+  const urlParams = new URLSearchParams(window.location.search);
+  const highlightID = urlParams.get("highlight");
+
 
   document.addEventListener("DOMContentLoaded", fetchMaterials);
 
@@ -801,6 +805,14 @@ function clearMaterialFilters() {
     });
 
     currentPage = 1;
+
+    if (highlightID) {
+        const index = filteredData.findIndex(m => m.material_id === highlightID);
+        if (index !== -1) {
+          currentPage = Math.floor(index / rowsPerPage) + 1;
+        }
+      }
+
     renderTablePage(currentPage);
     renderPagination();
   }
@@ -848,6 +860,22 @@ function clearMaterialFilters() {
 
       `;
       tableBody.appendChild(row);
+      if (highlightID) {
+          const rows = document.querySelectorAll("#materialTableBody tr");
+          rows.forEach(row => {
+            if (row.children[0].textContent === highlightID) {
+              row.style.backgroundColor = "#c4c4c4";  // light yellow
+              row.style.transition = "background-color 0.5s ease";
+              row.scrollIntoView({ behavior: "smooth", block: "center" });
+
+              // optional fade back after 3s:
+              setTimeout(() => {
+                row.style.backgroundColor = "";
+              }, 3000);
+            }
+          });
+        }
+
     });
   }
 

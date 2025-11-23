@@ -238,25 +238,9 @@ main .date input[type='date'] {
   display: block;
 }
 
-
-/* Modal Base Styles */
-/* Base modal styles */
-.modal {
-  display: none; /* hidden by default */
-  position: fixed;
-  z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.5);
-  padding: 2rem;
-  box-sizing: border-box;
-}
-
-/* Modal content layout */
-  .modal {
+/* Scoped to Receipt and Quotation Modals */
+#receiptModal,
+#quotationModal {
   display: none; /* default hidden */
   position: fixed;
   z-index: 1000;
@@ -266,192 +250,94 @@ main .date input[type='date'] {
   height: 100%;
   overflow: auto;
   background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-  background: #fff;
-  margin: 5% auto;
-  padding: 20px;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 1000px;
-  display: flex;
-  gap: 20px;
-  position: relative;
-}
-
-.modal-content.two-column {
-  display: flex;
-}
-
-.modal-left {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #ddd;
-  padding-right: 15px;
-  max-height: 80vh;
-}
-
-.modal-scroll-area {
-  overflow-y: auto;
-  flex-grow: 1;
-  padding-right: 5px; /* prevents scrollbar overlap */
-}
-
-.modal-footer-btns {
-  border-top: 1px solid #eee;
-  padding-top: 10px;
-  background: #fff;
-  position: sticky;
-  bottom: 0;
-}
-
-.modal-right {
-  flex: 1;
-  padding-left: 15px;
-  overflow: hidden;
-}
-
-.section-input {
-  margin-top: 15px;
-}
-
-.section-input label {
-  font-weight: bold;
-  margin-bottom: 4px;
-  display: block;
-}
-
-.form-control {
-  width: 100%;
-  padding: 6px;
-  margin-bottom: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.btn {
-  border-radius: 6px;
-}
-
-.modal-content.two-column {
-  display: flex;
-  flex-direction: row;
-  background-color: #fff;
-  margin: auto;
   padding: 2rem;
-  border-radius: 12px;
-  max-width: 100%;
-  max-height: 100%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  gap: 2rem;
   box-sizing: border-box;
 }
 
-/* Left panel */
-.modal-left {
-  flex: 1 1 35%;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Right panel */
-.modal-right {
-  flex: 1 1 65%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Preview iframe */
-.modal-right iframe {
-  flex-grow: 1;
-  width: 100%;
-  height: 100%;
-  min-height: 500px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-/* Close button */
-.modal .close {
-  position: absolute;
-  top: 1.5rem;
-  right: 2rem;
-  font-size: 28px;
-  font-weight: bold;
-  color: #444;
-  cursor: pointer;
-  z-index: 1001;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .modal-content.two-column {
-    flex-direction: column;
-    padding: 1rem;
-    max-width: 95%;
-    max-height: 95%;
-  }
-
-  .modal-left, .modal-right {
-    flex: 1 1 100%;
-  }
-
-  .modal-right iframe {
-    min-height: 400px;
-  }
-}
-
-
-/* Modal Content Layout */
-.modal-content.two-column {
+/* Modal Content */
+#receiptModal .modal-content,
+#quotationModal .modal-content {
   background: #fff;
-  margin: auto;
-  max-width: 900px;
-  display: flex;
-  gap: 2rem;
+  margin: 5% auto;
   padding: 2rem;
   border-radius: 12px;
+  width: 90%;
+  max-width: 1000px;
+  display: flex;
+  gap: 2rem;
   position: relative;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
-/* Modal Columns */
-.modal-left, .modal-right {
-  flex: 1 1 45%;
+/* Two-column Layout */
+#receiptModal .modal-content.two-column,
+#quotationModal .modal-content.two-column {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+/* Left and Right Panels */
+#receiptModal .modal-left,
+#receiptModal .modal-right,
+#quotationModal .modal-left,
+#quotationModal .modal-right {
   display: flex;
   flex-direction: column;
+  flex: 1 1 45%;
+  gap: 1rem;
+}
+
+/* Scrollable Left Area */
+#receiptModal .modal-scroll-area,
+#quotationModal .modal-scroll-area {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding-right: 5px; /* prevents scrollbar overlap */
+  max-height: 75vh; /* ensures scroll appears */
 }
 
 /* Modal Titles */
-.modal-left h4,
-.modal-right h4 {
+#receiptModal h4,
+#receiptModal .modal-left h4,
+#receiptModal .modal-right h4,
+#quotationModal h4,
+#quotationModal .modal-left h4,
+#quotationModal .modal-right h4 {
   margin-bottom: 1rem;
   font-size: 18px;
   font-weight: 600;
   color: #333;
 }
 
-/* Input and Buttons */
-.modal-left input[type="number"],
-.modal-left input[type="text"] {
+/* Form Controls */
+#receiptModal input,
+#quotationModal input,
+#receiptModal select,
+#quotationModal select {
+  width: 100%;
   padding: 0.5rem 0.75rem;
   font-size: 14px;
   margin-bottom: 1rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  width: 100%;
   box-sizing: border-box;
 }
 
+/* Section Labels */
+#receiptModal .section-input label,
+#quotationModal .section-input label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
 
-/* Button Styling */
-.modal-left .btn,
-.modal-right .btn {
+/* Buttons */
+#receiptModal .btn,
+#quotationModal .btn {
   padding: 0.5rem 0.75rem;
   font-size: 14px;
   border-radius: 6px;
@@ -460,22 +346,42 @@ main .date input[type='date'] {
   white-space: nowrap;
 }
 
-/* Download Buttons */
+/* Download Links */
 #downloadReceiptLink,
 #downloadQuotationLink {
   text-decoration: none;
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 6px;
 }
 
-/* Preview Area */
-.modal-right iframe {
+/* Preview Iframes */
+#receiptModal iframe,
+#quotationModal iframe {
+  flex-grow: 1;
   width: 100%;
   height: 400px;
+  min-height: 400px;
   border: 1px solid #ccc;
   border-radius: 6px;
 }
 
-/* Close Button */
-.modal .close {
+/* Modal Footer Buttons */
+#receiptModal .modal-footer-btns,
+#quotationModal .modal-footer-btns {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* Close Buttons */
+#receiptModal .close,
+#quotationModal .close {
   position: absolute;
   top: 12px;
   right: 16px;
@@ -486,20 +392,191 @@ main .date input[type='date'] {
   transition: color 0.2s ease-in-out;
 }
 
-.modal .close:hover {
+#receiptModal .close:hover,
+#quotationModal .close:hover {
   color: #000;
 }
 
-/* Responsive Stack on Small Screens */
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  .modal-content.two-column {
+  #receiptModal .modal-content.two-column,
+  #quotationModal .modal-content.two-column {
     flex-direction: column;
     gap: 1rem;
+    padding: 1rem;
+    max-width: 95%;
+    max-height: 95%;
   }
 
-  .modal-left, .modal-right {
+  #receiptModal .modal-left,
+  #receiptModal .modal-right,
+  #quotationModal .modal-left,
+  #quotationModal .modal-right {
     flex: 1 1 100%;
   }
+
+  #receiptModal iframe,
+  #quotationModal iframe {
+    min-height: 300px;
+  }
+}
+
+
+
+/* Modal Overlay */
+#createModal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Modal Content Box */
+#createModal .modal-content {
+    background: #fff;
+    margin: 3% auto;
+    padding: 0;
+    border-radius: var(--border-radius-2);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--box-shadow);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Modal Header */
+#createModal .modal-header {
+    padding: 20px 20px 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
+
+#createModal .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Close Button */
+#createModal .close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+#createModal .close:hover {
+    color: #333;
+}
+
+/* Modal Body */
+#createModal .modal-body {
+    padding: 0 20px 20px 20px;
+}
+
+/* Form Grid */
+#createModal .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* Form Groups */
+#createModal .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+#createModal .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+#createModal .form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+/* Inputs and Selects */
+#createModal input,
+#createModal select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+#createModal input:focus,
+#createModal select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+#createModal input[readonly] {
+    background-color: #f8f9fa;
+    color: #666;
+}
+
+/* Modal Actions (Buttons) */
+#createModal .modal-actions {
+    padding: 15px 20px 20px 20px;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    background: white;
+}
+
+/* Submit Button inside Modal */
+#createModal .modal-actions button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-1);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* Only target the glass inputs inside the modal */
+#createModal #glassSize1,
+#createModal #glassSize2,
+#createModal #glassActualCost {
+    width: 60px;       /* adjust as needed */
+    font-size: 13px !important;
+    padding: 10px 12px !important;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+
+#createModal .modal-actions button:hover {
+    background: #0056b3;
 }
 
 
