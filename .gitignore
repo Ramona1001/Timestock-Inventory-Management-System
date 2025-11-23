@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-
+backend/__pycache__
 # Builds
 dist/
 out/

@@ -8,9 +8,8 @@
   <meta http-equiv="Expires" content="0" />
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=7">
+  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=10">
 <style>
-
   /* ================= MOBILE LAYOUT FOR ORDER & QUOTATION ================= */
 @media screen and (max-width: 768px) {
 
@@ -420,6 +419,79 @@
   </div>
 </div>
 
+<!-- Create Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add Leftover Materials</h3>
+            <span class="close" onclick="closeModal('createModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="createDate">Date</label>
+                    <input type="date" id="createDate" readonly>
+                </div>
+                <div class="form-group full-width">
+                    <label for="createItemName">Glass Material Name</label>
+                    <input type="text" id="createItemName" placeholder="Enter item name" required>
+                </div>
+                <div class="form-group full-width">
+                    <label for="createDescription">Item Description</label>
+                    <input type="text" id="createDescription" placeholder="Enter item description" required>
+                </div>
+                <div class="form-group">
+                    <label for="createSupplier">Supplier</label>
+                    <select id="createSupplier">
+                        <option value="" disabled selected>Select a supplier</option>
+                        <option value="supplier1">Supplier 1</option>
+                        <option value="supplier2">Supplier 2</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createCategory">Category</label>
+                    <select id="createCategory">
+                        <option value="" disabled selected>Select a category</option>
+                        <option value="raw-materials">Raw Materials</option>
+                        <option value="packaging">Packaging</option>
+                        <option value="supplies">Supplies</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createUnitMeasurement">Unit Measurement</label>
+                    <select id="createUnitMeasurement">
+                        <option value="ft">ft (Feet)</option>
+                        <option value="sqft">sqft (Square Feet)</option>
+                        <option value="pcs">pcs (Pieces)</option>
+                        <option value="m">m (Meters)</option>
+                        <option value="cm">cm (Centimeters)</option>
+                        <option value="mm">mm (Millimeters)</option>
+                        <option value="sqm">sqm (Square Meters)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="unitCostContainer">
+                    <label for="createUnitCost">Unit Cost (₱)</label>
+                    <input type="number" id="createUnitCost" placeholder="0.00" step="0.01" min="0" step="any" required>
+                </div>
+                <div class="form-group">
+                    <label for="createQuantity">Quantity</label>
+                    <input type="number" id="createQuantity" placeholder="Enter quantity" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="createMinStock">Minimum Stock</label>
+                    <input type="number" id="createMinStock" placeholder="Min stock level" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="createMaxStock">Maximum Stock</label>
+                    <input type="number" id="createMaxStock" placeholder="Max stock level" min="0" required>
+                </div>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="create-btn-modal" onclick="addMaterial()">Submit</button>
+        </div>
+    </div>
+</div>
 
 
 </div>
@@ -450,6 +522,8 @@ let orderCart = [];
 let receiptLogoFile = null;
 let quotationLogoFile = null;
 let allGlassMaterials = [];
+let pendingLeftovers = [];
+
 
 function loadGlassMaterials() {
     return fetch('/api/materials')
@@ -563,7 +637,8 @@ function handleProductClick(productId, itemName, unitPrice) {
               ...m,
               used_quantity: used,
               unit_cost: cost,
-              line_cost: line
+              line_cost: line,
+              required_material_name: m.item_name
             };
           }),
           material_total: data.total_cost
@@ -584,6 +659,144 @@ function adjustMaterialCosts(item) {
     }));
 }
 
+function formatGlassName(name) {
+    // Capitalize first letter
+    return name.replace(/^./, str => str.toUpperCase());
+}
+
+
+function computeGlassLeftover(requiredName, selectedName) {
+    // Extract size
+    const req = requiredName.match(/(\d+)x(\d+)$/i);
+    const sel = selectedName.match(/(\d+)x(\d+)$/i);
+    if (!req || !sel) return null;
+
+    const reqW = parseInt(req[1]), reqH = parseInt(req[2]);
+    const selW = parseInt(sel[1]), selH = parseInt(sel[2]);
+
+    if (selW < reqW || selH < reqH) return null; // can't cut
+
+    const leftoverW = reqW;
+    const leftoverH = selH - reqH;
+    if (leftoverH <= 0) return null;
+
+    // Preserve prefix from selected material
+    const prefix = selectedName.replace(/\d+x\d+$/i, '').trim();
+
+    return formatGlassName(`${prefix} ${leftoverW}x${leftoverH}`);
+}
+
+
+
+async function updateSelectedGlass(productId, materialIndex, newMaterialId) {
+  const item = orderCart.find(p => p.product_id === productId);
+  if (!item || !item.materials[materialIndex]) return;
+
+  const m = item.materials[materialIndex];
+
+  const selectedGlass = allGlassMaterials.find(g => g.material_id == newMaterialId);
+  if (!selectedGlass) return;
+
+  // Use required_material_name for leftover computation
+  const leftoverName = computeGlassLeftover(m.required_material_name, selectedGlass.item_name);
+
+  if (leftoverName) {
+    pendingLeftovers.push({
+      leftoverName,
+      quantity: m.used_quantity
+    });
+  }
+
+  m.selected_glass_id = newMaterialId;
+  renderCart();
+  hideReceiptPreview();
+  hideQuotationPreview();
+}
+
+
+async function stockLeftover(materialId, qty) {
+    try {
+        const payload = {
+            stock_type_id: "STT001", // required by Pydantic
+            items: [
+                { material_id: materialId.toString(), quantity: qty }
+            ]
+        };
+
+        const res = await fetch("/api/stock-materials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.detail || "Failed to stock leftover");
+        }
+
+        console.log(`Leftover material ID ${materialId} stocked: ${qty}`);
+    } catch (err) {
+        console.error("Failed to stock leftover:", err);
+    }
+}
+
+async function autoCreateLeftoverPlaceholder(leftoverName, qty) {
+    const formattedName = formatGlassName(leftoverName);
+
+    // Check if leftover already exists
+const existing = allGlassMaterials.find(g =>
+    g.item_name &&
+    typeof g.item_name === "string" &&
+    g.item_name.toLowerCase() === formattedName.toLowerCase()
+);
+
+    if (existing) {
+        await stockLeftover(existing.material_id, qty);
+        alert(`Leftover stocked: ${formattedName}`);
+        return existing.material_id;
+    }
+
+    // Create a new leftover automatically
+    const placeholderMaterial = {
+        item_name: formattedName,
+        item_decription: "Auto-generated leftover glass",
+        supplier_id: "SUPL001",
+        category_id: "MCAT001",
+        unit_measurement: "sqft",
+        material_cost: 0,
+        current_stock: qty,
+        minimum_stock: 0,
+        maximum_stock: 9999
+    };
+
+    try {
+        const response = await fetch("/api/materials", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(placeholderMaterial)
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert("Failed to create leftover: " + (err.detail || "unknown error"));
+            return null;
+        }
+
+        const created = await response.json();
+        allGlassMaterials.push(created);
+
+        await stockLeftover(created.material_id, qty);
+
+        alert(`Created new leftover material: ${formattedName}`);
+
+        return created.material_id;
+    }
+    catch (err) {
+        console.error("Auto-create leftover error:", err);
+        alert("Error auto-creating leftover.");
+        return null;
+    }
+}
 
 
 function renderCart() {
@@ -652,70 +865,68 @@ function renderCart() {
                 <th>Line Cost</th>
               </tr>
             </thead>
-            <tbody>
-              ${item.materials.map((m, mIndex) => {
-                  let materialCell = '';
+                <tbody>
+                  ${item.materials.map((m, mIndex) => {
+                      let materialCell = '';
 
-                  // Check if material is glass
-                  const glassMatch = m.item_name.match(/glass\s*(\d+)x(\d+)/i);
-                  if (glassMatch && allGlassMaterials.length > 0) {
-                      const reqW = parseInt(glassMatch[1]);
-                      const reqH = parseInt(glassMatch[2]);
+                      const glassMatch = m.item_name.match(/glass\s*(\d+)x(\d+)/i);
 
-                      // Filter glass options that are larger or equal
-                      const glassOptions = allGlassMaterials.filter(g => {
-                          const gMatch = g.item_name.match(/glass\s*(\d+)x(\d+)/i);
-                          if (!gMatch) return false;
-                          const w = parseInt(gMatch[1]);
-                          const h = parseInt(gMatch[2]);
-                          return w >= reqW && h >= reqH;
-                      });
+                      if (glassMatch && allGlassMaterials.length > 0) {
+                          // Required dimensions
+                          const reqW = parseInt(glassMatch[1]);
+                          const reqH = parseInt(glassMatch[2]);
 
-                      if (!m.selected_glass_id) {
-                          const originalGlass = glassOptions.find(g => g.material_id === m.material_id);
-                          if (originalGlass) {
-                              m.selected_glass_id = originalGlass.material_id;
-                          } else if (glassOptions.length > 0) {
-                              m.selected_glass_id = glassOptions[0].material_id;
-                          } else {
-                              // fallback: just use original material id
-                              m.selected_glass_id = m.material_id;
+                          // Filter glass options that are larger or equal
+                          const glassOptions = allGlassMaterials.filter(g => {
+                              const gMatch = g.item_name.match(/glass\s*(\d+)x(\d+)/i);
+                              if (!gMatch) return false;
+                              const gW = parseInt(gMatch[1]);
+                              const gH = parseInt(gMatch[2]);
+                              return gW >= reqW && gH >= reqH;
+                          });
+
+                          // Set selected_glass_id only if not already set
+                          if (!m.selected_glass_id && glassOptions.length > 0) {
+                              const exactMatch = glassOptions.find(g => {
+                                  const gMatch = g.item_name.match(/glass\s*(\d+)x(\d+)/i);
+                                  return parseInt(gMatch[1]) === reqW && parseInt(gMatch[2]) === reqH;
+                              });
+                              m.selected_glass_id = exactMatch ? exactMatch.material_id : glassOptions[0].material_id;
                           }
+
+                          materialCell = `
+                              <div><strong>${m.item_name}</strong></div>
+                              <select onchange="updateSelectedGlass('${item.product_id}', ${mIndex}, this.value)"
+                                      class="form-select form-select-sm"
+                                      style="width:auto; display:inline-block; margin-top:2px;">
+                                  ${glassOptions.map(g => `
+                                      <option value="${g.material_id}" ${g.material_id === m.selected_glass_id ? 'selected' : ''}>
+                                          ${g.item_name} (Stock: ${g.current_stock})
+                                      </option>`).join('')}
+                              </select>
+                          `;
+                      } else {
+                          // Non-glass material
+                          materialCell = m.item_name;
+                          delete m.selected_glass_id;
                       }
 
-                      materialCell = `
-                          <div><strong>${m.item_name}</strong></div>
-                          <select onchange="updateSelectedGlass('${item.product_id}', ${mIndex}, this.value)" 
-                                  class="form-select form-select-sm" style="width:auto; display:inline-block; margin-top:2px;">
-                              ${glassOptions.map(g => `
-                                  <option value="${g.material_id}" ${g.material_id === m.selected_glass_id ? 'selected' : ''}>
-                                      ${g.item_name} (Stock: ${g.current_stock})
-                                  </option>`).join('')}
-                          </select>
+                      return `
+                        <tr>
+                          <td>${materialCell}</td>
+                          <td>
+                            <input type="number" min="0" step="0.01" value="${m.used_quantity}" 
+                                  onchange="updateUsedQuantity('${item.product_id}', ${mIndex}, this.value)" 
+                                  class="form-control form-control-sm" 
+                                  style="width: 60px;" /> ${m.unit_measurement}
+                          </td>
+                          <td>₱${isNaN(m.unit_cost) ? '0.00' : m.unit_cost.toFixed(2)}</td>
+                          <td>₱${isNaN(m.line_cost) ? '0.00' : m.line_cost.toFixed(2)}</td>
+                        </tr>
                       `;
-                  } else {
-                      // If it doesn't match glass regex, just render name normally
-                      materialCell = m.item_name;
-                      // Also make sure selected_glass_id is undefined for non-glass
-                      delete m.selected_glass_id;
-                  }
+                  }).join('')}
+                </tbody>
 
-                  return `
-                    <tr>
-                      <td>${materialCell}</td>
-                      <td>
-                        <input type="number" min="0" step="0.01" value="${m.used_quantity}" 
-                              onchange="updateUsedQuantity('${item.product_id}', ${mIndex}, this.value)" 
-                              class="form-control form-control-sm" 
-                              style="width: 60px;" /> ${m.unit_measurement}
-                      </td>
-                      <td>₱${isNaN(m.unit_cost) ? '0.00' : m.unit_cost.toFixed(2)}</td>
-                      <td>₱${isNaN(m.line_cost) ? '0.00' : m.line_cost.toFixed(2)}</td>
-                    </tr>
-                  `;
-              }).join('')}
-
-            </tbody>
           </table>
         </td>
       `;
@@ -727,16 +938,6 @@ function renderCart() {
     <div><strong>Grand Total Product Cost (with Misc Fees):</strong> ₱${totalProductCost.toFixed(2)}</div>
     <div><strong>Total Material Quotation Cost:</strong> ₱${totalMaterialCost.toFixed(2)}</div>
   `;
-}
-
-// --- Update selected glass for material ---
-function updateSelectedGlass(productId, materialIndex, newMaterialId) {
-  const item = orderCart.find(p => p.product_id === productId);
-  if (!item || !item.materials[materialIndex]) return;
-  item.materials[materialIndex].selected_glass_id = newMaterialId;
-  renderCart();
-  hideReceiptPreview();
-  hideQuotationPreview();
 }
 
 document.getElementById('clearAllBtn').addEventListener('click', () => {
@@ -845,20 +1046,33 @@ async function loadStatusOptions() {
 }
 
 
-function submitOrder() {
+async function handlePendingLeftoversSequentially() {
+    while (pendingLeftovers.length > 0) {
+        const leftover = pendingLeftovers.shift();
+
+        await autoCreateLeftoverPlaceholder(
+            leftover.leftoverName,
+            leftover.quantity
+        );
+    }
+}
+
+
+async function submitOrder() {
   if (orderCart.length === 0) return alert("Cart is empty!");
 
+  // Validate customer fields
   const fields = ["firstname", "lastname", "contact_number", "email", "address", "status_id"];
   for (const field of fields) {
     const el = document.getElementById(field);
     if (!el || !el.value.trim()) {
       alert(`Please fill in the ${field.replace("_", " ")} field.`);
-      el.focus();
+      el?.focus();
       return;
     }
   }
 
-  // --- Extra Validations ---
+  // Extra validations
   const firstname = document.getElementById('firstname').value.trim();
   const lastname = document.getElementById('lastname').value.trim();
   const contact_number = document.getElementById('contact_number').value.trim();
@@ -866,52 +1080,15 @@ function submitOrder() {
   const address = document.getElementById('address').value.trim();
   const status_id = document.getElementById('status_id').value;
 
-  // Name validation (letters and spaces only)
-  const nameRegex = /^[A-Za-z\s]+$/;
-  if (!nameRegex.test(firstname)) {
-    alert("Firstname should only contain letters and spaces.");
-    document.getElementById('firstname').focus();
-    return;
-  }
-  if (!nameRegex.test(lastname)) {
-    alert("Lastname should only contain letters and spaces.");
-    document.getElementById('lastname').focus();
-    return;
-  }
+  if (!/^[A-Za-z\s]+$/.test(firstname)) { alert("Firstname should only contain letters."); document.getElementById('firstname').focus(); return; }
+  if (!/^[A-Za-z\s]+$/.test(lastname)) { alert("Lastname should only contain letters."); document.getElementById('lastname').focus(); return; }
+  if (!/^[0-9]{10,11}$/.test(contact_number)) { alert("Contact number must be 10–11 digits."); document.getElementById('contact_number').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Invalid email."); document.getElementById('email').focus(); return; }
+  if (address.length < 5) { alert("Address too short."); document.getElementById('address').focus(); return; }
+  if (!status_id) { alert("Please select a valid status."); return; }
 
-  // Contact number validation (PH standard: 10–11 digits)
-  const phoneRegex = /^[0-9]{10,11}$/;
-  if (!phoneRegex.test(contact_number)) {
-    alert("Contact number must be 10–11 digits only.");
-    document.getElementById('contact_number').focus();
-    return;
-  }
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    alert("Please enter a valid email address.");
-    document.getElementById('email').focus();
-    return;
-  }
-
-  // Address validation (at least 5 chars)
-  if (address.length < 5) {
-    alert("Address must be at least 5 characters long.");
-    document.getElementById('address').focus();
-    return;
-  }
-
-  // Status validation
-  if (!status_id) {
-    alert("Please select a valid status.");
-    document.getElementById('status_id').focus();
-    return;
-  }
-
-  // --- Construct order data ---
+  // Construct order data
   const customer = { firstname, lastname, contact_number, email, address };
-
   const orderData = {
     customer,
     status_id,
@@ -925,52 +1102,48 @@ function submitOrder() {
           original_material_id: m.material_id,
           used_quantity: m.used_quantity
         };
-        // Only add selected_glass_id if it exists
         if (m.selected_glass_id) matPayload.selected_glass_id = m.selected_glass_id;
         return matPayload;
       })
     }))
   };
 
-  // Disable submit button temporarily (optional)
   const submitBtn = document.getElementById('submitOrderBtn');
   if (submitBtn) submitBtn.disabled = true;
 
-  fetch('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(orderData)
-  })
-    .then(async res => {
-      if (!res.ok) {
-        let errMsg = "Order failed";
-        try {
-          const errData = await res.json();
-          if (errData?.detail) {
-            // Convert object detail to string if needed
-            errMsg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
-          }
-        } catch {}
-        throw new Error(errMsg);
-      }
-      return res.json();
-    })
+  try {
+    // --- Handle leftover glass BEFORE sending order ---
+    await handlePendingLeftoversSequentially();
+    pendingLeftovers = []; // clear leftovers after handling
 
-    .then(result => {
-      // Updated message for background task
-      alert("✅ Your order has been processed.");
-
-      // Optional UX cleanup
-      orderCart = [];
-      renderCart();
-      clearCustomerForm();
-      hideReceiptPreview();
-      hideQuotationPreview();
-    })
-    .catch(err => alert("Error: " + err.message))
-    .finally(() => {
-      if (submitBtn) submitBtn.disabled = false;
+    // --- Send order ---
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData)
     });
+
+    if (!res.ok) {
+      let errMsg = "Order failed";
+      try {
+        const errData = await res.json();
+        if (errData?.detail) errMsg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
+      } catch {}
+      throw new Error(errMsg);
+    }
+
+    alert("✅ Your order has been processed.");
+    orderCart = [];
+    renderCart();
+    clearCustomerForm();
+    hideReceiptPreview();
+    hideQuotationPreview();
+
+  } catch (err) {
+    alert("Error: " + err.message);
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 
@@ -1061,20 +1234,6 @@ function sendReceiptPayload(payload) {
   })
   .catch(err => alert("Error: " + err.message));
 }
-
-
-
-function addBullet(sectionId) {
-  const container = document.getElementById(sectionId);
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "form-control mt-1";
-  input.placeholder = "Enter bullet point";
-  input.required = true;
-  container.appendChild(input);
-}
-
-
 
 function addBullet(sectionId) {
   const container = document.getElementById(sectionId);
@@ -1232,5 +1391,4 @@ function closeModal(id) {
 }
 
 </script>
-
 

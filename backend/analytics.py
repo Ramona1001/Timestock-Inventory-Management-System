@@ -35,6 +35,7 @@ print(f"Connected to DB at {DB_PATH}")
 def get_minimum_stock_alerts():
     query = """
         SELECT 
+            m.id AS material_id,
             m.current_stock,
             m.minimum_stock,
             i.item_name
@@ -43,27 +44,39 @@ def get_minimum_stock_alerts():
     """
 
     with duckdb.connect(DB_PATH) as conn:
-    # with duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN}) as conn:
         df = conn.execute(query).fetchdf()
 
     alerts = []
     for _, row in df.iterrows():
-        stock = row['current_stock']
-        minimum = row['minimum_stock']
-        item = row['item_name']
+        stock = row["current_stock"]
+        minimum = row["minimum_stock"]
+        item_name = row["item_name"]
+        material_id = row["material_id"]
+
         threshold = minimum * 1.2  # 20% buffer zone
 
+        # Below minimum
         if stock < minimum:
-            alerts.append(f"⚡️ {item}: Stock is {stock}, below minimum of {minimum} – Stocking is needed.")
-        elif stock < threshold:
-            alerts.append(f"🔶 {item}: Stock is {stock}, nearing minimum ({minimum}) – Monitor.")
-    return alerts
+            msg = (
+                f"⚡️ {item_name}: Stock is {stock}, below minimum of "
+                f"{minimum} – Stocking is needed."
+            )
+            alerts.append((msg, material_id))
 
+        # Near minimum (<120%)
+        elif stock < threshold:
+            msg = (
+                f"🔶 {item_name}: Stock is {stock}, nearing minimum "
+                f"({minimum}) – Monitor."
+            )
+            alerts.append((msg, material_id))
+
+    return alerts
 
 def get_low_stock_alerts():
     return con.execute("""
         SELECT 
-            i.id AS item_id,
+            i.id AS material_id,
             i.item_name,
             i.item_decription,
             m.current_stock,
