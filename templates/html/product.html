@@ -649,7 +649,7 @@ function renderTablePage(type, page) {
     <td>${product.unit_price}</td>
     <td>${product.materials_cost}</td>
     <td>${formatDate(product.date_created)}</td>
-    <td class="${statusClass}">
+    <td>
       ${product.width && product.height ? product.width + "x" + product.height : ""}
     </td>
     <td class="${statusClass}">${product.status}</td>
