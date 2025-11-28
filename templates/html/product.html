@@ -234,6 +234,14 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label for="createWidth">Width</label>
+                    <input type="number" id="createWidth" placeholder="Width" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="createHeight">Height</label>
+                    <input type="number" id="createHeight" placeholder="Height" step="0.01" min="0">
+                </div>
+                <div class="form-group">
                     <label for="createStatus">Status</label>
                     <select id="createStatus">
                         <option value="Available">Available</option>
@@ -306,6 +314,14 @@
                                 <option value="food">Food</option>
                                 <option value="desserts">Desserts</option>
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-width">Width</label>
+                            <input type="number" id="edit-width" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-height">Height</label>
+                            <input type="number" id="edit-height" step="0.01" min="0">
                         </div>
                         <div class="form-group">
                             <label for="edit-status">Status</label>
@@ -394,6 +410,7 @@
         <th>Unit Price</th>
         <th>Materials Cost</th>
         <th>Date Added</th>
+        <th>Dimensions</th>
         <th>Status</th>
         {% if request.session['user']['role'] == 'admin' %}
         <th>Action</th>
@@ -423,6 +440,7 @@
           <th>Price</th>
           <th>Materials Cost</th>
           <th>Date Added</th>
+          <th>Dimensions</th>
           <th>Status</th>
           {% if request.session['user']['role'] == 'admin' %}
           <th>Actions</th>
@@ -623,90 +641,115 @@ function renderTablePage(type, page) {
     const row = document.createElement("tr");
     const statusClass = product.status === "Available" ? "success" : "danger";
 
-    row.innerHTML = `
-      <td>${product.product_id}</td>
-      <td>${product.item_name}</td>
-      <td>${product.item_decription}</td>
-      <td>${product.item_category_name}</td>
-      <td>${product.unit_price}</td>
-      <td>${product.materials_cost}</td>
-      <td>${formatDate(product.date_created)}</td>
-      <td class="${statusClass}">${product.status}</td>
-      {% if request.session['user']['role'] == 'admin' %}
-      <td>
-        <button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button>
-        <button class="delete-btn" onclick="deleteProduct('${product.product_id}')">Delete</button>
-      </td>
-      {% endif %}
-    `;
+  row.innerHTML = `
+    <td>${product.product_id}</td>
+    <td>${product.item_name}</td>
+    <td>${product.item_description}</td>
+    <td>${product.item_category_name}</td>
+    <td>${product.unit_price}</td>
+    <td>${product.materials_cost}</td>
+    <td>${formatDate(product.date_created)}</td>
+    <td class="${statusClass}">
+      ${product.width && product.height ? product.width + "x" + product.height : ""}
+    </td>
+    <td class="${statusClass}">${product.status}</td>
+    {% if request.session['user']['role'] == 'admin' %}
+    <td>
+      <button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button>
+      <button class="delete-btn" onclick="deleteProduct('${product.product_id}')">Delete</button>
+    </td>
+    {% endif %}
+  `;
+
     tbody.appendChild(row);
   });
 }
 
-
 function renderPagination(type) {
-  let data, currentPage, paginationId;
+  let dataLength, currentPage, paginationId;
 
   if (type === "available") {
-    data = availableFilteredData;
+    dataLength = availableFilteredData.length;
     currentPage = currentAvailablePage;
     paginationId = "availablePagination";
   } else {
-    data = unavailableFilteredData;
+    dataLength = unavailableFilteredData.length;
     currentPage = currentUnavailablePage;
     paginationId = "unavailablePagination";
   }
 
-  const totalPages = Math.ceil(data.length / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(dataLength / rowsPerPage));
   const paginationDiv = document.getElementById(paginationId);
   paginationDiv.innerHTML = "";
 
+  // No pagination if only 1 page (but still show Prev/Next disabled if you prefer)
+  if (totalPages <= 1) return;
+
+  // Helper to safely push values (no duplicates)
+  function safePush(arr, value) {
+    if (!arr.includes(value)) arr.push(value);
+  }
+
+  // Helper to set page and re-render both table and pagination
+  function setPage(type, page) {
+    if (page < 1 || page > totalPages) return;
+    if (type === "available") currentAvailablePage = page;
+    else currentUnavailablePage = page;
+
+    renderTablePage(type, page);
+    renderPagination(type);
+  }
+
+  // Helper to create a numbered button
+  function createPageButton(pg) {
+    const btn = document.createElement("button");
+    btn.textContent = pg;
+    if (pg === currentPage) {
+      btn.disabled = true;
+      btn.style.fontWeight = "bold";
+    }
+    btn.onclick = () => setPage(type, pg);
+    return btn;
+  }
+
+  // Prev button
   const prevBtn = document.createElement("button");
   prevBtn.textContent = "Prev";
   prevBtn.disabled = currentPage === 1;
-  prevBtn.onclick = () => {
-    if (type === "available" && currentAvailablePage > 1) {
-      currentAvailablePage--;
-      renderTablePage(type, currentAvailablePage);
-      renderPagination(type);
-    } else if (type === "unavailable" && currentUnavailablePage > 1) {
-      currentUnavailablePage--;
-      renderTablePage(type, currentUnavailablePage);
-      renderPagination(type);
-    }
-  };
+  prevBtn.onclick = () => setPage(type, currentPage - 1);
   paginationDiv.appendChild(prevBtn);
 
-  for (let i = 1; i <= totalPages; i++) {
-    const pageBtn = document.createElement("button");
-    pageBtn.textContent = i;
-    if (i === currentPage) {
-      pageBtn.disabled = true;
-      pageBtn.style.fontWeight = "bold";
-    }
-    pageBtn.onclick = () => {
-      if (type === "available") currentAvailablePage = i;
-      else currentUnavailablePage = i;
-      renderTablePage(type, i);
-      renderPagination(type);
-    };
-    paginationDiv.appendChild(pageBtn);
-  }
+  // Build compact pages array
+  const pagesToShow = [];
+  safePush(pagesToShow, 1); // first page always
 
+  if (currentPage > 3) safePush(pagesToShow, "...");
+
+  if (currentPage - 1 > 1) safePush(pagesToShow, currentPage - 1);
+  safePush(pagesToShow, currentPage);
+  if (currentPage + 1 < totalPages) safePush(pagesToShow, currentPage + 1);
+
+  if (currentPage < totalPages - 2) safePush(pagesToShow, "...");
+
+  if (totalPages > 1) safePush(pagesToShow, totalPages);
+
+  // Render pages in order
+  pagesToShow.forEach(p => {
+    if (p === "...") {
+      const span = document.createElement("span");
+      span.textContent = "...";
+      span.style.margin = "0 6px";
+      paginationDiv.appendChild(span);
+    } else {
+      paginationDiv.appendChild(createPageButton(p));
+    }
+  });
+
+  // Next button
   const nextBtn = document.createElement("button");
   nextBtn.textContent = "Next";
   nextBtn.disabled = currentPage === totalPages;
-  nextBtn.onclick = () => {
-    if (type === "available" && currentAvailablePage < totalPages) {
-      currentAvailablePage++;
-      renderTablePage(type, currentAvailablePage);
-      renderPagination(type);
-    } else if (type === "unavailable" && currentUnavailablePage < totalPages) {
-      currentUnavailablePage++;
-      renderTablePage(type, currentUnavailablePage);
-      renderPagination(type);
-    }
-  };
+  nextBtn.onclick = () => setPage(type, currentPage + 1);
   paginationDiv.appendChild(nextBtn);
 }
 
@@ -767,12 +810,14 @@ async function fetchCategories() {
 async function addProduct() {
   // Get input values and trim strings
   const item_name = document.getElementById("createName").value.trim();
-  const item_decription = document.getElementById("createDescription").value.trim();
+  const item_description = document.getElementById("createDescription").value.trim();
   const category_id = document.getElementById("createCategory").value;
   const unit_price = parseFloat(document.getElementById("createPrice").value);
   const materials_cost = parseFloat(document.getElementById("createCost").value);
   const status = document.getElementById("createStatus").value;
   const date_created = document.getElementById("createDate").value;
+  const width = parseFloat(document.getElementById("createWidth").value) || null;
+  const height = parseFloat(document.getElementById("createHeight").value) || null;
 
   // --- Validation ---
 
@@ -787,7 +832,7 @@ async function addProduct() {
   }
 
   // Description validation (optional, max 500 chars)
-  if (item_decription.length > 500) {
+  if (item_description.length > 500) {
     alert("Description cannot exceed 500 characters.");
     return;
   }
@@ -834,11 +879,13 @@ async function addProduct() {
   // --- Prepare product data ---
   const productData = {
     item_name,
-    item_decription,
+    item_description,
     category_id,
     unit_price,
     materials_cost,
     status,
+    width,
+    height,
     date_created
   };
 
@@ -916,10 +963,13 @@ async function openEditModal(product) {
 
   document.getElementById("edit-item-id").value = product.product_id;
   document.getElementById("edit-item-name").value = product.item_name;
-  document.getElementById("edit-item-description").value = product.item_decription;
+  document.getElementById("edit-item-description").value = product.item_description;
   document.getElementById("edit-materials-cost").value = product.materials_cost;
   document.getElementById("edit-unit-price").value = product.unit_price;
   document.getElementById("edit-status").value = product.status;
+  document.getElementById("edit-width").value = product.width != null ? product.width : "";
+  document.getElementById("edit-height").value = product.height != null ? product.height : "";
+
 
   await loadCategoryOptions(product.category_id);
 }
@@ -942,6 +992,9 @@ document.getElementById("editProductForm").addEventListener("submit", async func
   const unit_price = parseFloat(document.getElementById("edit-unit-price").value);
   const materials_cost = parseFloat(document.getElementById("edit-materials-cost").value);
   const status = document.getElementById("edit-status").value;
+  const widthVal = document.getElementById("edit-width").value;
+  const heightVal = document.getElementById("edit-height").value;
+  
 
   // --- Validation ---
   if (!id) {
@@ -996,7 +1049,9 @@ document.getElementById("editProductForm").addEventListener("submit", async func
     category_id,
     unit_price,
     materials_cost,
-    status
+    status,
+    width: widthVal === "" ? undefined : parseFloat(widthVal),
+    height: heightVal === "" ? undefined : parseFloat(heightVal)
   };
 
   // --- Send update request ---

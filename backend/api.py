@@ -39,7 +39,9 @@ def update_product_data(request: Request, product: ProductUpdate):
             status=product.status,
             category_id=product.category_id,
             item_name=product.item_name,
-            item_description=product.item_description,
+            item_description=product.item_description,    
+            width=product.width,     
+            height=product.height,
             admin_id=user["id"]
         )
         return {"message": "Product updated successfully"}
@@ -99,33 +101,61 @@ def get_all_alerts():
     # --- Turnover Alerts ---
     _, turnover_df, _ = graphs.get_turnover_combined_graph()
     turnover_msgs = set()
-    if "label" in turnover_df.columns:
-        turnover_df['label_date'] = pd.to_datetime(turnover_df['label'], format='%Y-%m')
-        recent_df = turnover_df[turnover_df['label_date'] >= (now - pd.DateOffset(months=1))]
 
-        for _, row in recent_df.iterrows():
-            label = row['label']
-            rate = row['turnover_rate']
+    # If NO DATA return fallback
+    if turnover_df is None or not hasattr(turnover_df, "columns") or turnover_df.empty:
+        alerts["Turnover"].append({
+            "message": "ℹ️ Not enough data to calculate turnover rates.",
+            "timestamp": now.strftime("%b %d %Y %H:%M")
+        })
+    else:
+        # Safe column check
+        if "label" in turnover_df.columns and "turnover_rate" in turnover_df.columns:
+            turnover_df['label_date'] = pd.to_datetime(turnover_df['label'], format='%Y-%m', errors='coerce')
+            turnover_df = turnover_df.dropna(subset=["label_date"])  # avoid invalid dates
 
-            if rate < 1:
-                msg = f"⚠️ {label}: Low turnover rate ({rate}) – Review excess stock."
-            elif rate > 5:
-                msg = f"⚠️ {label}: High turnover rate ({rate}) – Stock might run out fast."
+            recent_df = turnover_df[turnover_df['label_date'] >= (now - pd.DateOffset(months=1))]
+
+            if recent_df.empty:
+                alerts["Turnover"].append({
+                    "message": "ℹ️ Not enough recent data to evaluate turnover.",
+                    "timestamp": now.strftime("%b %d %Y %H:%M")
+                })
             else:
-                msg = f"✅ {label}: Turnover rate is normal ({rate})."
+                for _, row in recent_df.iterrows():
+                    label = row['label']
+                    rate = row['turnover_rate']
 
-            formatted_timestamp = row['label_date'].strftime("%b %Y")
-            timestamp = alert_cache["Turnover"].get(msg, formatted_timestamp)
-            alert_cache["Turnover"][msg] = timestamp
+                    if rate < 1:
+                        msg = f"⚠️ {label}: Low turnover rate ({rate}) – Review excess stock."
+                    elif rate > 5:
+                        msg = f"⚠️ {label}: High turnover rate ({rate}) – Stock might run out fast."
+                    else:
+                        msg = f"✅ {label}: Turnover rate is normal ({rate})."
 
+                    formatted_timestamp = row['label_date'].strftime("%b %Y")
+                    timestamp = alert_cache["Turnover"].get(msg, formatted_timestamp)
+                    alert_cache["Turnover"][msg] = timestamp
+
+                    alerts["Turnover"].append({
+                        "message": msg,
+                        "timestamp": timestamp,
+                    })
+                    turnover_msgs.add(msg)
+
+        else:
+            # Missing mandatory columns → fallback
             alerts["Turnover"].append({
-                "message": msg,
-                "timestamp": timestamp,
+                "message": "ℹ️ Turnover data is incomplete or missing required fields.",
+                "timestamp": now.strftime("%b %d %Y %H:%M")
             })
-            turnover_msgs.add(msg)
 
-    # Invalidate old Turnover cache entries not present now
-    alert_cache["Turnover"] = {k: v for k, v in alert_cache["Turnover"].items() if k in turnover_msgs}
+    # Clean cache
+    alert_cache["Turnover"] = {
+        k: v for k, v in alert_cache["Turnover"].items() if k in turnover_msgs
+    }
+
+
 
     # --- Reorder Alerts ---
     reorder_msgs = set()

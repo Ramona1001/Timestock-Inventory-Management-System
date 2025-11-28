@@ -19,15 +19,15 @@ import os
 #     raise RuntimeError("MOTHERDUCK_TOKEN not set")
 
 # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-REPO_DB_PATH = "backend/db_timestock1"
+REPO_DB_PATH = "backend/rdb_timestock"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
     # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/db_timestock1"
+    DB_PATH = "/data/rdb_timestock"
 else:
     # Local path
-    DB_PATH = "backend/db_timestock1"
+    DB_PATH = "backend/rdb_timestock"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
@@ -510,7 +510,7 @@ def calculate_quote(product_id: str):
             m.material_cost,
             pm.line_cost,
             i.item_name,
-            i.item_decription,
+            i.item_description,
             pm.unit_cost,
             pm.used_quantity,
             m.unit_measurement
@@ -935,7 +935,7 @@ def get_material():
        SELECT 
             i.id AS item_id,
             i.item_name,
-            i.item_decription,
+            i.item_description,
             i.category_id,  -- <-- include this
             mc.category_name AS item_category_name,
             m.id AS material_id,
@@ -957,7 +957,7 @@ def get_stock_type():
         SELECT 
             i.id AS item_id,
             i.item_name,
-            i.item_decription,
+            i.item_description,
             mc.category_name AS item_category_name,
             m.id AS material_id,
             m.unit_measurement,
@@ -1041,7 +1041,7 @@ def update_materials(
         ).fetchone()
 
         old_item = cur.execute(
-            "SELECT item_name, item_decription, category_id FROM items WHERE id = ?", (item_id,)
+            "SELECT item_name, item_description, category_id FROM items WHERE id = ?", (item_id,)
         ).fetchone()
 
         # perform updates using the same cursor
@@ -1070,7 +1070,7 @@ def update_materials(
             UPDATE items
             SET 
                 item_name = ?,
-                item_decription = ?, 
+                item_description = ?, 
                 category_id = ?,
                 date_updated = CURRENT_TIMESTAMP
             WHERE id = ?
@@ -1094,7 +1094,7 @@ def update_materials(
                 f"maximum_stock {old_mat_vals[4]} -> {maximum_stock}, "
                 f"supplier_id {old_mat_vals[5]} -> {supplier_id}; "
                 f"items(id={item_id}): item_name '{old_item_vals[0]}' -> '{item_name}', "
-                f"item_decription '{old_item_vals[1]}' -> '{item_description}', "
+                f"item_description '{old_item_vals[1]}' -> '{item_description}', "
                 f"category_id {old_item_vals[2]} -> {category_id}"
             )
             log_audit(
@@ -1197,7 +1197,7 @@ def update_order_status(
 
 def add_material(data: dict, admin_id: Optional[str] = None, cur=None):
     item_name = data['item_name'].strip().title()
-    item_description = data['item_decription'].strip()
+    item_description = data['item_description'].strip()
     category_id = data['category_id']
 
     conn_used = None
@@ -1235,7 +1235,7 @@ def add_material(data: dict, admin_id: Optional[str] = None, cur=None):
         # Insert item
         item_id = cur.execute("""
             INSERT INTO items (
-                item_name, item_decription, category_id,
+                item_name, item_description, category_id,
                 date_created, date_updated
             )
             VALUES (?, ?, ?, ?, ?)
@@ -1384,10 +1384,10 @@ def stock_materials(
         stock_type_id = data.get("stock_type_id")
         if not stock_type_id:
             result = cur.execute("""
-                SELECT id FROM stock_types WHERE type_code = 'STT001'
+                SELECT id FROM stock_types WHERE type_code = 'STT00001'
             """).fetchone()
             if not result:
-                raise ValueError("Stock type 'STT001' not found in stock_types table.")
+                raise ValueError("Stock type 'STT00001' not found in stock_types table.")
             stock_type_id = result[0]
 
         # --- Step 2: Insert stock transaction
@@ -1500,7 +1500,7 @@ def get_stock_transactions_detailed():
 
                 -- Material Info
                 i.item_name AS material_name,
-                i.item_decription,
+                i.item_description,
                 um.measurement_code AS unit,
                 sti.quantity
 
@@ -1775,11 +1775,13 @@ def get_products():
             SELECT 
                 i.id AS item_id,
                 i.item_name,
-                i.item_decription,
+                i.item_description,
                 pc.category_name AS item_category_name,  -- <-- join result
                 p.id AS product_id,
                 p.unit_price,
                 p.materials_cost,
+                p.width,
+                p.height,
                 p.status,
                 p.date_created,
                 p.date_updated
@@ -1789,7 +1791,6 @@ def get_products():
         """).fetchdf()
 
 
-  
 def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
     if admin_id is None:
         raise ValueError("admin_id is required for audit logging (admin only)")
@@ -1811,7 +1812,7 @@ def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
 
     # Normalize item fields
     item_name = data['item_name'].strip().title()
-    item_description = data['item_decription'].strip()
+    item_description = data['item_description'].strip()
     category_id = data['category_id']
 
     # Check for duplicate item name
@@ -1826,27 +1827,39 @@ def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
         # Step 1: Insert into items first and get item_id
         item_id = cur.execute("""
             INSERT INTO items (
-                item_name, item_decription, category_id, date_created, date_updated
+                item_name, item_description, category_id, date_created, date_updated
             ) VALUES (?, ?, ?, ?, ?)
             RETURNING id
-        """, (item_name, item_description, category_id, datetime.utcnow(), datetime.utcnow())).fetchone()[0]
+        """, (
+            item_name,
+            item_description,
+            category_id,
+            datetime.utcnow(),
+            datetime.utcnow()
+        )).fetchone()[0]
 
-        # Step 2: Insert into products with that item_id
+        # Step 2: Insert into products with that item_id, adding new columns and forcing quantity = 1
         cur.execute("""
             INSERT INTO products (
                 item_id, category_id, unit_price, materials_cost, status,
+                width, height, unit_measurement, quantity,
                 date_created, date_updated
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             item_id,
             category_id,
             data['unit_price'],
             data['materials_cost'],
             data['status'].strip().title(),
+            data.get("width"),           # new optional column
+            data.get("height"),          # new optional column
+            data.get("unit_measurement"),# new optional column
+            1,                           # force quantity = 1
             datetime.utcnow(),
             datetime.utcnow()
         ))
 
+        # Audit log
         details = f"Created product (item_id={item_id}) name={item_name}, category_id={category_id}"
         log_audit(
             entity="products",
@@ -1859,12 +1872,16 @@ def add_product(data: dict, admin_id: Optional[str] = None, cur=None):
 
         if own_cursor and conn_used is not None:
             conn_used.commit()
+
         return {"success": True, "product_id": item_id, "message": "Product added successfully."}
+
     except Exception:
         if own_cursor and conn_used is not None:
-            conn_used.rollback()
+            try:
+                conn_used.rollback()
+            except Exception as rb:
+                print("ROLLBACK FAILED:", rb)
         raise
-
 
   
 def update_product(
@@ -1876,6 +1893,9 @@ def update_product(
     category_id: str,
     item_name: str,
     item_description: str,
+    width: float | None = None,
+    height: float | None = None,
+    unit_measurement: str | None = None,
     admin_id: Optional[str] = None,
     cur=None
 ):
@@ -1901,14 +1921,19 @@ def update_product(
 
     item_id = item_id_result[0]
 
-    # get old values for audit
-    old_item_row = cur.execute("SELECT item_name, item_decription, category_id FROM items WHERE id = ?", (item_id,)).fetchone()
-    old_product_row = cur.execute("SELECT unit_price, materials_cost, status FROM products WHERE id = ?", (product_id,)).fetchone()
+    # Get old values for audit
+    old_item_row = cur.execute(
+        "SELECT item_name, item_description, category_id FROM items WHERE id = ?", (item_id,)
+    ).fetchone()
+    old_product_row = cur.execute(
+        "SELECT unit_price, materials_cost, status, width, height, unit_measurement FROM products WHERE id = ?",
+        (product_id,)
+    ).fetchone()
 
-    # Check for duplicate item name (excluding this item_id)
+    # Check for duplicate item name (case-insensitive, trimmed)
     duplicate_check = cur.execute("""
         SELECT 1 FROM items
-        WHERE item_name = ? AND id != ?
+        WHERE LOWER(TRIM(item_name)) = LOWER(TRIM(?)) AND id != ?
         LIMIT 1
     """, (item_name, item_id)).fetchone()
 
@@ -1923,26 +1948,42 @@ def update_product(
                 unit_price = ?, 
                 materials_cost = ?, 
                 status = ?, 
+                width = ?,
+                height = ?,
+                unit_measurement = ?,
+                quantity = 1,
                 date_updated = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (unit_price, materials_cost, status, product_id))
+        """, (
+            unit_price,
+            materials_cost,
+            status.strip().title(),
+            width,
+            height,
+            unit_measurement,
+            product_id
+        ))
 
         # Update items table
         cur.execute("""
             UPDATE items
             SET 
                 item_name = ?, 
-                item_decription = ?, 
+                item_description = ?, 
                 category_id = ?, 
                 date_updated = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (item_name, item_description, category_id, item_id))
 
+        # Build audit details
         details = (
             f"product_id={product_id} updates: "
             f"unit_price {old_product_row[0]} -> {unit_price}, "
             f"materials_cost {old_product_row[1]} -> {materials_cost}, "
-            f"status {old_product_row[2]} -> {status}; "
+            f"status {old_product_row[2]} -> {status}, "
+            f"width {old_product_row[3]} -> {width}, "
+            f"height {old_product_row[4]} -> {height}, "
+            f"unit_measurement {old_product_row[5]} -> {unit_measurement}; "
             f"item (id={item_id}) name {old_item_row[0]} -> {item_name}, "
             f"description updated, category {old_item_row[2]} -> {category_id}"
         )
@@ -1960,7 +2001,10 @@ def update_product(
             conn_used.commit()
     except Exception:
         if own_cursor and conn_used is not None:
-            conn_used.rollback()
+            try:
+                conn_used.rollback()
+            except Exception as rb:
+                print("ROLLBACK FAILED:", rb)
         raise
 
   
@@ -1994,7 +2038,7 @@ def delete_product(product_id: str, admin_id: Optional[str] = None, cur=None):
 
         # get snapshots for audit
         prod_row = cur.execute("SELECT unit_price, materials_cost, status FROM products WHERE id = ?", (product_id,)).fetchone()
-        item_row = cur.execute("SELECT item_name, item_decription FROM items WHERE id = ?", (item_id,)).fetchone()
+        item_row = cur.execute("SELECT item_name, item_description FROM items WHERE id = ?", (item_id,)).fetchone()
 
         # Delete from referencing tables first to avoid FK constraint issues
         cur.execute("DELETE FROM product_materials WHERE product_id = ?", (product_id,))
@@ -2451,7 +2495,7 @@ def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur=Non
                     """, (total_used, material_id_to_use))
 
                 stock_transactions_data.append((
-                    'STT002',
+                    'STT00002',
                     material_requirements[material_id_to_use]['supplier_id'],
                     actor_admin,
                     datetime.utcnow()

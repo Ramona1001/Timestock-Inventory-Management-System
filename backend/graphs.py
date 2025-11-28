@@ -12,15 +12,15 @@ import json
 import shutil
 import os
 
-REPO_DB_PATH = "backend/db_timestock1"
+REPO_DB_PATH = "backend/rdb_timestock"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
     # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/db_timestock1"
+    DB_PATH = "/data/rdb_timestock"
 else:
     # Local path
-    DB_PATH = "backend/db_timestock1"
+    DB_PATH = "backend/rdb_timestock"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
@@ -47,7 +47,7 @@ def get_graph_html(period='month'):
             DATE_TRUNC('{period}', ot.date_created) AS period,
             COUNT(DISTINCT ot.id) AS total_orders
         FROM order_transactions ot
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         GROUP BY period
         ORDER BY period;
     """).fetchdf()
@@ -59,7 +59,7 @@ def get_graph_html(period='month'):
             SUM(oi.quantity) AS total_sales
         FROM order_transactions ot
         JOIN order_items oi ON ot.id = oi.order_id
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         GROUP BY period
         ORDER BY period;
     """).fetchdf()
@@ -70,7 +70,7 @@ def get_graph_html(period='month'):
             DATE_TRUNC('{period}', ot.date_created) AS period,
             SUM(ot.total_amount) AS total_revenue
         FROM order_transactions ot
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         GROUP BY period
         ORDER BY period;
     """).fetchdf()
@@ -263,7 +263,7 @@ def get_fastest_moving_materials_chart():
     JOIN items i ON m.item_id = i.id
     JOIN order_transactions ot ON ot.id = oi.order_id
     WHERE ot.date_created >= DATE_TRUNC('month', CURRENT_DATE - INTERVAL 3 MONTH)
-    AND ot.status_id = 'OS005'
+    AND ot.status_id = 'OS00001'
     GROUP BY i.item_name, m.unit_measurement
     ORDER BY total_material_used DESC
     LIMIT 10;
@@ -821,7 +821,7 @@ def get_sales_moving_average_chart():
             DATE_TRUNC('month', ot.date_created) AS month,
             SUM(ot.total_amount) AS total_sales
         FROM order_transactions ot
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         GROUP BY month
         ORDER BY month;
     """).fetchdf()
@@ -842,7 +842,7 @@ def get_sales_moving_average_chart():
                 JOIN order_items oi ON ot.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
                 JOIN items i ON p.item_id = i.id
-                WHERE ot.status_id = 'OS005'
+                WHERE ot.status_id = 'OS00001'
                 GROUP BY month, product_name
             ) 
             WHERE rnk = 1;
@@ -1029,7 +1029,7 @@ def get_text_report_for_month(year: int, month: int):
             FROM order_items
             GROUP BY order_id
         ) oi ON ot.id = oi.order_id
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         AND EXTRACT(YEAR FROM ot.date_created) = {year}
         AND EXTRACT(MONTH FROM ot.date_created) = {month}
         GROUP BY period
@@ -1239,7 +1239,7 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
             DATE_TRUNC('month', ot.date_created) AS month,
             SUM(ot.total_amount) AS total_sales
         FROM order_transactions ot
-        WHERE ot.status_id = 'OS005'
+        WHERE ot.status_id = 'OS00001'
         GROUP BY month
         ORDER BY month;
         """).fetchdf()
@@ -1264,7 +1264,7 @@ def get_sales_moving_average_text_report(year: int, month: int | None = None):
                 JOIN order_items oi ON ot.id = oi.order_id
                 JOIN products p ON oi.product_id = p.id
                 JOIN items i ON p.item_id = i.id
-                WHERE ot.status_id = 'OS005'
+                WHERE ot.status_id = 'OS00001'
                 GROUP BY month, product_name
             ) 
             WHERE rnk = 1
@@ -1371,7 +1371,7 @@ def get_products_sold_for_month(year: int, month: int):
         JOIN order_items oi ON ot.id = oi.order_id
         JOIN products p ON oi.product_id = p.id
         JOIN items i ON p.item_id = i.id
-        WHERE ot.status_id = 'OS005'  -- only completed orders
+        WHERE ot.status_id = 'OS00001'  -- only completed orders
         AND EXTRACT(YEAR FROM ot.date_created) = {year}
         AND EXTRACT(MONTH FROM ot.date_created) = {month}
         GROUP BY i.item_name

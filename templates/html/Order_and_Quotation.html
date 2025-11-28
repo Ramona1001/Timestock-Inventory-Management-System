@@ -717,7 +717,7 @@ async function updateSelectedGlass(productId, materialIndex, newMaterialId) {
 async function stockLeftover(materialId, qty) {
     try {
         const payload = {
-            stock_type_id: "STT001", // required by Pydantic
+            stock_type_id: "STT00001", // required by Pydantic
             items: [
                 { material_id: materialId.toString(), quantity: qty }
             ]
@@ -759,7 +759,7 @@ const existing = allGlassMaterials.find(g =>
     // Create a new leftover automatically
     const placeholderMaterial = {
         item_name: formattedName,
-        item_decription: "Auto-generated leftover glass",
+        item_description: "Auto-generated leftover glass",
         supplier_id: "SUPL001",
         category_id: "MCAT001",
         unit_measurement: "sqft",
@@ -1037,7 +1037,7 @@ async function loadStatusOptions() {
       const option = document.createElement('option');
       option.value = status.id;
       option.textContent = status.status_code;
-      if (status.id === "OS004") option.selected = true;
+      if (status.id === "OS00004") option.selected = true;
       select.appendChild(option);
     });
   } catch (err) {

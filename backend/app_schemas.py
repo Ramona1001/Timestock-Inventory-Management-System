@@ -36,7 +36,7 @@ class MaterialBase(BaseModel):
 
 class MaterialCreate(MaterialBase):
     item_name: str
-    item_decription: str  # keep spelling to match your DB column
+    item_description: str 
 
 class MaterialUpdate(BaseModel):
     material_id: str
@@ -68,11 +68,15 @@ class CustomerUpdate(CustomerBase):
 # --- Product ---
 class ProductCreate(BaseModel):
     item_name: str
-    item_decription: str
+    item_description: str
     category_id: str
     unit_price: float
     materials_cost: float
     status: str
+    width: float | None = None
+    height: float | None = None
+    unit_measurement: str | None = None
+    quantity: int | None = None
 
 class ProductUpdate(BaseModel):
     id: str
@@ -82,6 +86,9 @@ class ProductUpdate(BaseModel):
     unit_price: float
     status: str
     category_id: str
+    width: float | None = None
+    height: float | None = None
+    unit_measurement: str | None = None
 
 
 # --- Supplier ---
@@ -145,12 +152,13 @@ class StockItem(BaseModel):
     quantity: float
 
 class StockTransactionCreate(BaseModel):
-    stock_type_id: str
+    stock_type_id: str  
     admin_id: Optional[str] = None
     employee_id: Optional[str] = None
     supplier_id: Optional[str] = None
     supplier: Optional[SupplierBase] = None
-    items: List[StockItem]
+    items: List[StockItem] 
+
 
 class OrderStatusUpdate(BaseModel):
     transaction_id: str
