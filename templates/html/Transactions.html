@@ -282,13 +282,10 @@
       <label for="statusSelect">Select New Status:</label>
       <select id="statusSelect">
         <option value="">-- Select Status --</option>
-        <option value="placed">placed</option>
-        <option value="completed">confirmed</option>
-        <option value="scheduled">scheduled</option>
-        <option value="in_production">in_production</option>
-        <option value="completed">completed</option>
-        <option value="on_hold">on_hold</option>
-        <option value="cancelled">cancelled</option>
+        <option value="in_production">In Production</option>
+        <option value="completed">Completed</option>
+        <option value="on_hold">On Hold</option>
+        <option value="cancelled">Cancelled</option>
       </select>
     </div>
     <div class="button-group">
@@ -639,7 +636,7 @@ function renderStockTable(page = 1) {
         <td>${row.stock_type}</td>
         <td>${row.type_code}</td>
         <td>${row.material_name}</td>
-        <td>${row.item_decription}</td>
+        <td>${row.item_description}</td>
         <td>${row.quantity}</td>
         <td>${row.unit}</td>
         <td>${row.supplier_name}</td>
@@ -678,8 +675,8 @@ async function fetchOrderTransactions() {
     const orderTableEl = document.getElementById("orderTableContainer");
     const productionTableEl = document.getElementById("productionTableContainer");
 
-    orderTableEl.style.display = orderFilteredData.length > 0 ? "block" : "none";
-    productionTableEl.style.display = productionFilteredData.length > 0 ? "block" : "none";
+    orderTableEl.style.display = "block";
+    productionTableEl.style.display = "block";
   } catch (error) {
     console.error("Error fetching order transactions:", error);
   }

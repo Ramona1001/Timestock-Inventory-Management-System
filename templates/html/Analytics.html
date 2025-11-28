@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
   <h2 class="chart-title">Orders, Sales, and Revenue</h2>
 
     <div class="bubble-wrapper">
-    <button class="bubble-btn" onclick="toggleBubble('reportBubble')">📄 View Report</button>
+    <button class="bubble-btn" onclick="toggleBubble('reportBubble')">📄 View Summary</button>
     <div class="popup-bubble" id="reportBubble">
       <span class="close-btn" onclick="toggleBubble('reportBubble')">&times;</span>
         {{ chart_report | safe }}
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <div class="chart-box">
   <h2 class="chart-title">Inventory Turnover Rate</h2>
     <div class="bubble-wrapper">
-    <button class="bubble-btn" onclick="toggleBubble('turnoverSummaryBubble')">📄 View Report</button>
+    <button class="bubble-btn" onclick="toggleBubble('turnoverSummaryBubble')">📄 View Summary</button>
     <div class="popup-bubble" id="turnoverSummaryBubble">
       <span class="close-btn" onclick="toggleBubble('turnoverSummaryBubble')">&times;</span>
       {{ summary | safe }}
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <!-- Bubble Trigger -->
     <div class="bubble-wrapper">
 
-      <button onclick="toggleBubble('stlPopupBubble')" class="bubble-btn">📊 View Report</button>
+      <button onclick="toggleBubble('stlPopupBubble')" class="bubble-btn">📊 View Summary</button>
 
       <div id="stlPopupBubble" class="popup-bubble">
         <span class="close-btn" onclick="toggleBubble('stlPopupBubble')">×</span>
@@ -271,11 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 </div>
-
-
-
-
-
 
 
 

@@ -6,15 +6,15 @@ import shutil
 # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 # con = duckdb.connect('backend/db_timestock')
 
-REPO_DB_PATH = "backend/db_timestock1"
+REPO_DB_PATH = "backend/rdb_timestock"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
     # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/db_timestock1"
+    DB_PATH = "/data/rdb_timestock"
 else:
     # Local path
-    DB_PATH = "backend/db_timestock1"
+    DB_PATH = "backend/rdb_timestock"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
@@ -78,7 +78,7 @@ def get_low_stock_alerts():
         SELECT 
             i.id AS material_id,
             i.item_name,
-            i.item_decription,
+            i.item_description,
             m.current_stock,
             m.minimum_stock,
             m.unit_measurement,
@@ -168,7 +168,7 @@ def get_all_time_metrics():
         SUM(ot.total_amount) AS total_revenue
     FROM order_transactions ot
     LEFT JOIN order_items oi ON ot.id = oi.order_id
-    WHERE ot.status_id = 'OS005'
+    WHERE ot.status_id = 'OS00001'
     """
     with duckdb.connect(DB_PATH) as conn:
     # with duckdb.connect('md:mdb_timestock', config={'motherduck_token': MOTHERDUCK_TOKEN}) as conn:
@@ -346,7 +346,7 @@ def get_summary_cards(period: str):
         FROM order_transactions ot
         JOIN order_items oi ON ot.id = oi.order_id
         WHERE DATE_TRUNC('{period}', ot.date_created) = DATE_TRUNC('{period}', CURRENT_DATE)
-          AND ot.status_id = 'OS005'
+          AND ot.status_id = 'OS00001'
     """
 
     result = con.execute(query).fetchone()
@@ -371,7 +371,7 @@ def get_most_used_material():
         JOIN materials m ON sti.material_id = m.id
         JOIN items i ON m.item_id = i.id
         WHERE st.date_created >= CURRENT_DATE - INTERVAL '3 months'
-        AND st.stock_type_id = 'STT002'  
+        AND st.stock_type_id = 'STT00002'  
         GROUP BY m.id, i.item_name
         ORDER BY total_used DESC
         LIMIT 1;

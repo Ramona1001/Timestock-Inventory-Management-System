@@ -780,7 +780,7 @@ function clearMaterialFilters() {
       return (
         (material.material_id.toLowerCase().includes(searchValue) ||
          material.item_name.toLowerCase().includes(searchValue) ||
-         (material.item_decription || "").toLowerCase().includes(searchValue)) &&
+         (material.item_description || "").toLowerCase().includes(searchValue)) &&
         (categoryValue === "" || material.item_category_name === categoryValue) &&
         (availabilityValue === "" || availability === availabilityValue) &&
         material.current_stock >= minQty && material.current_stock <= maxQty &&
@@ -837,14 +837,28 @@ function clearMaterialFilters() {
         <td>${material.material_id}</td>
         <td>${material.item_name}</td>
         <td>${material.item_category_name || "N/A"}</td>
-        <td>${material.item_decription || ""}</td>
+        <td>${material.item_description || ""}</td>
         <td>${material.current_stock}</td>
         <td>${material.unit_measurement}</td>
         <td>₱${parseFloat(material.material_cost).toLocaleString()}</td>
         <td>
           <div class="rating-bar-wrapper">
-            <div class="rating-bar-fill" style="width: ${material.fast_moving_rating || 0}%; background-color: ${getBarColor(material.fast_moving_rating)};"></div>
-            <span class="rating-label">${material.fast_moving_rating?.toFixed(2) || "0.00"}%</span>
+            ${(() => {
+              const rating = material.fast_moving_rating;
+
+              // If no rating data → return text instead of bar
+              if (rating === null || rating === undefined || isNaN(rating)) {
+                return `<span class="no-rating">Not enough data</span>`;
+              }
+
+              return `
+                <div class="rating-bar-fill" 
+                    style="width: ${rating}%; background-color: ${getBarColor(rating)};">
+                </div>
+                <span class="rating-label">${rating.toFixed(2)}%</span>
+              `;
+            })()}
+
           </div>
         </td>
         <td class="${statusClass}">${status}</td>
@@ -879,51 +893,76 @@ function clearMaterialFilters() {
     });
   }
 
-  function renderPagination() {
-    const paginationDiv = document.getElementById("pagination");
-    paginationDiv.innerHTML = "";
+function renderPagination() {
+  const paginationDiv = document.getElementById("pagination");
+  paginationDiv.innerHTML = "";
 
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / rowsPerPage));
 
-    const prevBtn = document.createElement("button");
-    prevBtn.textContent = "Prev";
-    prevBtn.disabled = currentPage === 1;
-    prevBtn.onclick = () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderTablePage(currentPage);
-        renderPagination();
-      }
-    };
-    paginationDiv.appendChild(prevBtn);
+  if (totalPages <= 1) return;
 
-    for (let i = 1; i <= totalPages; i++) {
-      const pageBtn = document.createElement("button");
-      pageBtn.textContent = i;
-      if (i === currentPage) {
-        pageBtn.disabled = true;
-        pageBtn.style.fontWeight = "bold";
-      }
-      pageBtn.onclick = () => {
-        currentPage = i;
-        renderTablePage(currentPage);
-        renderPagination();
-      };
-      paginationDiv.appendChild(pageBtn);
-    }
-
-    const nextBtn = document.createElement("button");
-    nextBtn.textContent = "Next";
-    nextBtn.disabled = currentPage === totalPages;
-    nextBtn.onclick = () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderTablePage(currentPage);
-        renderPagination();
-      }
-    };
-    paginationDiv.appendChild(nextBtn);
+  function safePush(arr, value) {
+    if (!arr.includes(value)) arr.push(value);
   }
+
+  function setPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTablePage(page);
+    renderPagination();
+  }
+
+  function createPageButton(pg) {
+    const btn = document.createElement("button");
+    btn.textContent = pg;
+    if (pg === currentPage) {
+      btn.disabled = true;
+      btn.style.fontWeight = "bold";
+    }
+    btn.onclick = () => setPage(pg);
+    return btn;
+  }
+
+  // Prev button
+  const prevBtn = document.createElement("button");
+  prevBtn.textContent = "Prev";
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => setPage(currentPage - 1);
+  paginationDiv.appendChild(prevBtn);
+
+  // Build compact pagination
+  const pages = [];
+
+  safePush(pages, 1);
+
+  if (currentPage > 3) safePush(pages, "...");
+
+  if (currentPage - 1 > 1) safePush(pages, currentPage - 1);
+  safePush(pages, currentPage);
+  if (currentPage + 1 < totalPages) safePush(pages, currentPage + 1);
+
+  if (currentPage < totalPages - 2) safePush(pages, "...");
+
+  if (totalPages > 1) safePush(pages, totalPages);
+
+  pages.forEach(p => {
+    if (p === "...") {
+      const span = document.createElement("span");
+      span.textContent = "...";
+      span.style.margin = "0 6px";
+      paginationDiv.appendChild(span);
+    } else {
+      paginationDiv.appendChild(createPageButton(p));
+    }
+  });
+
+  // Next button
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "Next";
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => setPage(currentPage + 1);
+  paginationDiv.appendChild(nextBtn);
+}
 
   function formatDate() {
     const now = new Date();
@@ -998,7 +1037,7 @@ document.addEventListener("DOMContentLoaded", fetchCategoriesAndSuppliers);
 // Submit Material
 async function addMaterial() {
   const item_name = document.getElementById("createItemName").value;
-  const item_decription = document.getElementById("createDescription").value;
+  const item_description = document.getElementById("createDescription").value;
   const supplier_id = document.getElementById("createSupplier").value;
   const category_id = document.getElementById("createCategory").value;
   const unit_measurement = document.getElementById("createUnitMeasurement").value;
@@ -1029,7 +1068,7 @@ else {
 
   // Validation
   if (!item_name) return alert("Item name is required.");
-  if (!item_decription) return alert("Item description is required.");
+  if (!item_description) return alert("Item description is required.");
   if (!category_id) return alert("Please select a category.");
   if (!supplier_id) return alert("Please select a supplier.");
   if (!unit_measurement) return alert("Unit measurement is required.");
@@ -1047,7 +1086,7 @@ else {
 
   const newMaterial = {
     item_name,
-    item_decription,
+    item_description,
     supplier_id,
     category_id,
     unit_measurement,
@@ -1258,7 +1297,7 @@ async function openEditModal(materialId) {
         // Fill basic fields
         document.getElementById("editMaterialId").value = material.material_id;
         document.getElementById("editItemName").value = material.item_name;
-        document.getElementById("editItemDescription").value = material.item_decription;
+        document.getElementById("editItemDescription").value = material.item_description;
         document.getElementById("editCurrentStock").value = material.current_stock;
         document.getElementById("editMinStock").value = material.minimum_stock;
         document.getElementById("editMaxStock").value = material.maximum_stock;
@@ -1499,7 +1538,7 @@ function removeMaterialInput(index) {
 async function submitStockMaterials(event) {
   event.preventDefault();
 
-  const stockTypeId = "STT001"; //Always use Manual Stock-in
+  const stockTypeId = "STT00001"; //Always use Manual Stock-in
   const supplierId = document.getElementById("supplierId").value.trim() || null;
 
   const supplier = {
@@ -1602,7 +1641,7 @@ async function submitSingleStock() {
 
   try {
     const payload = {
-      stock_type_id: "STT001",
+      stock_type_id: "STT00001",
       supplier_id: supplierId,
       items: [{ material_id: materialId, quantity }]
     };
