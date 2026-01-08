@@ -865,3 +865,54 @@ button.btn.w-100 {
   position: relative;
   left: -20px;  /* adjust this value to move left */
 }
+/* Action buttons container */
+.action-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Base icon button */
+.action-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: 0.2s ease;
+}
+
+/* Duplicate button style */
+.btn-duplicate {
+    background: #6c9bff;
+    color: white;
+}
+
+.btn-duplicate:hover {
+    background: #4a7ce0;
+}
+
+/* Remove button style */
+.btn-remove {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-remove:hover {
+    background: #e65555;
+}
+
+/* Fix action column width */
+.table th:last-child,
+.table td:last-child {
+    width: 75px !important;
+    text-align: center !important;
+}
