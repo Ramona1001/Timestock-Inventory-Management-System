@@ -25,7 +25,7 @@ app.add_middleware(
     secret_key="SKQ2x3IVvY3Dqnr8QXoLfnc1F9-zTj0Zu1-vO6F2b7c",
     session_cookie="session",
     same_site="lax",
-    https_only=False,   # Keep True if using HTTPS, False for local HTTP
+    https_only=True,   # Keep True if using HTTPS, False for local HTTP
     max_age=3600 * 24, # 1 day
 )
 
