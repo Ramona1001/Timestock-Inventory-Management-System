@@ -2573,6 +2573,7 @@ def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur=Non
                 pass
         raise HTTPException(status_code=500, detail=str(e))
 
+
 def get_order_transactions_detailed():
     return con.execute("""
         SELECT 

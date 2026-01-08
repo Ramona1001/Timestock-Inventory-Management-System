@@ -337,7 +337,7 @@ def get_reorder_point_chart(return_df=False):
           JOIN stock_transactions st ON sti.stock_transaction_id = st.id
           JOIN stock_transaction_types stt ON st.stock_type_id = stt.id
           WHERE stt.type_code = 'stock-out'
-            AND st.date_created >= (CURRENT_DATE - INTERVAL 30 DAY)
+            AND st.date_created >= (CURRENT_DATE - INTERVAL 60 DAY)
           GROUP BY sti.material_id, DATE(st.date_created)
         ),
         average_usage AS (

@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
-  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=10">
+  <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=11">
 <style>
   /* ================= MOBILE LAYOUT FOR ORDER & QUOTATION ================= */
 @media screen and (max-width: 768px) {
@@ -588,8 +588,9 @@ async function initPage() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await initPage();      // load glass materials and product list
-  await loadStatusOptions(); // load order status dropdown
+  await loadGlassMaterials();
+  await initPage();      
+  await loadStatusOptions();
 });
 
 
@@ -621,6 +622,7 @@ function handleProductClick(productId, itemName, unitPrice) {
         existing.quantity += 1;
       } else {
         orderCart.push({
+          cart_id: "CART-" + Math.random().toString(36).substr(2, 9),
           product_id: productId,
           item_name: itemName,
           unit_price: unitPrice,
@@ -664,6 +666,23 @@ function formatGlassName(name) {
     return name.replace(/^./, str => str.toUpperCase());
 }
 
+function duplicateItem(cart_id) {
+    const item = orderCart.find(p => p.cart_id === cart_id);
+    if (!item) return;
+
+    // Deep-copy the item
+    const newItem = JSON.parse(JSON.stringify(item));
+
+    // Give new unique identifier
+    newItem.cart_id = "CART-" + Math.random().toString(36).substr(2, 9);
+
+    orderCart.push(newItem);
+
+    renderCart();
+    hideReceiptPreview();
+    hideQuotationPreview();
+}
+
 
 function computeGlassLeftover(requiredName, selectedName) {
     // Extract size
@@ -688,36 +707,48 @@ function computeGlassLeftover(requiredName, selectedName) {
 
 
 
-async function updateSelectedGlass(productId, materialIndex, newMaterialId) {
-  const item = orderCart.find(p => p.product_id === productId);
-  if (!item || !item.materials[materialIndex]) return;
 
-  const m = item.materials[materialIndex];
+async function updateSelectedGlass(cart_id, materialIndex, newMaterialId) {
+    const item = orderCart.find(p => p.cart_id === cart_id);
+    if (!item || !item.materials[materialIndex]) return;
 
-  const selectedGlass = allGlassMaterials.find(g => g.material_id == newMaterialId);
-  if (!selectedGlass) return;
+    const m = item.materials[materialIndex];
+    const selectedGlass = allGlassMaterials.find(g => g.material_id == newMaterialId);
+    if (!selectedGlass) return;
 
-  // Use required_material_name for leftover computation
-  const leftoverName = computeGlassLeftover(m.required_material_name, selectedGlass.item_name);
+    // Only update selection — DO NOT create leftovers here
+    m.selected_glass_id = newMaterialId;
 
-  if (leftoverName) {
-    pendingLeftovers.push({
-      leftoverName,
-      quantity: m.used_quantity
+    // Remove old leftover entries for this cart item
+    pendingLeftovers = pendingLeftovers.filter(l => l.cart_id !== cart_id);
+
+    // Recompute correct leftover based on current quantity
+    item.materials.forEach(mat => {
+        if (!mat.selected_glass_id) return;
+
+        const glass = allGlassMaterials.find(g => g.material_id == mat.selected_glass_id);
+        if (!glass) return;
+
+        const leftoverName = computeGlassLeftover(mat.required_material_name, glass.item_name);
+        if (!leftoverName) return;
+
+        pendingLeftovers.push({
+            cart_id,
+            leftoverName,
+            quantity: item.quantity * mat.used_quantity
+        });
     });
-  }
 
-  m.selected_glass_id = newMaterialId;
-  renderCart();
-  hideReceiptPreview();
-  hideQuotationPreview();
+    renderCart();
+    hideReceiptPreview();
+    hideQuotationPreview();
 }
 
 
 async function stockLeftover(materialId, qty) {
     try {
         const payload = {
-            stock_type_id: "STT00001", // required by Pydantic
+            stock_type_id: "STT00001", 
             items: [
                 { material_id: materialId.toString(), quantity: qty }
             ]
@@ -744,29 +775,30 @@ async function autoCreateLeftoverPlaceholder(leftoverName, qty) {
     const formattedName = formatGlassName(leftoverName);
 
     // Check if leftover already exists
-const existing = allGlassMaterials.find(g =>
-    g.item_name &&
-    typeof g.item_name === "string" &&
-    g.item_name.toLowerCase() === formattedName.toLowerCase()
-);
+    const existing = allGlassMaterials.find(g =>
+        g.item_name &&
+        typeof g.item_name === "string" &&
+        g.item_name.toLowerCase() === formattedName.toLowerCase()
+    );
 
     if (existing) {
         await stockLeftover(existing.material_id, qty);
-        alert(`Leftover stocked: ${formattedName}`);
+        alert(`Leftover stocked: ${formattedName} (Quantity: ${qty})`);
         return existing.material_id;
     }
+
 
     // Create a new leftover automatically
     const placeholderMaterial = {
         item_name: formattedName,
         item_description: "Auto-generated leftover glass",
-        supplier_id: "SUPL001",
-        category_id: "MCAT001",
-        unit_measurement: "sqft",
+        supplier_id: "SUPL00001",
+        category_id: "MCAT00001",
+        unit_measurement: "pcs",
         material_cost: 0,
         current_stock: qty,
-        minimum_stock: 0,
-        maximum_stock: 9999
+        minimum_stock: 10,
+        maximum_stock: 100
     };
 
     try {
@@ -832,22 +864,25 @@ function renderCart() {
         <input type="number" min="0" step="0.01" value="${item.unit_price}" 
               class="form-control form-control-sm"
               style="width: 70px;" 
-              onchange="updateUnitPrice('${item.product_id}', this.value)" />
+              onchange="updateUnitPrice('${item.cart_id}', this.value)" />
       </td>
       <td>
         <input type="number" min="0" step="0.01" value="${item.misc_fee}" 
               class="form-control form-control-sm"
               style="width: 60px;" 
-              onchange="updateMiscFee('${item.product_id}', this.value)" /> %
+              onchange="updateMiscFee('${item.cart_id}', this.value)" /> %
       </td>
       <td>
         <input type="number" min="1" value="${item.quantity}" 
               class="form-control form-control-sm"
               style="width: 60px;" 
-              onchange="updateQuantity('${item.product_id}', this.value)" />
+              onchange="updateQuantity('${item.cart_id}', this.value)" />
       </td>
       <td>
-        <button class="btn-remove" onclick="removeFromCart('${item.product_id}')" title="Remove">🗑️</button>
+      <div class="action-buttons">
+          <button class="action-btn btn-duplicate" onclick="duplicateItem('${item.cart_id}')" title="Duplicate">📄</button>
+          <button class="action-btn btn-remove" onclick="removeFromCart('${item.cart_id}')" title="Remove">🗑️</button>
+      </div>
       </td>
     `;
     cart.appendChild(row);
@@ -896,9 +931,9 @@ function renderCart() {
 
                           materialCell = `
                               <div><strong>${m.item_name}</strong></div>
-                              <select onchange="updateSelectedGlass('${item.product_id}', ${mIndex}, this.value)"
+                              <select onchange="updateSelectedGlass('${item.cart_id}', ${mIndex}, this.value)"
                                       class="form-select form-select-sm"
-                                      style="width:auto; display:inline-block; margin-top:2px;">
+                                      style="width:100%; margin-top:2px;">
                                   ${glassOptions.map(g => `
                                       <option value="${g.material_id}" ${g.material_id === m.selected_glass_id ? 'selected' : ''}>
                                           ${g.item_name} (Stock: ${g.current_stock})
@@ -916,7 +951,7 @@ function renderCart() {
                           <td>${materialCell}</td>
                           <td>
                             <input type="number" min="0" step="0.01" value="${m.used_quantity}" 
-                                  onchange="updateUsedQuantity('${item.product_id}', ${mIndex}, this.value)" 
+                                  onchange="updateUsedQuantity('${item.cart_id}', ${mIndex}, this.value)" 
                                   class="form-control form-control-sm" 
                                   style="width: 60px;" /> ${m.unit_measurement}
                           </td>
@@ -958,8 +993,8 @@ document.getElementById('clearAllBtn').addEventListener('click', () => {
 
 
 
-function updateUnitPrice(productId, newPrice) {
-  const item = orderCart.find(p => p.product_id === productId);
+function updateUnitPrice(cart_id, newPrice) {
+  const item = orderCart.find(p => p.cart_id  === cart_id);
   if (item) {
     const price = parseFloat(newPrice);
     if (!isNaN(price)) {
@@ -973,8 +1008,8 @@ function updateUnitPrice(productId, newPrice) {
 }
 
 
-function updateMiscFee(productId, fee) {
-  const item = orderCart.find(p => p.product_id === productId);
+function updateMiscFee(cart_id, fee) {
+  const item = orderCart.find(p => p.cart_id  === cart_id);
   if (item) {
     const val = parseFloat(fee);
     item.misc_fee = isNaN(val) ? 0 : val;
@@ -985,44 +1020,46 @@ function updateMiscFee(productId, fee) {
   }
 }
 
+function updateQuantity(cart_id, newQty) {
+  const item = orderCart.find(p => p.cart_id === cart_id);
+  if (!item) return;
 
-function updateQuantity(productId, newQty) {
-  const item = orderCart.find(p => p.product_id === productId);
-  if (item) {
-    item.quantity = parseInt(newQty) || 1;
+  const qty = parseInt(newQty) || 1;
+  item.quantity = qty;
+
+  // Remove old leftovers for this cart item
+  pendingLeftovers = pendingLeftovers.filter(l => l.cart_id !== cart_id);
+
+  item.materials.forEach(m => {
+      if (!m.selected_glass_id) return;
+
+      const selectedGlass = allGlassMaterials.find(g => g.material_id == m.selected_glass_id);
+      if (!selectedGlass) return;
+
+      const leftoverName = computeGlassLeftover(m.required_material_name, selectedGlass.item_name);
+      if (!leftoverName) return;
+
+      pendingLeftovers.push({
+          cart_id,
+          leftoverName,
+          quantity: qty * m.used_quantity
+      });
+  });
+
+
+  renderCart();
+  hideReceiptPreview();
+  hideQuotationPreview();
+}
+
+
+function removeFromCart(cart_id) {
+    orderCart = orderCart.filter(p => p.cart_id !== cart_id);
     renderCart();
     hideReceiptPreview();
     hideQuotationPreview();
-  }
 }
 
-
-function updateUsedQuantity(productId, materialIndex, newQty) {
-  const item = orderCart.find(i => i.product_id === productId);
-  if (!item || !item.materials || !item.materials[materialIndex]) return;
-
-  const m = item.materials[materialIndex];
-  const usedQty = parseFloat(newQty);
-  const unitCost = parseFloat(m.unit_cost);
-
-  if (!isNaN(usedQty) && !isNaN(unitCost)) {
-    m.used_quantity = usedQty;
-    m.line_cost = usedQty * unitCost;
-  } else {
-    m.line_cost = 0;
-  }
-
-  renderCart();
-  hideReceiptPreview();
-  hideQuotationPreview();
-}
-
-function removeFromCart(productId) {
-  orderCart = orderCart.filter(p => p.product_id !== productId);
-  renderCart();
-  hideReceiptPreview();
-  hideQuotationPreview();
-}
 
 async function loadStatusOptions() {
   try {
@@ -1133,6 +1170,8 @@ async function submitOrder() {
     }
 
     alert("✅ Your order has been processed.");
+    location.reload();
+    
     orderCart = [];
     renderCart();
     clearCustomerForm();
