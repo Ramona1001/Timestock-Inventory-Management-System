@@ -1,3 +1,4 @@
+from ast import If
 import duckdb
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -13,12 +14,14 @@ import smtplib
 import shutil
 from email.mime.text import MIMEText
 import os
+import json
+import tempfile
+import uuid
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-# MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-# if not MOTHERDUCK_TOKEN:
-#     raise RuntimeError("MOTHERDUCK_TOKEN not set")
+ph_tz = ZoneInfo("Asia/Manila")
 
-# con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 REPO_DB_PATH = "backend/db_timestock1"
 
 # If running locally, use a local file
@@ -2883,12 +2886,32 @@ def get_current_admin(request: Request):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+_DEFAULT_BACKUPS_PARENT = r"C:\Users\PC\Downloads\Timestock-Inventory-Management-System\backups"
 
-def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False):
+def delete_old_transactions(
+        years: int, 
+        *, 
+        admin_id: str, 
+        dry_run: bool = False,
+        backups_parent: Optional[str] = _DEFAULT_BACKUPS_PARENT,
+    ) -> Dict[str, Any]:
+    """
+    Delete old order and stock transactions older than specified years.
+
+    Backup Flow:
+    - Creates temporary directory inside backups_parent
+    - Writes CSV and metadata.json into that temp dir using COPY ... TO
+    - PERFORMS DELETEs and writes audit log within a DB transaction
+    - On successful commit, atomically renames temp dir to final name with timestamp
+    - If the DB transaction rolls back, no final folder is created.
+
+    Returns:
+        dict with counts and "backup_folder" (str or None).
+    """
     if admin_id is None:
         raise ValueError("Error: Admin ID is required (admin only)")
     
-    if years < 2:
+    if years < 1:
         raise ValueError("Error: Cutoff year should be at least 5 years ago or older")
     
     admin_exists = con.execute("SELECT 1 FROM admin WHERE id = ?", (admin_id,)).fetchone()
@@ -2905,6 +2928,22 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
                "old_stocks": 0
     }
 
+    # 
+    if backups_parent:
+        backups_parent_path = Path(backups_parent).expanduser().resolve()
+    else:
+        backups_parent_path = Path.cwd() / "backups"
+    backups_parent_path.mkdir(parents=True, exist_ok=True)
+    if not backups_parent_path.is_dir():
+        raise ValueError(f"backups_parent path is not a directory: {backups_parent_path}")
+    
+    ts = datetime.now(ph_tz).strftime("%Y%m%d_%H%M%S")
+    unique_id = uuid.uuid4().hex[:8]
+    final_folder_name = f"timestock_backup_{ts}_{unique_id}"
+    final_folder_path = backups_parent_path / final_folder_name
+
+    temp_dir = None
+
     try:
         cur = con.cursor()
 
@@ -2920,6 +2959,7 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
                     )
                 """, (cutoff_param,)
             ).fetchone()[0]
+
             deleted["old_orders"] = cur.execute(
               "SELECT COUNT(*) FROM order_transactions WHERE date_created < ?", (cutoff_param,)
             ).fetchone()[0]
@@ -2935,24 +2975,129 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
                     )
                 """, (cutoff_param,)
             ).fetchone()[0]
+
             deleted["old_stocks"] = cur.execute(
                 "SELECT COUNT(*) FROM stock_transactions WHERE date_created < ?", (cutoff_param,)
             ).fetchone()[0]
+
+            return {"success": True, "cutoff_date": cutoff_date.isoformat(), **deleted, "backup_folder": None}
         
-        else:
+        cur.execute(
+            """
+            CREATE TEMPORARY TABLE to_delete_order_ids 
+            AS SELECT id 
+            FROM order_transactions 
+            WHERE date_created < ?
+            """,(cutoff_param,)
+        )
+        cur.execute(
+            """
+            CREATE TEMPORARY TABLE to_delete_stock_ids 
+            AS SELECT id 
+            FROM stock_transactions 
+            WHERE date_created < ?
+            """,(cutoff_param,)
+        )
+
+        deleted["old_order_items"] = cur.execute(
+            """
+            SELECT COUNT(*) 
+            FROM order_items
+            WHERE order_id IN (
+                SELECT id 
+                FROM to_delete_order_ids
+                )
+            """
+        ).fetchone()[0]
+
+        deleted["old_orders"] = cur.execute(
+            """
+            SELECT COUNT(*) 
+            FROM order_transactions
+            WHERE id IN (
+                SELECT id 
+                FROM to_delete_order_ids
+                )
+            """
+        ).fetchone()[0]
+
+        deleted["old_stock_items"] = cur.execute(
+            """
+            SELECT COUNT(*) 
+            FROM stock_transaction_items
+            WHERE stock_transaction_id IN (
+                SELECT id 
+                FROM to_delete_stock_ids
+                )
+            """
+        ).fetchone()[0]
+
+        deleted["old_stocks"] = cur.execute(
+            """
+            SELECT COUNT(*) 
+            FROM stock_transactions
+            WHERE id IN (
+                SELECT id 
+                FROM to_delete_stock_ids
+                )
+            """
+        ).fetchone()[0]
+
+        total_deleted = (
+            (deleted.get("old_order_items") or 0)
+            + (deleted.get("old_orders") or 0)
+            + (deleted.get("old_stock_items") or 0)
+            + (deleted.get("old_stocks") or 0)
+        )
+
+        backup_files = {}
+        published_backup_folder = None
+
+        if total_deleted > 0:
+            temp_dir = Path(tempfile.mkdtemp(prefix=f".tmp{final_folder_name}_", dir=str(backups_parent_path)))
+            
+            orders_fn = temp_dir / f"order_transactions_{ts}.csv"
+            order_items_fn = temp_dir / f"order_items_{ts}.csv"
+            stocks_fn = temp_dir / f"stock_transactions_{ts}.csv"
+            stock_items_fn = temp_dir / f"stock_transaction_items_{ts}.csv"
+
+            cur.execute(f"COPY (SELECT * FROM order_transactions WHERE id IN (SELECT id FROM to_delete_order_ids)) TO '{orders_fn.as_posix()}' (FORMAT CSV, HEADER)")
+            cur.execute(f"COPY (SELECT oi.* FROM order_items oi WHERE oi.order_id IN (SELECT id FROM to_delete_order_ids)) TO '{order_items_fn.as_posix()}' (FORMAT CSV, HEADER)")
+            cur.execute(f"COPY (SELECT * FROM stock_transactions WHERE id IN (SELECT id FROM to_delete_stock_ids)) TO '{stocks_fn.as_posix()}' (FORMAT CSV, HEADER)")
+            cur.execute(f"COPY (SELECT sti.* FROM stock_transaction_items sti WHERE sti.stock_transaction_id IN (SELECT id FROM to_delete_stock_ids)) TO '{stock_items_fn.as_posix()}' (FORMAT CSV, HEADER)")
+
+            backup_files = {
+                "orders": str(orders_fn),
+                "order_items": str(order_items_fn),
+                "stocks": str(stocks_fn),
+                "stock_items": str(stock_items_fn)
+            }
+
+            meta = {
+                "created_at": datetime.now(ph_tz).isoformat() + "Z",
+                "cutoff_date": cutoff_date.isoformat(),
+                "admin_id": admin_id,
+                "counts": deleted,
+                "files": backup_files,
+            }
+            meta_path = temp_dir / "metadata.json"
+            meta_path.write_text(json.dumps(meta, indent=2))
+        
+        if total_deleted > 0:
             deleted["old_order_items"] = cur.execute(
                 """
                 DELETE FROM order_items
                 WHERE order_id
                 IN  (
                     SELECT id 
-                   FROM order_transactions
-                   WHERE date_created < ?
-                   )
+                    FROM order_transactions
+                    WHERE date_created < ?
+                    )
                 """, (cutoff_param,)
             ).rowcount
+
             deleted["old_orders"] = cur.execute(
-              "DELETE FROM order_transactions WHERE date_created < ?", (cutoff_param,)
+            "DELETE FROM order_transactions WHERE date_created < ?", (cutoff_param,)
             ).rowcount
 
             deleted["old_stock_items"] = cur.execute(
@@ -2966,40 +3111,44 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
                     )
                 """, (cutoff_param,)
             ).rowcount
+
             deleted["old_stocks"] = cur.execute(
                 "DELETE FROM stock_transactions WHERE date_created < ?", (cutoff_param,)
             ).rowcount
 
-            # write audit only when something was deleted
-            total_deleted = (
-                (deleted.get("old_order_items") or 0)
-                + (deleted.get("old_orders") or 0)
-                + (deleted.get("old_stock_items") or 0)
-                + (deleted.get("old_stocks") or 0)
+            details = (
+                f"Admin {admin_id} purged records older than {cutoff_date.isoformat()}: "
+                f"orders={deleted['old_orders']}, order_items={deleted['old_order_items']}, "
+                f"stocks={deleted['old_stocks']}, stock_items={deleted['old_stock_items']}"
             )
-            if total_deleted > 0:
-                details = (
-                    f"Admin {admin_id} purged records older than {cutoff_date.isoformat()}: "
-                    f"orders={deleted['old_orders']}, order_items={deleted['old_order_items']}, "
-                    f"stocks={deleted['old_stocks']}, stock_items={deleted['old_stock_items']}"
-                )
-                # log atomically with the same cursor
-                log_audit(
-                    entity="maintenance",
-                    entity_id=cutoff_date.isoformat(),
-                    action="delete_old_transactions",
-                    details=details,
-                    admin_id=admin_id,
-                    cur=cur
-                )
+            log_audit(
+                entity="maintenance",
+                entity_id=cutoff_date.isoformat(),
+                action="delete_old_transactions",
+                details=details,
+                admin_id=admin_id,
+                cur=cur
+            )
 
-            con.commit()
+        con.commit()
+
+        if temp_dir is not None and temp_dir.exists():
+            try:
+                if final_folder_path.exists():
+                    final_folder_path = backups_parent_path / f"{final_folder_name}_{uuid.uuid4().hex[:6]}"
+                os.replace(str(temp_dir), str(final_folder_path))
+                published_backup_folder = str(final_folder_path)
+            except Exception as e:
+                published_backup_folder = str(temp_dir)
+        else:
+            published_backup_folder = None        
 
     except Exception:
-        con.rollback()
+        try:
+            con.rollback()
+        except Exception:
+            pass
         raise
-
-    return {"success": True, "cutoff_date": cutoff_date.isoformat(), **deleted}
 
 
 def get_audit_logs(limit: int = 100, offset: int = 0, cur=None) -> List[Dict[str, Any]]:
@@ -3202,3 +3351,5 @@ def verify_password(stored_hash: str, plain_password: str) -> bool:
     except Exception:
         # any other error (bad hash format, etc.) treat as non-match
         return False
+    
+# Backup Feature
