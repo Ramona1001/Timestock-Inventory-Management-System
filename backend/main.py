@@ -1,13 +1,14 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from datetime import datetime, timedelta
 from .api import router as api_router
 from .auth import router as auth_router, get_current_user
 import os
+from pathlib import Path
 import asyncio
 from backend import graphs
 
@@ -15,7 +16,7 @@ app = FastAPI(title="TimeStock Inventory API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -226,3 +227,17 @@ def customer_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
     return templates.TemplateResponse("Customer.html", {"request": request, "user": user})
+
+@app.get("/download-db")
+def download_duckdb(authorization: str = Header(None)):
+    # Use persistent Railway volume
+    db_path = Path("/data/rdb_timestock1")  # <-- must match your DB file
+
+    if not db_path.exists():
+        raise HTTPException(status_code=404, detail=f"Database file not found: {db_path}")
+
+    return FileResponse(
+        path=db_path,
+        media_type="application/octet-stream",
+        filename=db_path.name
+    )
