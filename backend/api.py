@@ -23,7 +23,7 @@ from backend import database, receipt, graphs, analytics
 router = APIRouter()
 ph = PasswordHasher()
 
-@router.put("/download-db")
+@router.get("/download-db")
 def download_duckdb():
 
     db_path = Path("/data/rdb_timestock1")  
