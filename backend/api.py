@@ -1,6 +1,6 @@
 from typing import List, Any, Optional
 from argon2 import PasswordHasher
-from fastapi import APIRouter, Depends, HTTPException, Header, Path,Request,Form
+from fastapi import APIRouter, Depends, HTTPException, Header,Request,Form
 from fastapi.responses import JSONResponse, FileResponse
 from tempfile import NamedTemporaryFile
 from datetime import datetime, timedelta
@@ -23,19 +23,6 @@ from backend import database, receipt, graphs, analytics
 router = APIRouter()
 ph = PasswordHasher()
 
-@router.get("/download-db")
-def download_duckdb():
-
-    db_path = Path("/data/rdb_timestock1")  
-
-    if not db_path.exists():
-        raise HTTPException(status_code=404, detail="Database file not found")
-
-    return FileResponse(
-        path=db_path,
-        media_type="application/octet-stream",
-        filename=db_path.name,
-    )
 
 @router.put("/products/update") 
 def update_product_data(request: Request, product: ProductUpdate):
