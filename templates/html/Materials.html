@@ -8,8 +8,28 @@
   <meta http-equiv="Expires" content="0" />
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="../css/Materials.css?v=7">
 <style> 
+.small-swal {
+  min-height: 160px;
+}
+
+.small-swal .swal2-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.small-swal .swal2-html-container {
+  font-size: 0.9rem;
+}
+
+.swal-on-top {
+  z-index: 10000 !important;
+}
+#editModal {
+  z-index: 1050; /* lower than SweetAlert's default 1060 */
+}
 
 /* ---------- MOBILE LAYOUT ---------- */
 @media screen and (max-width: 768px) {
@@ -498,7 +518,7 @@
           <input type="number" id="stockMaterialQty" min="1" value="1" class="form-control">
         </div>
         <div class="form-group">
-          <label for="singleStockSupplier">Supplier (optional)</label>
+          <label for="singleStockSupplier">Supplier</label>
           <select id="singleStockSupplier" class="form-select">
             <option value="">-- Select Supplier --</option>
             <option value="supplier1">Supplier 1</option>
@@ -638,6 +658,40 @@
     }
   });
 
+  function showError(message) {
+  return Swal.fire({
+    icon: "error",
+    title: "Oops…",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    backdrop: true,
+    scrollbarPadding: false,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
+function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Success!",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    timer: 2000,
+    scrollbarPadding: false,
+    showConfirmButton: false,
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
   notificationIcon.addEventListener("click", function (e) {
     e.stopPropagation();
     dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
@@ -678,7 +732,7 @@ function openModal(modalId) {
   } else if (modalId === 'updateModal') {
     document.getElementById('updateDate').value = today;
 
-    // (Optional) Call fetch for update modal if needed
+    //Call fetch for update modal if needed
   }
 }
 
@@ -974,7 +1028,7 @@ function renderPagination() {
   }
 
   function openEditModal(id) {
-    alert(`Open edit modal for material ID: ${id}`);
+    showError(`Open edit modal for material ID: ${id}`);
   }
 
   document.querySelectorAll("#searchInput, #categoryFilter, #availabilityFilter, #minQty, #maxQty, #minCost, #maxCost, #minRating, #maxRating, #sortFilter")
@@ -1036,8 +1090,8 @@ document.addEventListener("DOMContentLoaded", fetchCategoriesAndSuppliers);
 
 // Submit Material
 async function addMaterial() {
-  const item_name = document.getElementById("createItemName").value;
-  const item_description = document.getElementById("createDescription").value;
+  const item_name = document.getElementById("createItemName").value.trim();
+  const item_description = document.getElementById("createDescription").value.trim();
   const supplier_id = document.getElementById("createSupplier").value;
   const category_id = document.getElementById("createCategory").value;
   const unit_measurement = document.getElementById("createUnitMeasurement").value;
@@ -1048,41 +1102,73 @@ async function addMaterial() {
   let material_cost;
 
   // Detect glass
-const isGlass = item_name.trim().toLowerCase().includes("glass");
+  const isGlass = item_name.toLowerCase().includes("glass");
 
-if (isGlass) {
+  if (isGlass) {
     const s1 = parseFloat(document.getElementById("glassSize1").value);
     const s2 = parseFloat(document.getElementById("glassSize2").value);
     const cost = parseFloat(document.getElementById("glassActualCost").value);
 
-    if (isNaN(s1) || isNaN(s2) || isNaN(cost))
-        return alert("Please fill all glass size and cost fields.");
+    if (isNaN(s1) || isNaN(s2) || isNaN(cost)) {
+      showError("Please fill all glass size and cost fields.");
+      return;
+    }
 
-    // Multiply to get final cost
     material_cost = s1 * s2 * cost;
-} 
-else {
+  } else {
     material_cost = parseFloat(document.getElementById("createUnitCost").value);
-}
-
-
-  // Validation
-  if (!item_name) return alert("Item name is required.");
-  if (!item_description) return alert("Item description is required.");
-  if (!category_id) return alert("Please select a category.");
-  if (!supplier_id) return alert("Please select a supplier.");
-  if (!unit_measurement) return alert("Unit measurement is required.");
-
-  // Validate material cost only when it's a number
-  if (!isGlass) {
-    if (isNaN(material_cost) || material_cost < 0)
-      return alert("Material cost must be a positive number.");
   }
 
-  if (isNaN(current_stock) || current_stock < 0) return alert("Current stock must be a positive number.");
-  if (isNaN(minimum_stock) || minimum_stock < 0) return alert("Minimum stock must be a positive number.");
-  if (isNaN(maximum_stock) || maximum_stock < 0) return alert("Maximum stock must be a positive number.");
-  if (maximum_stock < minimum_stock) return alert("Maximum stock cannot be less than minimum stock.");
+  // ---- VALIDATION ----
+  if (!item_name) {
+    showError("Item name is required.");
+    return;
+  }
+
+  if (!item_description) {
+    showError("Item description is required.");
+    return;
+  }
+
+  if (!category_id) {
+    showError("Please select a category.");
+    return;
+  }
+
+  if (!supplier_id) {
+    showError("Please select a supplier.");
+    return;
+  }
+
+  if (!unit_measurement) {
+    showError("Unit measurement is required.");
+    return;
+  }
+
+  if (!isGlass && (isNaN(material_cost) || material_cost < 0)) {
+    showError("Material cost must be a positive number.");
+    return;
+  }
+
+  if (isNaN(current_stock) || current_stock < 0) {
+    showError("Current stock must be a positive number.");
+    return;
+  }
+
+  if (isNaN(minimum_stock) || minimum_stock < 0) {
+    showError("Minimum stock must be a positive number.");
+    return;
+  }
+
+  if (isNaN(maximum_stock) || maximum_stock < 0) {
+    showError("Maximum stock must be a positive number.");
+    return;
+  }
+
+  if (maximum_stock < minimum_stock) {
+    showError("Maximum stock cannot be less than minimum stock.");
+    return;
+  }
 
   const newMaterial = {
     item_name,
@@ -1103,28 +1189,25 @@ else {
       body: JSON.stringify(newMaterial)
     });
 
-    if (response.ok) {
-      alert("Material added successfully!");
-      closeModal("createModal");
-      location.reload();
-    } else {
+    if (!response.ok) {
       const err = await response.json();
-      alert("Failed to add material:\n" + (err.detail || "Unknown error"));
+      showError(err.detail || "Failed to add material.");
+      return;
     }
+
+    await showSuccess("Material added successfully!");
+    closeModal("createModal");
+    location.reload();
 
   } catch (error) {
     console.error("Error adding material:", error);
-    alert("Something went wrong.");
+    showError("Something went wrong.");
   }
 }
-
-
-
 </script>
 
 <!-- Delete api -->
 <script>
-  // Fetch materials to populate the delete selector dropdown
   async function fetchMaterialsForDelete() {
     try {
       const response = await fetch("/api/materials"); // Ensure this is correct
@@ -1171,9 +1254,21 @@ else {
 
 
   // Delete the selected material
- async function deleteMaterial(materialId) {
-  const confirmDelete = confirm(`Are you sure you want to delete Material ID: ${materialId}?`);
-  if (!confirmDelete) return;
+// Delete the selected material
+async function deleteMaterial(materialId) {
+  const confirmDelete = await Swal.fire({
+    icon: "warning",
+    title: "Are you sure?",
+    text: `Delete Material ID: ${materialId}?`,
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    scrollbarPadding: false, // 👈 prevents background shift
+    backdrop: true
+  });
+
+  if (!confirmDelete.isConfirmed) return;
 
   try {
     const response = await fetch(`/api/materials/${materialId}`, {
@@ -1183,15 +1278,33 @@ else {
     const result = await response.json();
 
     if (!response.ok) {
-      alert("Error: " + (result.message || result.detail || "Unknown error"));
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: result.message || result.detail || "Unknown error",
+        scrollbarPadding: false
+      });
       return;
     }
 
-    alert(result.message || "Material deleted successfully.");
+    await Swal.fire({
+      icon: "success",
+      title: "Deleted",
+      text: result.message || "Material deleted successfully.",
+      timer: 2000,
+      showConfirmButton: false,
+      scrollbarPadding: false
+    });
+
     fetchMaterials(); // Refresh material list after deletion
   } catch (err) {
     console.error("Failed to delete material:", err);
-    alert("Failed to delete material. Please try again.");
+    await Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Failed to delete material. Please try again.",
+      scrollbarPadding: false
+    });
   }
 }
 
@@ -1264,14 +1377,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
+
 <!-- Update api -->
  <script>
 function attachStockWarning() {
   const stockInput = document.getElementById('editCurrentStock');
 
-  stockInput.addEventListener('change', function () {
-    alert("⚠️ Warning: Changing 'Current Stock' will NOT generate a stock transaction history.");
-  });
+stockInput.onchange = () => {
+    Swal.fire({
+        icon: "warning",
+        title: "Warning",
+        text: "Changing 'Current Stock' will NOT generate a stock transaction history.",
+        confirmButtonText: "I understand",
+        scrollbarPadding: false,
+        backdrop: true
+    });
+};
+
 }
 </script>
 
@@ -1310,8 +1432,16 @@ async function openEditModal(materialId) {
         // Attach warning for stock changes
         const stockInput = document.getElementById("editCurrentStock");
         stockInput.onchange = () => {
-            alert("⚠️ Warning: Changing 'Current Stock' will NOT generate a stock transaction history.");
+            Swal.fire({
+                icon: "warning",
+                title: "Warning",
+                text: "Changing 'Current Stock' will NOT generate a stock transaction history.",
+                confirmButtonText: "I understand",
+                scrollbarPadding: false,
+                backdrop: true
+            });
         };
+
 
         // --- Glass detection ---
         const nameLower = material.item_name.toLowerCase();
@@ -1355,15 +1485,15 @@ async function updateMaterial() {
     const maximumStock = parseFloat(document.getElementById('editMaxStock').value);
 
     // Validate basic fields
-    if (!itemName) return alert("Item name is required.");
-    if (!itemDescription) return alert("Item description is required.");
-    if (!categoryId) return alert("Please select a category.");
-    if (!supplierId) return alert("Please select a supplier.");
-    if (!unitMeasurement) return alert("Unit measurement is required.");
-    if (isNaN(currentStock) || currentStock < 0) return alert("Current stock must be a positive number.");
-    if (isNaN(minimumStock) || minimumStock < 0) return alert("Minimum stock must be a positive number.");
-    if (isNaN(maximumStock) || maximumStock < 0) return alert("Maximum stock must be a positive number.");
-    if (maximumStock < minimumStock) return alert("Maximum stock cannot be less than minimum stock.");
+    if (!itemName) return showError("Item name is required.");
+    if (!itemDescription) return showError("Item description is required.");
+    if (!categoryId) return showError("Please select a category.");
+    if (!supplierId) return showError("Please select a supplier.");
+    if (!unitMeasurement) return showError("Unit measurement is required.");
+    if (isNaN(currentStock) || currentStock < 0) return showError("Current stock must be a positive number.");
+    if (isNaN(minimumStock) || minimumStock < 0) return showError("Minimum stock must be a positive number.");
+    if (isNaN(maximumStock) || maximumStock < 0) return showError("Maximum stock must be a positive number.");
+    if (maximumStock < minimumStock) return showError("Maximum stock cannot be less than minimum stock.");
 
     // --- Calculate final cost ---
     let finalCost;
@@ -1376,13 +1506,13 @@ async function updateMaterial() {
         const actualCost = parseFloat(document.getElementById("editGlassActualCost").value);
 
         if (isNaN(s1) || isNaN(s2) || isNaN(actualCost) || s1 <= 0 || s2 <= 0 || actualCost <= 0) {
-            return alert("Please fill all glass size and cost fields with positive numbers.");
+            return showError("Please fill all glass size and cost fields with positive numbers.");
         }
 
         finalCost = s1 * s2 * actualCost;
     } else {
         finalCost = parseFloat(document.getElementById("editMaterialCost").value);
-        if (isNaN(finalCost) || finalCost <= 0) return alert("Material cost must be a positive number.");
+        if (isNaN(finalCost) || finalCost <= 0) return showError("Material cost must be a positive number.");
     }
 
     // --- Prepare payload ---
@@ -1410,15 +1540,15 @@ async function updateMaterial() {
         const result = await response.json();
 
         if (response.ok) {
-            alert("Material updated successfully!");
+            await showSuccess("Material updated successfully!");
             closeModal("editModal");
             fetchMaterials();  // Refresh the table
         } else {
-            alert("Error:\n" + JSON.stringify(result, null, 2));
+            showError("Error:\n" + JSON.stringify(result, null, 2));
         }
     } catch (error) {
         console.error("Failed to update material:", error);
-        alert("Error updating material. Please try again.");
+        showError("Error updating material. Please try again.");
     }
 }
 
@@ -1572,14 +1702,14 @@ async function submitStockMaterials(event) {
 
     const result = await response.json();
     if (response.ok) {
-      alert("Materials successfully stocked!");
+      await showSuccess("Materials successfully stocked!");
       closeModal('stockMaterialsModal');
       location.reload();
     } else {
-      alert("Error: " + result.detail);
+      showError("Error: " + result.detail);
     }
   } catch (err) {
-    alert("Request failed: " + err.message);
+    showError("Request failed: " + err.message);
   }
 }
 
@@ -1589,7 +1719,7 @@ async function openSingleStockModal(materialId) {
   }
 
   const material = materialOptions.find(m => m.material_id === materialId);
-  if (!material) return alert("Material not found!");
+  if (!material) return showError("Material not found!");
 
   // Populate modal fields
   const qtyInput = document.getElementById("stockMaterialQty");
@@ -1620,7 +1750,7 @@ async function openSingleStockModal(materialId) {
       supplierSelect.innerHTML += `<option value="${s.id}">${s.contact_name}</option>`;
     });
   } catch (err) {
-    alert("Failed to load suppliers: " + err.message);
+    showError("Failed to load suppliers: " + err.message);
   }
 
   // Show modal
@@ -1633,11 +1763,11 @@ async function submitSingleStock() {
   const quantity = parseInt(document.getElementById("stockMaterialQty").value);
   const supplierId = document.getElementById("singleStockSupplier").value || null;
 
-  if (!materialId) return alert("Material not specified!");
-  if (!quantity || quantity < 1) return alert("Enter a valid quantity");
-  if (!supplierId) return alert("Please select a supplier");
+  if (!materialId) return showError("Material not specified!");
+  if (!quantity || quantity < 1) return showError("Enter a valid quantity");
+  if (!supplierId) return showError("Please select a supplier");
 
-  if (!quantity || quantity < 1) return alert("Enter a valid quantity");
+  if (!quantity || quantity < 1) return showError("Enter a valid quantity");
 
   try {
     const payload = {
@@ -1654,14 +1784,14 @@ async function submitSingleStock() {
 
     const result = await response.json();
     if (response.ok) {
-      alert("Material stocked successfully!");
+      await showSuccess("Material stocked successfully!");
       closeModal("singleStockModal");
       location.reload();
     } else {
-      alert("Error: " + result.detail);
+      showError("Error: " + result.detail);
     }
   } catch (err) {
-    alert("Request failed: " + err.message);
+    showError("Request failed: " + err.message);
   }
 }
 
@@ -1776,7 +1906,7 @@ function addMaterialField(data = {}, isExisting = false, productId = '') {
 function handleMaterialChange(selectElement) {
   const selectedId = selectElement.value;
   if (checkDuplicateMaterial(selectedId, selectElement)) {
-    alert("This material has already been added.");
+    showError("This material has already been added.");
     selectElement.value = "";
     updateUnitLabel(selectElement);
     return;
@@ -1837,17 +1967,17 @@ async function submitProductMaterials() {
 
   // Validation checks
   if (!product_id) {
-    alert('Please select a product.');
+    showError('Please select a product.');
     return;
   }
 
   if (materials.length === 0) {
-    alert('No new materials to add.');
+    showError('No new materials to add.');
     return;
   }
 
   if (materials.some(m => !m.material_id || isNaN(m.used_quantity) || isNaN(m.unit_cost))) {
-    alert('Please complete all material fields.');
+    showError('Please complete all material fields.');
     return;
   }
 
@@ -1859,11 +1989,11 @@ async function submitProductMaterials() {
   });
 
   if (res.ok) {
-    alert('Materials added successfully.');
-    closePMModal();
+    showSuccess('Materials added successfully.');
+    closeModal('productMaterialModal');
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
 
@@ -1874,7 +2004,7 @@ async function updateMaterialField(button, productId, materialId) {
   const unit_cost = parseFloat(entry.querySelector('.unit-cost').value);
 
   if (isNaN(used_quantity) || isNaN(unit_cost)) {
-    alert("Please enter valid quantity and cost.");
+    showError("Please enter valid quantity and cost.");
     return;
   }
 
@@ -1885,43 +2015,48 @@ async function updateMaterialField(button, productId, materialId) {
   });
 
   if (res.ok) {
-    alert("Material updated.");
+    showSuccess("Material updated.");
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
 
 async function deleteMaterialField(button, productId, materialId) {
-  if (!confirm("Are you sure you want to delete this material from the product?")) return;
+const result = await Swal.fire({
+  icon: "warning",
+  title: "Delete material?",
+  text: "This will remove the material from the product.",
+  width: 400,
+  padding: "1rem",
+  showCancelButton: true,
+  confirmButtonText: "Delete",
+  cancelButtonText: "Cancel",
+  confirmButtonColor: "#d33",
+  focusCancel: true,
+  backdrop: true,
+  customClass: {
+    popup: "small-swal",
+    container: "swal-on-top"
+  }
+});
+
+if (!result.isConfirmed) return;
 
   const res = await fetch(`/api/product-materials/delete?product_id=${productId}&material_id=${materialId}`, {
     method: 'DELETE'
   });
 
   if (res.ok) {
-    alert("Material deleted.");
+    await showSuccess("Material deleted.");
     button.closest('.material-entry').remove();
     updateTotalCost();
+
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
-
-function closeModal() {
-  document.getElementById('productMaterialModal').style.display = 'none';
-  document.getElementById('materialsContainer').innerHTML = '';
-  document.getElementById('totalCost').textContent = '0.00';
-  document.getElementById('productSelect').value = '';
-}
-
-document.getElementById('productMaterialModal').addEventListener('click', function (event) {
-  const modalBox = document.querySelector('#productMaterialModal .modal-box');
-  if (!modalBox.contains(event.target)) {
-    closeModal();
-  }
-});
 
 function removeMaterialField(button, event) {
   event.stopPropagation();
