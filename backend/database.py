@@ -2436,8 +2436,12 @@ def create_order_transaction(data: dict, admin_id: Optional[str] = None, cur=Non
             for v in material_requirements.values() if v["needed"] > v["available"]
         ]
         if lacking_materials:
-            formatted = "Insufficient material stock for:\n" + "\n".join(f"• {x}" for x in lacking_materials)
+            formatted = (
+                "<b>Insufficient material stock for:</b><br>"
+                + "<br>".join(f"• {x}" for x in lacking_materials)
+            )
             raise HTTPException(status_code=400, detail=formatted)
+
 
         # --- Step 3: Fetch product prices ---
         price_rows = cur.execute(f"""

@@ -10,7 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/Settings.css?v=6">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
+    .small-swal {
+  min-height: 160px;
+}
+
+.small-swal .swal2-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.small-swal .swal2-html-container {
+  font-size: 0.9rem;
+}
+
+.swal-on-top {
+  z-index: 10000 !important;
+}
         /* Style disabled buttons to look visually distinct */
     .demo-btn:disabled {
         opacity: 0.5;
@@ -717,10 +734,45 @@
   refreshShortList();
 
 })();
+
+function showError(message) {
+  return Swal.fire({
+    icon: "error",
+    title: "Oops…",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    html: message.replace(/\n/g, "<br>"),
+    backdrop: true,
+    scrollbarPadding: false,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
+function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Success!",
+    html: message.replace(/\n/g, "<br>"), 
+    width: 400,
+    padding: "1rem",
+    showConfirmButton: true,  
+    confirmButtonText: "OK",
+    timer: undefined,         
+    scrollbarPadding: false,
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
 </script>
 
 <script>
-/* ---------- Enhanced submit handler for password form (works with the above autocomplete) ---------- */
 (function() {
   const passwordForm = document.getElementById('passwordForm');
   if (!passwordForm) return;
@@ -764,12 +816,12 @@
     let ok = true;
     if (!target_employee_id) {
       if (empValidationEl) empValidationEl.textContent = 'Please pick an employee from the list.';
-      else alert('Please pick an employee from the list.');
+      else return showError('Please pick an employee from the list.');
       ok = false;
     }
     if (new_password.trim().length < 8) {
       if (pwdValEl) pwdValEl.textContent = 'Password must be at least 8 characters.';
-      else alert('Password must be at least 8 characters.');
+      else return showError('Password must be at least 8 characters.');
       ok = false;
     }
     if (!ok) return;
@@ -783,7 +835,7 @@
       const payload = { target_employee_id, new_password };
       const res = await postJson('/api/settings/change-employee-password', payload);
 
-      alert(res && (res.message || res.msg) ? (res.message || res.msg) : 'Employee password changed successfully.');
+      await showSuccess(res?.message || res?.msg || 'Employee password changed successfully.');
 
       // clear selection and reset form
       try {
@@ -807,7 +859,7 @@
       console.error('Change password failed', err);
       const msg = err && err.message ? err.message : 'Server error';
       if (empValidationEl) empValidationEl.textContent = msg;
-      else alert(msg);
+      else await showError(msg);
     } finally {
       if (passwordBtn) {
         passwordBtn.disabled = false;
@@ -839,165 +891,115 @@
 
 <script>
 async function postData(url = '', data = {}) {
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  return response.json();
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error((json?.detail || json?.message) || res.statusText);
+  return json;
 }
 
 async function putData(url = '', data = {}) {
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
-  return response.json();
+  const json = await res.json().catch(() => null);
+  if (!res.ok) throw new Error((json?.detail || json?.message) || res.statusText);
+  return json;
 }
 
-// Add Employee
-document.getElementById('addEmployeeForm').addEventListener('submit', async function(e) {
-    e.preventDefault(); // Prevent page reload
+// --- Add Employee ---
+document.getElementById('addEmployeeForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  closeModal('addEmployeeModal');
 
-    // Close the modal immediately
-    closeModal('addEmployeeModal');
+  const payload = Object.fromEntries(new FormData(this));
 
-    // Collect form data
-    const formData = new FormData(this);
-    const payload = {};
-    formData.forEach((value, key) => payload[key] = value);
-
-    try {
-        const response = await fetch('/api/settings/add-employees', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            alert("Error: " + errorText);
-            return;
-        }
-
-        const message = await response.text(); // get plain text response
-        alert(message); // "Added employee successfully"
-
-    } catch (err) {
-        alert("Request failed: " + err);
-    }
+  try {
+    const res = await postData('/api/settings/add-employees', payload);
+    await showSuccess(res?.message || 'Added employee successfully!');
+    this.reset();
+  } catch (err) {
+    await showError(err.message);
+  }
 });
 
-
-// Update Status
-document.getElementById('statusForm').addEventListener('submit', async (e) => {
+// --- Update Status ---
+document.getElementById('statusForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = Object.fromEntries(new FormData(e.target));
-  const res = await putData(`/api/settings/${formData.id}/status`, { is_active: formData.is_active === "true" });
-  alert(JSON.stringify(res));
+  try {
+    const res = await putData(`/api/settings/${formData.id}/status`, { is_active: formData.is_active === "true" });
+    await showSuccess(`Status updated: ${JSON.stringify(res)}`);
+  } catch (err) {
+    await showError(err.message);
+  }
 });
 
-// Change Password
-const adminId = "{{ user.id }}"; // passed from backend via user dict
+// --- Admin Account Creation ---
+document.getElementById('addAdminForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const data = {
+    firstname: form.firstname.value,
+    lastname: form.lastname.value,
+    email: form.email.value,
+    password: form.password.value
+  };
 
-async function postData(url = '', data = {}) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  return response.json();
-}
+  try {
+    const res = await postData('/api/admin/create', data);
+    await showSuccess('✅ Admin account created successfully!');
+    closeModal('addAdminModal');
+    form.reset();
+  } catch (err) {
+    await showError(err.message);
+  }
+});
 
-// document.getElementById('passwordForm').addEventListener('submit', async (e) => {
-//   e.preventDefault();
-//   const formData = Object.fromEntries(new FormData(e.target));
+// --- Change Admin Password ---
+document.getElementById('changeAdminPasswordForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const currentPassword = document.getElementById('current_admin_password').value;
+  const newPassword = document.getElementById('new_admin_password').value;
+  const confirmPassword = document.getElementById('confirm_admin_password').value;
 
-//   const payload = {
-//     target_employee_id: formData.target_employee_id,
-//     new_password: formData.new_password
-//   };
+  if (newPassword !== confirmPassword) return showError("New passwords do not match!");
 
-//   const res = await postData('/api/settings/change-employee-password', payload);
-//   alert(JSON.stringify(res));
-// });
+  const formData = new FormData();
+  formData.append("current_password", currentPassword);
+  formData.append("new_password", newPassword);
 
-//Admin Account Creation
-
-async function createAdmin(event) {
-    event.preventDefault();
-
-    const form = document.getElementById('addAdminForm');
-    const data = {
-        firstname: form.firstname.value,
-        lastname: form.lastname.value,
-        email: form.email.value,
-        password: form.password.value
-    };
-
-    try {
-        const response = await fetch('/api/admin/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-
-        if (!response.ok) {
-            const err = await response.json();
-            alert(`Error: ${err.detail || response.statusText}`);
-            return;
-        }
-
-        alert('✅ Admin account created successfully!');
-        closeModal('addAdminModal');
-        form.reset();
-
-    } catch (error) {
-        console.error(error);
-        alert('An unexpected error occurred.');
+  try {
+    const response = await fetch("/api/change-password", {
+      method: "POST",
+      body: formData
+    });
+    const result = await response.json();
+    if (result.success) {
+      await showSuccess(result.message || 'Password changed successfully!');
+      closeModal('changeAdminPasswordModal');
+      e.target.reset();
+    } else {
+      await showError(result.message || 'Failed to change password.');
     }
-}
+  } catch (err) {
+    await showError("An error occurred: " + err.message);
+  }
+});
 
-
-async function changeAdminPassword(event) {
-    event.preventDefault();
-
-    const currentPassword = document.getElementById('current_admin_password').value;
-    const newPassword = document.getElementById('new_admin_password').value;
-    const confirmPassword = document.getElementById('confirm_admin_password').value;
-
-    if (newPassword !== confirmPassword) {
-        alert("New passwords do not match!");
-        return;
-    }
-
-    try {
-        const formData = new FormData();
-        formData.append("current_password", currentPassword);
-        formData.append("new_password", newPassword);
-
-        const response = await fetch("/api/change-password", {
-            method: "POST",
-            body: formData
-        });
-
-        const result = await response.json();
-        alert(result.message);
-
-        if (result.success) {
-            closeModal('changeAdminPasswordModal');
-            document.getElementById('changeAdminPasswordForm').reset();
-        }
-    } catch (error) {
-        alert("An error occurred: " + error.message);
-    }
-}
-
-// Migrate Hashes
-document.getElementById('migrateBtn').addEventListener('click', async () => {
-  const res = await postData('/api/settings/migrate-hashes', {});
-  alert(JSON.stringify(res));
+// --- Migrate Hashes ---
+document.getElementById('migrateBtn')?.addEventListener('click', async () => {
+  try {
+    const res = await postData('/api/settings/migrate-hashes', {});
+    await showSuccess(`Migration complete: ${JSON.stringify(res)}`);
+  } catch (err) {
+    await showError(err.message);
+  }
 });
 </script>
 

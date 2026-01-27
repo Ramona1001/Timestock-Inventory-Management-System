@@ -299,6 +299,15 @@ main .date input[type='date'] {
     width: 100px;
 }
 
+.form-group #month {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 110px;
+}
+
+
 .generate-btn {
     background: #007bff;
     color: white;
@@ -506,7 +515,7 @@ main .date input[type='date'] {
         align-items: stretch;
     }
     
-    .form-group input {
+    .form-group input, #month {
         width: 100%;
     }
     

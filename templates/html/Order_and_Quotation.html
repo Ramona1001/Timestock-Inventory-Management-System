@@ -8,9 +8,52 @@
   <meta http-equiv="Expires" content="0" />
   <title>Times Stock IMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="../css/Order_and_Quotation.css?v=11">
 <style>
-  /* ================= MOBILE LAYOUT FOR ORDER & QUOTATION ================= */
+  #clearAllBtn:hover {
+    background-color: #c82333; 
+    color: #fff;
+    transform: scale(1.05);
+    transition: 0.2s;
+  }
+
+  #receiptBtn:hover {
+    background-color: #0069d9; 
+    color: #fff;
+    transform: scale(1.05);
+    transition: 0.2s;
+  }
+
+  #quotationBtn:hover {
+    background-color: #0069d9;
+    color: #fff;
+    transform: scale(1.05);
+    transition: 0.2s;
+  }
+
+  #placeOrderBtn:hover {
+    background-color: #0069d9;
+    color: #fff;
+    transform: scale(1.05);
+    transition: 0.2s;
+  }
+.small-swal {
+  min-height: 160px;
+}
+
+.small-swal .swal2-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.small-swal .swal2-html-container {
+  font-size: 0.9rem;
+}
+
+.swal-on-top {
+  z-index: 10000 !important;
+}
 @media screen and (max-width: 768px) {
 
   /* Container stack */
@@ -191,7 +234,7 @@
 <div class="container_quote mt-5">
   <h1 class="text-center mb-4">🧾 Product Quotation</h1><br>
     <div class="mt-3">
-      <button class="btn btn-outline-danger" id="clearAllBtn">🗑️ Clear Quote & Cart</button>
+      <button class="btn btn-outline-danger" style="background-color: #dc3545; color: white" id="clearAllBtn">🗑️ Clear Quote & Cart</button>
     </div>
   <div class="quote-grid">
     <!-- LEFT PANEL -->
@@ -300,9 +343,9 @@
           <select id="status_id" class="custom-input mb-3" required></select>
 
           <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-success" onclick="openModal('receiptModal')">🧾 Receipt</button>
-            <button class="btn btn-outline-primary" onclick="openModal('quotationModal')">📄 Quotation</button>
-            <button class="btn btn-primary mt-2" onclick="submitOrder()">✅ Place Order</button>
+            <button class="btn btn-outline-success" style="background-color: #007bff; color: white;" onclick="openModal('receiptModal')">🧾 Receipt</button>
+            <button class="btn btn-outline-primary" style="background-color: #007bff; color: white;"  onclick="openModal('quotationModal')">📄 Quotation</button>
+            <button class="btn btn-primary mt-2" style="background-color: #007bff; color: white;" onclick="submitOrder()">✅ Place Order</button>
           </div>
         </div>
       </div>
@@ -338,7 +381,7 @@
         min="0" 
       />
 
-      <button class="btn btn-success w-100" onclick="generateReceipt()">Generate Receipt</button>
+      <button class="btn btn-success w-100"  style="background-color: #007bff; color: white;" onclick="generateReceipt()">Generate Receipt</button>
       <a id="downloadReceiptLink" href="#" download class="btn btn-secondary mt-2 w-100">Download PDF</a>
     </div>
 
@@ -406,7 +449,7 @@
 
       <!-- Sticky Footer Buttons -->
       <div class="modal-footer-btns">
-        <button class="btn btn-primary w-100" onclick="generateQuotation()">Generate Quotation</button>
+        <button class="btn btn-primary w-100"  style="background-color: #007bff; color: white;" onclick="generateQuotation()">Generate Quotation</button>
         <a id="downloadQuotationLink" href="#" download class="btn btn-secondary mt-2 w-100">Download PDF</a>
       </div>
     </div>
@@ -508,6 +551,42 @@
       dropdownMenu.style.display = "none";
     }
   });
+function showError(message) {
+  return Swal.fire({
+    icon: "error",
+    title: "Oops…",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    html: message.replace(/\n/g, "<br>"),
+    backdrop: true,
+    scrollbarPadding: false,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
+function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Success!",
+    html: message.replace(/\n/g, "<br>"), 
+    width: 400,
+    padding: "1rem",
+    showConfirmButton: true,  
+    confirmButtonText: "OK",
+    timer: undefined,         
+    scrollbarPadding: false,
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
 
   notificationIcon.addEventListener("click", function (e) {
     e.stopPropagation();
@@ -704,10 +783,6 @@ function computeGlassLeftover(requiredName, selectedName) {
 
     return formatGlassName(`${prefix} ${leftoverW}x${leftoverH}`);
 }
-
-
-
-
 async function updateSelectedGlass(cart_id, materialIndex, newMaterialId) {
     const item = orderCart.find(p => p.cart_id === cart_id);
     if (!item || !item.materials[materialIndex]) return;
@@ -738,6 +813,20 @@ async function updateSelectedGlass(cart_id, materialIndex, newMaterialId) {
             quantity: item.quantity * mat.used_quantity
         });
     });
+
+    renderCart();
+    hideReceiptPreview();
+    hideQuotationPreview();
+}
+
+function updateUsedQuantity(cart_id, materialIndex, newQty) {
+    const item = orderCart.find(p => p.cart_id === cart_id);
+    if (!item) return;
+
+    const material = item.materials[materialIndex];
+    const usedQty = parseFloat(newQty) || 0;
+    material.used_quantity = usedQty;
+    material.line_cost = material.unit_cost * material.used_quantity;
 
     renderCart();
     hideReceiptPreview();
@@ -782,9 +871,9 @@ async function autoCreateLeftoverPlaceholder(leftoverName, qty) {
     );
 
     if (existing) {
-        await stockLeftover(existing.material_id, qty);
-        alert(`Leftover stocked: ${formattedName} (Quantity: ${qty})`);
-        return existing.material_id;
+      await stockLeftover(existing.material_id, qty);
+      await showSuccess(`Leftover stocked: ${formattedName} (Quantity: ${qty})`);
+      return existing.material_id;
     }
 
 
@@ -810,7 +899,7 @@ async function autoCreateLeftoverPlaceholder(leftoverName, qty) {
 
         if (!response.ok) {
             const err = await response.json();
-            alert("Failed to create leftover: " + (err.detail || "unknown error"));
+            showError("Failed to create leftover: " + (err.detail || "unknown error"));
             return null;
         }
 
@@ -818,14 +907,13 @@ async function autoCreateLeftoverPlaceholder(leftoverName, qty) {
         allGlassMaterials.push(created);
 
         await stockLeftover(created.material_id, qty);
-
-        alert(`Created new leftover material: ${formattedName}`);
+        await showSuccess(`Created new leftover material: ${formattedName}`);
 
         return created.material_id;
     }
     catch (err) {
         console.error("Auto-create leftover error:", err);
-        alert("Error auto-creating leftover.");
+        showError("Error auto-creating leftover.");
         return null;
     }
 }
@@ -917,7 +1005,7 @@ function renderCart() {
                               if (!gMatch) return false;
                               const gW = parseInt(gMatch[1]);
                               const gH = parseInt(gMatch[2]);
-                              return gW >= reqW && gH >= reqH;
+                              return gW >= reqW && gH >= reqH && g.current_stock > 0;;
                           });
 
                           // Set selected_glass_id only if not already set
@@ -1096,14 +1184,14 @@ async function handlePendingLeftoversSequentially() {
 
 
 async function submitOrder() {
-  if (orderCart.length === 0) return alert("Cart is empty!");
+  if (orderCart.length === 0) return showError("Cart is empty!");
 
   // Validate customer fields
   const fields = ["firstname", "lastname", "contact_number", "email", "address", "status_id"];
   for (const field of fields) {
     const el = document.getElementById(field);
     if (!el || !el.value.trim()) {
-      alert(`Please fill in the ${field.replace("_", " ")} field.`);
+      showError(`Please fill in the ${field.replace("_", " ")} field.`);
       el?.focus();
       return;
     }
@@ -1117,12 +1205,12 @@ async function submitOrder() {
   const address = document.getElementById('address').value.trim();
   const status_id = document.getElementById('status_id').value;
 
-  if (!/^[A-Za-z\s]+$/.test(firstname)) { alert("Firstname should only contain letters."); document.getElementById('firstname').focus(); return; }
-  if (!/^[A-Za-z\s]+$/.test(lastname)) { alert("Lastname should only contain letters."); document.getElementById('lastname').focus(); return; }
-  if (!/^[0-9]{10,11}$/.test(contact_number)) { alert("Contact number must be 10–11 digits."); document.getElementById('contact_number').focus(); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Invalid email."); document.getElementById('email').focus(); return; }
-  if (address.length < 5) { alert("Address too short."); document.getElementById('address').focus(); return; }
-  if (!status_id) { alert("Please select a valid status."); return; }
+  if (!/^[A-Za-z\s]+$/.test(firstname)) { showError("Firstname should only contain letters."); document.getElementById('firstname').focus(); return; }
+  if (!/^[A-Za-z\s]+$/.test(lastname)) { showError("Lastname should only contain letters."); document.getElementById('lastname').focus(); return; }
+  if (!/^[0-9]{10,11}$/.test(contact_number)) { showError("Contact number must be 10–11 digits."); document.getElementById('contact_number').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError("Invalid email."); document.getElementById('email').focus(); return; }
+  if (address.length < 5) { showError("Address too short."); document.getElementById('address').focus(); return; }
+  if (!status_id) { showError("Please select a valid status."); return; }
 
   // Construct order data
   const customer = { firstname, lastname, contact_number, email, address };
@@ -1145,44 +1233,40 @@ async function submitOrder() {
     }))
   };
 
-  const submitBtn = document.getElementById('submitOrderBtn');
-  if (submitBtn) submitBtn.disabled = true;
+    const submitBtn = document.getElementById('submitOrderBtn');
+    if (submitBtn) submitBtn.disabled = true;
 
-  try {
-    // --- Handle leftover glass BEFORE sending order ---
-    await handlePendingLeftoversSequentially();
-    pendingLeftovers = []; // clear leftovers after handling
+    try {
+        // --- Send order FIRST ---
+        const res = await fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData)
+        });
 
-    // --- Send order ---
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
-    });
+        if (!res.ok) {
+            const errData = await res.json();
+            const msg = errData?.detail || "Order failed";
+            throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
 
-    if (!res.ok) {
-      let errMsg = "Order failed";
-      try {
-        const errData = await res.json();
-        if (errData?.detail) errMsg = typeof errData.detail === "string" ? errData.detail : JSON.stringify(errData.detail);
-      } catch {}
-      throw new Error(errMsg);
+        await handlePendingLeftoversSequentially();
+        pendingLeftovers = [];
+
+        showSuccess("✅ Your order has been processed.");
+        setTimeout(() => location.reload(), 1500);
+
+        orderCart = [];
+        renderCart();
+        clearCustomerForm();
+        hideReceiptPreview();
+        hideQuotationPreview();
+
+    } catch (err) {
+        showError("Error: " + err.message);
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
     }
-
-    alert("✅ Your order has been processed.");
-    location.reload();
-    
-    orderCart = [];
-    renderCart();
-    clearCustomerForm();
-    hideReceiptPreview();
-    hideQuotationPreview();
-
-  } catch (err) {
-    alert("Error: " + err.message);
-  } finally {
-    if (submitBtn) submitBtn.disabled = false;
-  }
 }
 
 
@@ -1193,13 +1277,13 @@ function clearCustomerForm() {
 }
 
 function generateReceipt() {
-  if (orderCart.length === 0) return alert("Cart is empty!");
+  if (orderCart.length === 0) return showError("Cart is empty!");
 
   const fields = ["firstname", "lastname", "contact_number", "email", "address"];
   for (const field of fields) {
     const el = document.getElementById(field);
     if (!el || !el.value.trim()) {
-      alert(`Please fill in the ${field.replace("_", " ")} field before generating receipt.`);
+      showError(`Please fill in the ${field.replace("_", " ")} field before generating receipt.`);
       el.focus();
       return;
     }
@@ -1271,7 +1355,7 @@ function sendReceiptPayload(payload) {
 
     openModal("receiptModal");
   })
-  .catch(err => alert("Error: " + err.message));
+  .catch(err => showError("Error: " + err.message));
 }
 
 function addBullet(sectionId) {
@@ -1285,13 +1369,13 @@ function addBullet(sectionId) {
 }
 
 function generateQuotation() {
-  if (orderCart.length === 0) return alert("Cart is empty!");
+  if (orderCart.length === 0) return showError("Cart is empty!");
 
   const fields = ["firstname", "lastname", "address", "ownerName", "ownerPosition"];
   for (const field of fields) {
     const el = document.getElementById(field);
     if (!el || !el.value.trim()) {
-      alert(`Please fill in the ${field.replace("_", " ")} field before generating quotation.`);
+      showError(`Please fill in the ${field.replace("_", " ")} field before generating quotation.`);
       el.focus();
       return;
     }
@@ -1311,7 +1395,7 @@ function generateQuotation() {
 
   for (const [key, arr] of Object.entries(requiredSections)) {
     if (arr.length === 0) {
-      alert(`Please add at least one bullet for ${key.replace(/_/g, " ")}.`);
+      showError(`Please add at least one bullet for ${key.replace(/_/g, " ")}.`);
       return;
     }
   }
@@ -1334,7 +1418,7 @@ function generateQuotation() {
   const companyContact = document.getElementById("companyContact").value.trim();
 
   if (!companyName) {
-    alert("Please enter your company name before generating quotation.");
+    showError("Please enter your company name before generating quotation.");
     document.getElementById("companyName").focus();
     return;
   }
@@ -1388,7 +1472,7 @@ function sendQuotationPayload(payload) {
 
     openModal("quotationModal");
   })
-  .catch(err => alert("Error: " + err.message));
+  .catch(err => showError("Error: " + err.message));
 }
 
 

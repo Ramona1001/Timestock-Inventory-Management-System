@@ -9,9 +9,25 @@
   <title>Times Stock IMS</title>  
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <link rel="stylesheet" href="../css/product.css?v=4">
-
-  <style>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
         /* ---------- MOBILE LAYOUT ---------- */
+.small-swal {
+  min-height: 160px;
+}
+
+.small-swal .swal2-title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.small-swal .swal2-html-container {
+  font-size: 0.9rem;
+}
+
+.swal-on-top {
+  z-index: 10000 !important;
+}
   @media screen and (max-width: 768px) {
 
     .container, main, header, .header-bar {
@@ -218,7 +234,7 @@
                 </div>
                 <div class="form-group full-width">
                     <label for="createName">Product Name</label>
-                    <input type="text" id="createName" placeholder="Enter product name">
+                    <input type="text" required id="createName" placeholder="Enter product name">
                 </div>
                 <div class="form-group full-width">
                     <label for="createDescription">Description</label>
@@ -571,6 +587,42 @@ document.getElementById("toggleUnavailableBtn").addEventListener("click", () => 
 document.querySelectorAll("#searchInput, #categoryFilter, #minPrice, #maxPrice, #sortFilter")
   .forEach(el => el.addEventListener("input", filterTable));
 
+
+
+function showError(message) {
+  return Swal.fire({
+    icon: "error",
+    title: "Oops…",
+    text: message,
+    width: 400,
+    scrollbarPadding: false,
+    padding: "1rem",
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
+function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Success!",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    timer: 2000,
+    showConfirmButton: false,
+    scrollbarPadding: false,
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
 </script>
 
 <!-- GET Api -->
@@ -820,61 +872,57 @@ async function addProduct() {
   const height = parseFloat(document.getElementById("createHeight").value) || null;
 
   // --- Validation ---
+  const today = new Date().toISOString().split("T")[0];
 
   // Name validation
-  if (!item_name) {
-    alert("Product name is required.");
-    return;
-  }
-  if (item_name.length > 100) {
-    alert("Product name cannot exceed 100 characters.");
-    return;
-  }
+if (!item_name) {
+  showError("Product name is required.");
+  return;
+}
+if (item_name.length > 100) {
+  showError("Product name cannot exceed 100 characters.");
+  return;
+}
 
-  // Description validation (optional, max 500 chars)
-  if (item_description.length > 500) {
-    alert("Description cannot exceed 500 characters.");
-    return;
-  }
+if (item_description.length > 500) {
+  showError("Description cannot exceed 500 characters.");
+  return;
+}
 
-  // Category validation
-  if (!category_id) {
-    alert("Please select a category.");
-    return;
-  }
+if (!category_id) {
+  showError("Please select a category.");
+  return;
+}
 
-  // Price validation
-  if (isNaN(unit_price) || unit_price < 0) {
-    alert("Unit price must be a number greater than or equal to 0.");
-    return;
-  }
+if (isNaN(unit_price) || unit_price < 0) {
+  showError("Unit price must be a number greater than or equal to 0.");
+  return;
+}
 
-  // Materials cost validation
-  if (isNaN(materials_cost) || materials_cost < 0) {
-    alert("Materials cost must be a number greater than or equal to 0.");
-    return;
-  }
-  if (materials_cost > unit_price) {
-    alert("Materials cost cannot exceed unit price.");
-    return;
-  }
+if (isNaN(materials_cost) || materials_cost < 0) {
+  showError("Materials cost must be a number greater than or equal to 0.");
+  return;
+}
+if (materials_cost > unit_price) {
+  showError("Materials cost cannot exceed unit price.");
+  return;
+}
 
-  // Status validation
-  if (!["Available", "Unavailable"].includes(status)) {
-    alert("Invalid status selected.");
-    return;
-  }
+if (!["Available", "Unavailable"].includes(status)) {
+  showError("Invalid status selected.");
+  return;
+}
 
-  // Date validation
-  if (!date_created) {
-    alert("Date is required.");
-    return;
-  }
-  const today = new Date().toISOString().split("T")[0];
-  if (date_created > today) {
-    alert("Date cannot be in the future.");
-    return;
-  }
+if (!date_created) {
+  showError("Date is required.");
+  return;
+}
+
+if (date_created > today) {
+  showError("Date cannot be in the future.");
+  return;
+}
+
 
   // --- Prepare product data ---
   const productData = {
@@ -897,14 +945,15 @@ async function addProduct() {
       body: JSON.stringify(productData)
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      alert("Error: " + error.detail);
-      return;
-    }
+if (!response.ok) {
+  const error = await response.json();
+  showError(error.detail || "Something went wrong.");
+  return;
+}
 
-    const result = await response.json();
-    alert(result.message);
+const result = await response.json();
+await showSuccess(result.message);
+
 
         // --- Reset modal inputs ---
     document.getElementById("createName").value = "";
@@ -917,10 +966,12 @@ async function addProduct() {
     closeModal("createModal");
     fetchProducts(); // Refresh table
   } catch (error) {
-    console.error("Error creating product", error);
-    alert("Failed to create product");
-  }
+  console.error("Error creating product", error);
+  showError("Failed to create product.");
 }
+
+}
+
 
 function openModal(modalId) {
   document.getElementById(modalId).style.display = "block";
@@ -984,7 +1035,6 @@ function closeEditModal() {
 document.getElementById("editProductForm").addEventListener("submit", async function (e) {
   e.preventDefault();
 
-  // --- Get input values ---
   const id = document.getElementById("edit-item-id").value.trim();
   const item_name = document.getElementById("edit-item-name").value.trim();
   const item_description = document.getElementById("edit-item-description").value.trim();
@@ -994,54 +1044,53 @@ document.getElementById("editProductForm").addEventListener("submit", async func
   const status = document.getElementById("edit-status").value;
   const widthVal = document.getElementById("edit-width").value;
   const heightVal = document.getElementById("edit-height").value;
-  
 
   // --- Validation ---
   if (!id) {
-    alert("Product ID is missing.");
+    showError("Product ID is missing.");
     return;
   }
 
   if (!item_name) {
-    alert("Product name is required.");
+    showError("Product name is required.");
     return;
   }
+
   if (item_name.length > 100) {
-    alert("Product name cannot exceed 100 characters.");
+    showError("Product name cannot exceed 100 characters.");
     return;
   }
 
   if (item_description.length > 500) {
-    alert("Description cannot exceed 500 characters.");
+    showError("Description cannot exceed 500 characters.");
     return;
   }
 
   if (!category_id) {
-    alert("Please select a category.");
+    showError("Please select a category.");
     return;
   }
 
   if (isNaN(unit_price) || unit_price < 0) {
-    alert("Unit price must be a number greater than or equal to 0.");
+    showError("Unit price must be a number greater than or equal to 0.");
     return;
   }
 
   if (isNaN(materials_cost) || materials_cost < 0) {
-    alert("Materials cost must be a number greater than or equal to 0.");
+    showError("Materials cost must be a number greater than or equal to 0.");
     return;
   }
 
   if (materials_cost > unit_price) {
-    alert("Materials cost cannot exceed unit price.");
+    showError("Materials cost cannot exceed unit price.");
     return;
   }
 
   if (!["Available", "Unavailable"].includes(status)) {
-    alert("Invalid status selected.");
+    showError("Invalid status selected.");
     return;
   }
 
-  // --- Prepare product data ---
   const updatedProduct = {
     id,
     item_name,
@@ -1054,7 +1103,6 @@ document.getElementById("editProductForm").addEventListener("submit", async func
     height: heightVal === "" ? undefined : parseFloat(heightVal)
   };
 
-  // --- Send update request ---
   try {
     const response = await fetch(`/api/products/update`, {
       method: "PUT",
@@ -1064,46 +1112,64 @@ document.getElementById("editProductForm").addEventListener("submit", async func
 
     if (!response.ok) {
       const err = await response.json();
-      alert("Error: " + err.detail);
+      showError(err.detail || "Failed to update product.");
       return;
     }
 
-    alert("Product updated successfully!");
+    await showSuccess("Product updated successfully!");
 
-    closeEditModal();   // Close modal
-    fetchProducts();    // Refresh list
+    closeEditModal();
+    fetchProducts();
   } catch (err) {
     console.error("Failed to update product", err);
-    alert("Failed to update product.");
+    showError("Failed to update product.");
   }
 });
+
 </script>
 
 <!-- Delete API -->
 <script>
 async function deleteProduct(productId) {
-  const confirmDelete = confirm("Are you sure you want to delete this product?");
-  if (!confirmDelete) return;
+  const result = await Swal.fire({
+    icon: "warning",
+    title: "Delete product?",
+    text: "This action cannot be undone.",
+    width: 400,
+    padding: "1rem",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+
+  if (!result.isConfirmed) return;
 
   try {
     const response = await fetch(`/api/products/${productId}`, {
       method: "DELETE"
     });
 
-    const result = await response.json();
+    const resultData = await response.json();
 
     if (!response.ok) {
-      alert("Error: " + (result.message || result.detail));
+      showError(resultData.message || resultData.detail || "Failed to delete product.");
       return;
     }
 
-    alert(result.message);
-    fetchProducts(); // Refresh table after deletion
+    await showSuccess(resultData.message || "Product deleted successfully!");
+    fetchProducts();
   } catch (error) {
     console.error("Failed to delete product:", error);
-    alert("Deletion failed.");
+    showError("Deletion failed.");
   }
 }
+
 </script>
 
 <!-- Card Summary API -->
@@ -1305,17 +1371,17 @@ async function submitProductMaterials() {
 
   // Validation checks
   if (!product_id) {
-    alert('Please select a product.');
+    showError('Please select a product.');
     return;
   }
 
   if (materials.length === 0) {
-    alert('No new materials to add.');
+    showError('No new materials to add.');
     return;
   }
 
   if (materials.some(m => !m.material_id || isNaN(m.used_quantity) || isNaN(m.unit_cost))) {
-    alert('Please complete all material fields.');
+    showError('Please complete all material fields.');
     return;
   }
 
@@ -1327,11 +1393,11 @@ async function submitProductMaterials() {
   });
 
   if (res.ok) {
-    alert('Materials added successfully.');
+    showSuccess('Materials added successfully.');
     closeModal('productMaterialModal');
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
 
@@ -1342,7 +1408,7 @@ async function updateMaterialField(button, productId, materialId) {
   const unit_cost = parseFloat(entry.querySelector('.unit-cost').value);
 
   if (isNaN(used_quantity) || isNaN(unit_cost)) {
-    alert("Please enter valid quantity and cost.");
+    showError("Please enter valid quantity and cost.");
     return;
   }
 
@@ -1353,27 +1419,46 @@ async function updateMaterialField(button, productId, materialId) {
   });
 
   if (res.ok) {
-    alert("Material updated.");
+    showSuccess("Material updated.");
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
 
 async function deleteMaterialField(button, productId, materialId) {
-  if (!confirm("Are you sure you want to delete this material from the product?")) return;
+const result = await Swal.fire({
+  icon: "warning",
+  title: "Delete material?",
+  text: "This will remove the material from the product.",
+  width: 400,
+  padding: "1rem",
+  showCancelButton: true,
+  confirmButtonText: "Delete",
+  cancelButtonText: "Cancel",
+  confirmButtonColor: "#d33",
+  focusCancel: true,
+  backdrop: true,
+  customClass: {
+    popup: "small-swal",
+    container: "swal-on-top"
+  }
+});
+
+if (!result.isConfirmed) return;
 
   const res = await fetch(`/api/product-materials/delete?product_id=${productId}&material_id=${materialId}`, {
     method: 'DELETE'
   });
 
   if (res.ok) {
-    alert("Material deleted.");
+    await showSuccess("Material deleted.");
     button.closest('.material-entry').remove();
     updateTotalCost();
+
   } else {
     const error = await res.json();
-    alert(`Error: ${error.detail}`);
+    showError(`Error: ${error.detail}`);
   }
 }
 
