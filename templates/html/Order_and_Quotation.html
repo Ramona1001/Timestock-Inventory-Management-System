@@ -620,7 +620,6 @@ document.getElementById('quotationLogo').addEventListener('change', function(e){
     quotationLogoFile = e.target.files[0] || null;
 });
 
-
 async function initPage() {
   // Load glass materials first
   await loadGlassMaterials();
@@ -632,22 +631,27 @@ async function initPage() {
   const productList = document.getElementById('productList');
   const productSelect = document.getElementById('productSelect');
 
-  data.forEach(product => {
+  // Add default option
+  const defaultOption = document.createElement('option');
+  // Filter only available products for the dropdown and table
+  const availableProducts = data.filter(p => p.status === "Available");
+
+  availableProducts.forEach(product => {
+    // Add to dropdown
     const option = document.createElement('option');
     option.value = product.product_id;
     option.textContent = product.item_name;
     option.dataset.unitPrice = product.unit_price;
     productSelect.appendChild(option);
 
-    if (product.status === "Available") {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${product.product_id}</td>
-        <td><button class="btn btn-link" onclick="handleProductClick('${product.product_id}', '${product.item_name}', ${product.unit_price})">${product.item_name}</button></td>
-        <td>₱${product.unit_price.toFixed(2)}</td>
-      `;
-      productList.appendChild(row);
-    }
+    // Add to table
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${product.product_id}</td>
+      <td><button class="btn btn-link" onclick="handleProductClick('${product.product_id}', '${product.item_name}', ${product.unit_price})">${product.item_name}</button></td>
+      <td>₱${product.unit_price.toFixed(2)}</td>
+    `;
+    productList.appendChild(row);
   });
 
   // Setup dropdown change

@@ -8,6 +8,7 @@ from plotly.utils import PlotlyJSONEncoder
 import plotly.subplots as sp
 from statsmodels.tsa.seasonal import STL
 from dateutil.relativedelta import relativedelta
+import numpy as np
 import json
 import shutil
 import os
@@ -601,6 +602,26 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
     seasonal = result.seasonal
     resid = result.resid
 
+    # ---- STL Confidence Score ----
+    signal_std = float(np.std(trend + seasonal))
+    residual_std = float(np.std(resid))
+
+    if signal_std + residual_std > 0:
+        signal_ratio = signal_std / (signal_std + residual_std)
+    else:
+        signal_ratio = 0.0
+
+    confidence_score = signal_ratio * 100
+
+    # Confidence label
+    if confidence_score >= 85:
+        confidence_label = "🟢 High Confidence"
+    elif confidence_score >= 65:
+        confidence_label = "🟡 Moderate Confidence"
+    else:
+        confidence_label = "🔴 Low Confidence"
+
+
     # Basic safety for very small series
     TREND_THRESHOLD = 0.5
     n_trend = len(trend)
@@ -808,7 +829,11 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
         })
 
     # Return both flat and grouped
-    return flat_recs, grouped
+    return flat_recs, grouped, {
+        "score": confidence_score,
+        "label": confidence_label
+    }
+
 
 
 def get_sales_moving_average_chart():

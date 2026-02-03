@@ -1,3 +1,4 @@
+from duckdb import df
 from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -116,7 +117,8 @@ def analytics_page(request: Request, user: dict = Depends(get_current_user)):
 
     stl_html, _, df, result, top_products_df = graphs.get_stl_decomposition_graph()
     stl_report = graphs.get_stl_decomposition_report(df, result)
-    stl_recommendation_flat, stl_recommendation_grouped = graphs.generate_recommendations_from_stl(df, result, top_products_df)
+    stl_recommendation_flat, stl_recommendation_grouped, stl_confidence = \
+        graphs.generate_recommendations_from_stl(df, result, top_products_df)
 
     # Moving Average Chart & Recommendations
     ma_chart_html, ma_df = graphs.get_sales_moving_average_chart()
@@ -130,14 +132,18 @@ def analytics_page(request: Request, user: dict = Depends(get_current_user)):
         "chart_report": chart_report,
         "turnover_combined_html": turnover_combined_html,
         "summary": summary_html,
+
         "stl_html": stl_html,
         "stl_report": stl_report,
-        "stl_recommendation": stl_recommendation_flat,       
-        "stl_recommendation_grouped": stl_recommendation_grouped,  
+        "stl_recommendation": stl_recommendation_flat,
+        "stl_recommendation_grouped": stl_recommendation_grouped,
+        "stl_confidence": stl_confidence,
+
         "ma_chart_html": ma_chart_html,
         "ma_report": ma_report,
         "ma_recommendation": ma_recommendation
     })
+
 
 
 @app.get("/Order_and_Quotation.html", response_class=HTMLResponse)

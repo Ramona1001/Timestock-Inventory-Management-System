@@ -12,7 +12,20 @@
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   
 <style>
-  /* ---------- ANALYTICS MOBILE LAYOUT ---------- */
+.confidence-badge.high {
+  background: #e6f7ee;
+  color: #1f9254;
+}
+
+.confidence-badge.medium {
+  background: #fff6e5;
+  color: #a87400;
+}
+
+.confidence-badge.low {
+  background: #fdecea;
+  color: #b42318;
+}
 @media screen and (max-width: 768px) {
   .chart-box {
     position: relative; 
@@ -211,9 +224,18 @@ document.addEventListener('DOMContentLoaded', function () {
     {{ stl_html | safe }}
 
 <section class="analytics-section">
+
   <h3>📈 STL-Based Order Trend Recommendation</h3>
 
   <div class="recommendation-box">
+      {% if stl_confidence %}
+      <span class="confidence-badge 
+        {% if 'High' in stl_confidence.label %}high
+        {% elif 'Moderate' in stl_confidence.label %}medium
+        {% else %}low{% endif %}">
+        {{ stl_confidence.label }} ({{ stl_confidence.score | round(2) }}%)
+      </span>
+    {% endif %}
     {% if stl_recommendation_grouped %}
       {% for block in stl_recommendation_grouped %}
         <div class="month-block {% if not loop.first %}collapsed{% endif %}">
