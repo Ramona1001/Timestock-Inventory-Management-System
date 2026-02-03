@@ -1223,7 +1223,10 @@ async function openAddProductMaterialModal() {
   defaultOption.textContent = '-- Select Product --';
   productSelect.appendChild(defaultOption);
 
-  products.forEach(p => {
+  // Filter only products with status "Available"
+  const availableProducts = products.filter(p => p.status === 'Available');
+
+  availableProducts.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.product_id;
     opt.textContent = p.item_name;

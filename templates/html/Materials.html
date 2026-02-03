@@ -28,7 +28,7 @@
   z-index: 10000 !important;
 }
 #editModal {
-  z-index: 1050; /* lower than SweetAlert's default 1060 */
+  z-index: 1050; 
 }
 
 /* ---------- MOBILE LAYOUT ---------- */
@@ -1819,7 +1819,10 @@ async function openAddProductMaterialModal() {
   defaultOption.textContent = '-- Select Product --';
   productSelect.appendChild(defaultOption);
 
-  products.forEach(p => {
+  // Filter only products with status "Available"
+  const availableProducts = products.filter(p => p.status === 'Available');
+
+  availableProducts.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.product_id;
     opt.textContent = p.item_name;
@@ -1832,6 +1835,7 @@ async function openAddProductMaterialModal() {
 
   document.getElementById('productMaterialModal').style.display = 'flex';
 }
+
 
 async function handleProductChange(event) {
   const productId = event.target.value;
