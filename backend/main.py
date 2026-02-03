@@ -237,7 +237,7 @@ def customer_page(request: Request, user: dict = Depends(get_current_user)):
 @app.get("/download-db")
 def download_duckdb(authorization: str = Header(None)):
     # Use persistent Railway volume
-    db_path = Path("/data/rdb_timestock_1") 
+    db_path = Path("/data/rdb_timestock_2") 
 
     if not db_path.exists():
         raise HTTPException(status_code=404, detail=f"Database file not found: {db_path}")

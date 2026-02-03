@@ -6,15 +6,15 @@ import shutil
 # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 # con = duckdb.connect('backend/db_timestock')
 
-REPO_DB_PATH = "backend/rdb_timestock_1"
+REPO_DB_PATH = "backend/rdb_timestock_2"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
     # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/rdb_timestock_1"
+    DB_PATH = "/data/rdb_timestock_2"
 else:
     # Local path
-    DB_PATH = "backend/rdb_timestock_1"
+    DB_PATH = "backend/rdb_timestock_2"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 

@@ -19,13 +19,13 @@ import os
 #     raise RuntimeError("MOTHERDUCK_TOKEN not set")
 
 # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-REPO_DB_PATH = "backend/rdb_timestock_1"
+REPO_DB_PATH = "backend/rdb_timestock_2"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
-    DB_PATH = "/data/rdb_timestock_1"
+    DB_PATH = "/data/rdb_timestock_2"
 else:
-    DB_PATH = "backend/rdb_timestock_1"
+    DB_PATH = "backend/rdb_timestock_2"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
