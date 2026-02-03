@@ -6,6 +6,7 @@ from tempfile import NamedTemporaryFile
 from datetime import datetime, timedelta
 import pandas as pd
 import uuid, secrets
+import numpy as np
 import os, json
 
 from backend.auth import get_current_user, verify_token
@@ -623,9 +624,11 @@ def place_order(request: Request, order: OrderTransactionCreate):
             }
         )
 
+
 @router.get("/order-statuses")
 def order_statuses():
     result = database.get_order_statuses()
+    result = result.replace({np.nan: None, np.inf: None, -np.inf: None})
     return result.to_dict(orient="records")
 
 @router.put("/orders/update-status") #  
@@ -633,9 +636,6 @@ def update_order_transaction_status(request: Request, data: OrderStatusUpdate):
     user = request.session.get("user")
     if not user or user.get("role") != "admin":
         raise HTTPException(status_code=401, detail="Unauthorized")
-
-    # keep DB call same as before (minimal change). If DB was updated to accept admin_id,
-    # we can add it here similarly to the other endpoints.
     result = database.update_order_status(data.transaction_id, data.status_code, database.con)
 
     if "error" in result:
@@ -645,7 +645,9 @@ def update_order_transaction_status(request: Request, data: OrderStatusUpdate):
 
 @router.get("/order-transactions")
 def read_order_transactions():
-    return database.get_order_transactions_detailed().to_dict(orient="records")
+    result = database.get_order_transactions_detailed()
+    result = result.replace({np.nan: None, np.inf: None, -np.inf: None})
+    return result.to_dict(orient="records")
 
 
 @router.delete("/orders/{transaction_id}")
