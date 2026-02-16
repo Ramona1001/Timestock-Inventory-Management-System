@@ -27,9 +27,8 @@ def format_currency(value):
     return f"Php{value:,.2f}"
 #Receipt
 def estimate_height(num_items):
-    # Base height: header + customer info + payment summary + footer
-    base_height = 100  # mm — fits small receipts
-    item_row_height = 6  # mm per item row
+    base_height = 100  
+    item_row_height = 6 
     return (base_height + num_items * item_row_height) * mm
 
 def generate_unofficial_receipt(
