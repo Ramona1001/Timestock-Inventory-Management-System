@@ -1,5 +1,6 @@
 from typing import List, Any, Optional
 from argon2 import PasswordHasher
+from fastapi.responses import PlainTextResponse
 from fastapi import APIRouter, Depends, HTTPException, Header,Request,Form
 from fastapi.responses import JSONResponse, FileResponse
 from tempfile import NamedTemporaryFile
@@ -833,8 +834,6 @@ def create_admin(admin: AdminCreate):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create admin: {str(e)}")
 
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import PlainTextResponse
 
 @router.post("/settings/add-employees", status_code=201, response_class=PlainTextResponse)
 def api_add_employee(

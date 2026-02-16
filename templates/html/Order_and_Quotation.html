@@ -365,21 +365,27 @@
       <label>Upload Company Logo (JPEG/PNG)</label>
       <input type="file" id="receiptLogo" accept="image/png, image/jpeg" class="form-control mb-2">
 
-      <!-- Optional Company Name -->
-      <input 
-        type="text" 
-        id="company_name" 
-        class="form-control mb-2" 
-        placeholder="Enter Company Name (optional)" 
-      />
+      <input type="text"  id="company_name"  class="form-control mb-2"  placeholder="Enter Company Name (optional)" />
 
-      <input 
-        type="number" 
-        id="down_payment" 
-        class="form-control mb-2" 
-        placeholder="Enter Down Payment" 
-        min="0" 
-      />
+      <input type="number" id="down_payment" class="form-control mb-2" placeholder="Enter Down Payment"  min="0"/>
+      
+      <button class="btn btn-info w-100 mb-2" style="background-color: #007bff; color: white;" onclick="toggleManualReceipt()">Fill Items Manually</button>
+
+      <div id="manualReceiptSection" style="display:none; border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+
+    <h4>Insert Receipt Items</h4>
+    <div id="manualItemsContainer">
+        <!-- Single item row template -->
+        <div class="manual-item-row mb-2">
+            <input type="text" class="form-control mb-1 manual-item-name" placeholder="Product Name">
+            <input type="number" class="form-control mb-1 manual-item-quantity" placeholder="Quantity" min="1" value="1">
+            <input type="number" class="form-control mb-1 manual-item-price" placeholder="Unit Price" min="0" step="0.01">
+            <button class="btn btn-danger btn-sm" type="button" style="background-color: red; color: white;" onclick="removeManualItem(this)">Remove</button>
+        </div>
+    </div>
+    <button class="btn btn-secondary btn-sm mt-2" style="background-color: green; color: white;" type="button" onclick="addManualItem()">Add Another Item</button>
+    </div>
+
 
       <button class="btn btn-success w-100"  style="background-color: #007bff; color: white;" onclick="generateReceipt()">Generate Receipt</button>
       <a id="downloadReceiptLink" href="#" download class="btn btn-secondary mt-2 w-100">Download PDF</a>
@@ -592,6 +598,29 @@ function showSuccess(message) {
     e.stopPropagation();
     dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
   });
+
+  function toggleManualReceipt() {
+  const section = document.getElementById("manualReceiptSection");
+  section.style.display = section.style.display === "none" ? "block" : "none";
+}
+
+function addManualItem() {
+  const container = document.getElementById("manualItemsContainer");
+  const row = document.createElement("div");
+  row.className = "manual-item-row mb-2";
+  row.innerHTML = `
+    <input type="text" class="form-control mb-1 manual-item-name" placeholder="Product Name">
+    <input type="number" class="form-control mb-1 manual-item-quantity" placeholder="Quantity" min="1" value="1">
+    <input type="number" class="form-control mb-1 manual-item-price" placeholder="Unit Price" min="0" step="0.01">
+    <button class="btn btn-danger btn-sm" type="button" style="background-color: red; color: white;" onclick="removeManualItem(this)">Remove</button>
+  `;
+  container.appendChild(row);
+}
+
+function removeManualItem(button) {
+  button.parentElement.remove();
+}
+
 </script>
 
 <!-- Order Quotes API-->
@@ -1281,7 +1310,9 @@ function clearCustomerForm() {
 }
 
 function generateReceipt() {
-  if (orderCart.length === 0) return showError("Cart is empty!");
+  if (orderCart.length === 0 && document.getElementById("manualItemsContainer").children.length === 0) {
+    return showError("Cart is empty and no manual items entered!");
+  }
 
   const fields = ["firstname", "lastname", "contact_number", "email", "address"];
   for (const field of fields) {
@@ -1306,21 +1337,52 @@ function generateReceipt() {
   const downPayment = parseFloat(document.getElementById("down_payment").value || "0");
   const companyName = document.getElementById("company_name").value.trim();
 
+  // Decide whether to use cart or manual items
+let items = [];
+const manualRows = document.querySelectorAll("#manualItemsContainer .manual-item-row");
+const validManualItems = Array.from(manualRows)
+  .map((row, index) => {
+    const name = row.querySelector(".manual-item-name").value.trim();
+    const qty = parseFloat(row.querySelector(".manual-item-quantity").value);
+    const price = parseFloat(row.querySelector(".manual-item-price").value);
+
+    if (!name || qty <= 0 || price < 0) return null;
+
+    return {
+      unit_id: `MNL${String(index + 1).padStart(2, "0")}`,
+      name,
+      quantity: qty,
+      unit_price: price
+    };
+  })
+  .filter(Boolean);
+
+if (orderCart.length > 0) {
+  items = orderCart.map(item => ({
+    unit_id: item.product_id,
+    name: item.item_name,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+  }));
+}
+
+if (validManualItems.length > 0) {
+  items = items.concat(validManualItems);
+}
+
+if (items.length === 0) {
+  return showError("Please add at least one item to generate receipt.");
+}
+
   const payload = {
     customer_name: `${customer.firstname} ${customer.lastname}`,
     address: customer.address,
     phone: customer.contact_number,
     down_payment: downPayment,
     company_name: companyName || null,
-    items: orderCart.map(item => ({
-      unit_id: item.product_id,
-      name: item.item_name,
-      quantity: item.quantity,
-      unit_price: item.unit_price
-    }))
+    items
   };
 
-  // Include logo if selected
   if (receiptLogoFile) {
     const reader = new FileReader();
     reader.onload = function() {
