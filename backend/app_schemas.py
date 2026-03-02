@@ -260,3 +260,15 @@ class AdminRead(AdminBase):
 
     class Config:
         orm_mode = True  # allows returning ORM/dict-like objects directly
+
+class ProfileUpdate(BaseModel):
+    firstname: str | None = None
+    lastname: str | None = None
+    email: str | None = None
+    contact_number: str | None = None 
+
+class ProfileInfo(BaseModel):
+    firstname: str
+    lastname: str
+    email: str
+    contact_number: str | None = None 

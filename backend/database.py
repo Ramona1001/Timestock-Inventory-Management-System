@@ -12,7 +12,7 @@ import string
 import smtplib
 import shutil
 from email.mime.text import MIMEText
-import os
+import os, io, csv
 
 # MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
 # if not MOTHERDUCK_TOKEN:
@@ -65,7 +65,7 @@ def send_email(to_email: str, new_password: str):
         raise ValueError("Missing RESEND_API_KEY environment variable")
 
     data = {
-        "from": "TimeStock <noreply@resend.dev>",
+        "from": "TimeStock IMS <noreply@timestock-ims.online>",
         "to": [to_email],
         "subject": "Password Reset Request",
         "html": new_password
@@ -202,6 +202,91 @@ def log_audit(
             except Exception:
                 pass
 
+def get_employee_info(emp_id: str):
+    query = """
+    SELECT firstname, lastname, email, contact_number
+    FROM employees
+    WHERE id = ?
+    """
+    result = con.execute(query, [emp_id]).fetchone()
+    if result:
+        return {
+            "firstname": result[0],
+            "lastname": result[1],
+            "email": result[2],
+            "contact_number": result[3]
+        }
+    return None
+
+def update_employee_info(emp_id: str, firstname=None, lastname=None, email=None, contact_number=None):
+    updates = []
+    params = []
+
+    if firstname is not None:
+        updates.append("firstname = ?")
+        params.append(firstname)
+    if lastname is not None:
+        updates.append("lastname = ?")
+        params.append(lastname)
+    if email is not None:
+        updates.append("email = ?")
+        params.append(email)
+    if contact_number is not None:
+        updates.append("contact_number = ?")
+        params.append(contact_number)
+
+    if not updates:
+        return False
+
+    query = f"""
+    UPDATE employees
+    SET {', '.join(updates)}
+    WHERE id = ?
+    """
+    params.append(emp_id)
+    con.execute(query, params)
+    return True
+
+def get_admin_info(id: str):
+    query = """
+    SELECT firstname, lastname, email
+    FROM admin
+    WHERE id = ?
+    """
+    result = con.execute(query, [id]).fetchone()
+    if result:
+        return {
+            'firstname': result[0],
+            'lastname': result[1],
+            'email': result[2]
+        }
+    return None
+
+def update_admin_info(id: str, firstname: str = None, lastname: str = None, email: str = None):
+    updates = []
+    params = []
+
+    if firstname is not None:
+        updates.append("firstname = ?")
+        params.append(firstname)
+    if lastname is not None:
+        updates.append("lastname = ?")
+        params.append(lastname)
+    if email is not None:
+        updates.append("email = ?")
+        params.append(email)
+
+    if not updates:
+        return False  
+
+    query = f"""
+    UPDATE admin
+    SET {', '.join(updates)}
+    WHERE id = ?
+    """
+    params.append(id)
+    con.execute(query, params)
+    return True
 
 # Product_materials
 def get_product_materials_grouped():
@@ -3068,7 +3153,7 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
     if not admin_exists:
         raise ValueError("Error: Admin ID not found")
 
-    cutoff_date = datetime.now() - timedelta(days= years*365)
+    cutoff_date = datetime.now() - timedelta(days=years*365)
     cutoff_param = cutoff_date.isoformat()
     
     deleted = {
@@ -3174,6 +3259,110 @@ def delete_old_transactions(years: int, *, admin_id: str, dry_run: bool = False)
 
     return {"success": True, "cutoff_date": cutoff_date.isoformat(), **deleted}
 
+def export_deleted_transactions_to_csv(cutoff_param, cur):
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # ORDERS SECTION
+    writer.writerow(["DELETED ORDERS"])
+    writer.writerow([
+        "transaction_id", "customer_name", "contact_number",
+        "customer_email", "address",
+        "status_code", "status_description",
+        "admin_name", "admin_email",
+        "date_created", "total_amount",
+        "total_items_ordered", "product_names"
+    ])
+
+    orders = cur.execute("""
+        SELECT 
+            ot.id AS transaction_id,
+            CONCAT(c.firstname, ' ', c.lastname) AS customer_name,
+            c.contact_number,
+            c.email AS customer_email,
+            c.address,
+            os.status_code,
+            os.description AS status_description,
+            CONCAT(a.firstname, ' ', a.lastname) AS admin_name,
+            a.email AS admin_email,
+            ot.date_created,
+            ot.total_amount,
+            COALESCE(SUM(oi.quantity), 0) AS total_items_ordered,
+            GROUP_CONCAT(DISTINCT i.item_name, ', ') AS product_names
+        FROM order_transactions ot
+        JOIN customers c ON ot.customer_id = c.id
+        JOIN order_statuses os ON ot.status_id = os.id
+        JOIN admin a ON ot.admin_id = a.id
+        LEFT JOIN order_items oi ON ot.id = oi.order_id
+        LEFT JOIN products p ON oi.product_id = p.id
+        LEFT JOIN items i ON p.item_id = i.id
+        WHERE ot.date_created < ?
+        GROUP BY 
+            ot.id, customer_name, c.contact_number, c.email, c.address,
+            os.status_code, os.description,
+            admin_name, a.email,
+            ot.date_created, ot.total_amount
+        ORDER BY ot.date_created DESC
+    """, (cutoff_param,)).fetchall()
+
+    for row in orders:
+        writer.writerow(row)
+
+    writer.writerow([])
+
+    # STOCKS SECTION
+    writer.writerow(["DELETED STOCK TRANSACTIONS"])
+    writer.writerow([
+        "transaction_id", "date_created",
+        "type_code", "stock_type",
+        "supplier_name", "supplier_contact", "supplier_email",
+        "admin_name", "admin_email",
+        "employee_name", "employee_email",
+        "material_name", "item_description",
+        "unit", "quantity"
+    ])
+
+    stocks = cur.execute("""
+        SELECT 
+            st.id AS transaction_id,
+            st.date_created,
+            stt.type_code,
+            stt.description AS stock_type,
+            CONCAT(s.firstname, ' ', s.lastname) AS supplier_name,
+            s.contact_number AS supplier_contact,
+            s.email AS supplier_email,
+            CASE 
+                WHEN a.firstname IS NOT NULL THEN CONCAT(a.firstname, ' ', a.lastname)
+                ELSE NULL 
+            END AS admin_name,
+            a.email AS admin_email,
+            CASE 
+                WHEN e.firstname IS NOT NULL THEN CONCAT(e.firstname, ' ', e.lastname)
+                ELSE NULL 
+            END AS employee_name,
+            e.email AS employee_email,
+            i.item_name AS material_name,
+            i.item_description,
+            um.measurement_code AS unit,
+            sti.quantity
+        FROM stock_transactions st
+        JOIN stock_transaction_types stt ON st.stock_type_id = stt.id
+        JOIN suppliers s ON st.supplier_id = s.id
+        LEFT JOIN admin a ON st.admin_id = a.id
+        LEFT JOIN employees e ON st.employee_id = e.id
+        JOIN stock_transaction_items sti ON st.id = sti.stock_transaction_id
+        JOIN materials m ON sti.material_id = m.id
+        JOIN items i ON m.item_id = i.id
+        JOIN unit_measurements um ON m.unit_measurement = um.measurement_code
+        WHERE st.date_created < ?
+        ORDER BY st.date_created DESC
+    """, (cutoff_param,)).fetchall()
+
+    for row in stocks:
+        writer.writerow(row)
+
+    output.seek(0)
+    return output
 
 def get_audit_logs(limit: int = 100, offset: int = 0, cur=None) -> List[Dict[str, Any]]:
     """

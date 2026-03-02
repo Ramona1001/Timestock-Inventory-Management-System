@@ -164,6 +164,14 @@ def supplier_page(request: Request, user: dict = Depends(get_current_user)):
         return RedirectResponse(url="/login")
     return templates.TemplateResponse("Supplier.html", {"request": request, "user": user})
 
+
+@app.get("/profile_management.html", response_class=HTMLResponse)
+def profile_management_page(request: Request, user: dict = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    return templates.TemplateResponse("profile_management.html", {"request": request, "user": user})
+
+
 @app.get("/Transactions.html", response_class=HTMLResponse)
 def transactions_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
@@ -235,7 +243,10 @@ def customer_page(request: Request, user: dict = Depends(get_current_user)):
     return templates.TemplateResponse("Customer.html", {"request": request, "user": user})
 
 @app.get("/download-db")
-def download_duckdb(authorization: str = Header(None)):
+def download_duckdb(user: dict = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
+    
     # Use persistent Railway volume
     db_path = Path("/data/rdb_timestock_2") 
 

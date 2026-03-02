@@ -1,4 +1,3 @@
-# graph.py
 import duckdb
 from datetime import datetime, timedelta
 import calendar
@@ -42,47 +41,34 @@ def get_graph_html(period='month'):
     con = duckdb.connect(DB_PATH)
     # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
 
-    # Total Orders
-    df_orders = con.execute(f"""
+    df = con.execute(f"""
+        WITH base AS (
+            SELECT 
+                DATE_TRUNC('{period}', ot.date_created) AS period,
+                ot.id,
+                ot.total_amount
+            FROM order_transactions ot
+            WHERE ot.status_id = 'OS00001'
+        )
         SELECT 
-            DATE_TRUNC('{period}', ot.date_created) AS period,
-            COUNT(DISTINCT ot.id) AS total_orders
-        FROM order_transactions ot
-        WHERE ot.status_id = 'OS00001'
-        GROUP BY period
-        ORDER BY period;
+            b.period,
+            COUNT(DISTINCT b.id) AS total_orders,
+            SUM(oi.quantity) AS total_sales,
+            SUM(b.total_amount) AS total_revenue
+        FROM base b
+        LEFT JOIN order_items oi ON b.id = oi.order_id
+        GROUP BY b.period
+        ORDER BY b.period;
     """).fetchdf()
 
-    # Total Sales (quantity)
-    df_sales = con.execute(f"""
-        SELECT 
-            DATE_TRUNC('{period}', ot.date_created) AS period,
-            SUM(oi.quantity) AS total_sales
-        FROM order_transactions ot
-        JOIN order_items oi ON ot.id = oi.order_id
-        WHERE ot.status_id = 'OS00001'
-        GROUP BY period
-        ORDER BY period;
-    """).fetchdf()
-
-    # Total Revenue
-    df_revenue = con.execute(f"""
-        SELECT 
-            DATE_TRUNC('{period}', ot.date_created) AS period,
-            SUM(ot.total_amount) AS total_revenue
-        FROM order_transactions ot
-        WHERE ot.status_id = 'OS00001'
-        GROUP BY period
-        ORDER BY period;
-    """).fetchdf()
-
-    # Merge the three metrics
-    df = df_orders.merge(df_sales, on='period', how='outer').merge(df_revenue, on='period', how='outer')
-    df = df.sort_values('period')
-
-    if df.empty or df['total_revenue'].sum() == 0:
+    # Handle empty data
+    if df.empty or df['total_revenue'].fillna(0).sum() == 0:
         return "<p>No sales data available.</p>", "<p>No data to report.</p>"
-    
+
+    # Replace NULLs from LEFT JOIN
+    df['total_sales'] = df['total_sales'].fillna(0)
+    df['total_revenue'] = df['total_revenue'].fillna(0)
+
     # Plotting
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -416,7 +402,6 @@ def get_reorder_point_chart(return_df=False):
 
     return fig.to_html(full_html=False, include_plotlyjs='cdn', config={"responsive": True})
 
-
 def get_stl_decomposition_graph():
     con = duckdb.connect(DB_PATH)
     # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
@@ -522,7 +507,6 @@ def get_stl_decomposition_graph():
 
     return fig.to_html(full_html=False), report_html, df, result, top_products_df
 
-
 def get_stl_decomposition_report(df, result):
 
     if result is None or df.empty or 'total_quantity' not in df.columns:
@@ -586,8 +570,6 @@ def get_stl_decomposition_report(df, result):
     </div>
     """
     return report
-
-
 
 def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df: pd.DataFrame):
     if result is None or df.empty or 'total_quantity' not in df.columns:
@@ -801,15 +783,15 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
         grouped_msgs = []
         if slope > TREND_THRESHOLD:
             grouped_msgs.append(
-                f"🟢 Trend Increasing (forecasted): Consider stocking more materials of <strong>{top_product_future}</strong>."
+                f"🟢 Trend Increasing: Consider stocking more materials of <strong>{top_product_future}</strong>."
             )
         elif slope < -TREND_THRESHOLD:
             grouped_msgs.append(
-                f"🔴 Sustained Trend Decrease (forecasted): Monitor demand and consider reducing stock of <strong>{top_product_future}</strong>."
+                f"🔴 Sustained Trend Decrease: Monitor demand and consider reducing stock of <strong>{top_product_future}</strong>."
             )
         else:
             grouped_msgs.append(
-                f"⚪ Trend Stable (forecasted): No major change in demand for <strong>{top_product_future}</strong>."
+                f"⚪ Trend Stable: No major change in demand for <strong>{top_product_future}</strong>."
             )
 
         if seasonal_effect_future == seasonal_effect_future:
@@ -833,8 +815,6 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
         "score": confidence_score,
         "label": confidence_label
     }
-
-
 
 def get_sales_moving_average_chart():
     con = duckdb.connect(DB_PATH)
@@ -926,7 +906,6 @@ def get_sales_moving_average_chart():
     html = fig.to_html(full_html=False, config={'responsive': True})
     return html, df
 
-    
 def generate_moving_average_recommendations(df: pd.DataFrame) -> list:
     recommendations = []
 
@@ -1005,7 +984,6 @@ def generate_moving_average_recommendations(df: pd.DataFrame) -> list:
         )
 
     return recommendations
-
 
 def generate_sales_moving_average_report(df: pd.DataFrame) -> str:
 

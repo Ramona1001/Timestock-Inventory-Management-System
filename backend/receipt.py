@@ -9,19 +9,6 @@ from xml.sax.saxutils import escape
 import time, os, base64,io
 
 
-def cleanup_old_pdfs(directory, max_age_minutes=10):
-    now = time.time()
-    max_age_seconds = max_age_minutes * 60
-
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-        if filename.endswith(".pdf") and os.path.isfile(file_path):
-            file_age = now - os.path.getmtime(file_path)
-            if file_age > max_age_seconds:
-                try:
-                    os.remove(file_path)
-                except Exception as e:
-                    print(f"Failed to remove old PDF: {file_path}, error: {e}")
 
 def format_currency(value):
     return f"Php{value:,.2f}"
@@ -75,7 +62,7 @@ def generate_unofficial_receipt(
     total_price = 0
 
     for item in items:
-        unit_id = item["unit_id"]
+        unit_id = Paragraph(escape(str(item["unit_id"])), small)
         name = escape(item["name"])
         qty = item["quantity"]
         total = item["unit_price"] * qty
@@ -285,10 +272,8 @@ def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_rep
     # File setup
     month_name = calendar.month_name[month] if month else "ALL"
     filename = f"report_{month_name}_{year}.pdf"
-    filepath = os.path.join("reports", filename)
-    os.makedirs("reports", exist_ok=True)
 
-    doc = SimpleDocTemplate(filepath, pagesize=A4)
+    doc = SimpleDocTemplate(filename, pagesize=A4)
     story = []
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(name="SectionTitle", fontSize=14, leading=16, spaceAfter=10, textColor=colors.darkblue))
@@ -421,4 +406,4 @@ def generate_report_pdf(report_text, turnover_report, stl_report, moving_avg_rep
 
     # Build PDF
     doc.build(story)
-    return filepath
+    return filename
