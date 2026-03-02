@@ -8,7 +8,9 @@
     <meta http-equiv="Expires" content="0" />
     <title>TIMESTOCK IMS - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-     <link rel="stylesheet" href="../css/Login.css?v=3">
+    <link rel="stylesheet" href="../css/Login.css?v=3">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
 .modal {
     position: fixed;
@@ -233,13 +235,7 @@
                     <h3>Email Verification</h3>
                     <p class="subtitle">We sent a 6-digit verification code to your email.<br>Please enter it below.</p>
 
-                    <input 
-                        type="text" 
-                        id="verificationCode" 
-                        maxlength="6" 
-                        class="input-field"
-                        placeholder="Enter 6-Digit Code "
-                        style="text-align:center; font-size:18px;"
+                    <input type="text" id="verificationCode" maxlength="6" class="input-field"placeholder="Enter 6-Digit Code "style="text-align:center; font-size:18px;"
                     >
 
                     <button id="verifyCodeBtn" class="btn">
@@ -257,6 +253,39 @@
     </div>
 
 <script>
+    function showError(message) {
+  return Swal.fire({
+    icon: "error",
+    title: "Oops…",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    backdrop: true,
+    scrollbarPadding: false,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
+
+function showSuccess(message) {
+  return Swal.fire({
+    icon: "success",
+    title: "Success!",
+    text: message,
+    width: 400,
+    padding: "1rem",
+    timer: 2000,
+    scrollbarPadding: false,
+    showConfirmButton: false,
+    backdrop: true,
+    customClass: {
+      popup: "small-swal",
+      container: "swal-on-top"
+    }
+  });
+}
     // Logo image fallback
     const logoImage = document.getElementById('companyLogo');
     const logoPlaceholder = document.getElementById('logoPlaceholder');
@@ -396,7 +425,7 @@
 
     handleFormSubmission('loginFormElement', 'loginBtn', 'Login successful! Redirecting...');
 
-// ===== FORGOT PASSWORD — SEND CODE =====
+//  FORGOT PASSWORD — SEND CODE 
 document.getElementById("forgotFormElement").addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -437,11 +466,17 @@ document.getElementById("forgotFormElement").addEventListener("submit", async (e
 
 
 document.getElementById("verifyCodeBtn").addEventListener("click", async () => {
+    const verifyCodeBtn = document.getElementById("verifyCodeBtn");
     const code = document.getElementById("verificationCode").value;
     const email = window.resetEmail;
 
+    verifyCodeBtn.disabled = true;
+    verifyCodeBtn.textContent = "Verifying...";
+
     if (!code.trim()) {
-        alert("Please enter the verification code.");
+        await showError("Please enter the verification code.");
+        verifyCodeBtn.disabled = false;
+        verifyCodeBtn.textContent = "Verify Code";
         return;
     }
 
@@ -457,10 +492,13 @@ document.getElementById("verifyCodeBtn").addEventListener("click", async () => {
     const data = await res.json();
 
     if (!res.ok) {
-        alert(data.detail || "Incorrect verification code");
+        await showError(data.detail || "Incorrect verification code");
+         verifyCodeBtn.disabled = false;
+        verifyCodeBtn.textContent = "Verify Code";
     } else {
-        alert("Success! New password has been emailed to you.");
+        await showSuccess("Success! New password has been emailed to you.");
         document.getElementById("codeModal").style.display = "none";
+        window.location.reload();
     }
 });
 

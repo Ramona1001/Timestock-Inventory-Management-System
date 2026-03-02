@@ -11,206 +11,206 @@
   <link rel="stylesheet" href="../css/Settings.css?v=6">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    .small-swal {
-  min-height: 160px;
+<style>
+  .small-swal {
+min-height: 160px;
 }
 
 .small-swal .swal2-title {
-  font-size: 1.1rem;
-  margin-bottom: 0.25rem;
+font-size: 1.1rem;
+margin-bottom: 0.25rem;
 }
 
 .small-swal .swal2-html-container {
-  font-size: 0.9rem;
+font-size: 0.9rem;
 }
 
 .swal-on-top {
-  z-index: 10000 !important;
+z-index: 10000 !important;
 }
-        /* Style disabled buttons to look visually distinct */
-    .demo-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background-color: #ccc;
-        color: #666;
-        border-color: #aaa;
-    }
-
-    .demo-btn[title] {
-        position: relative;
-    }
-
-    /* Optional: small tooltip effect */
-    .demo-btn[title]:hover::after {
-        content: attr(title);
-        position: absolute;
-        bottom: 125%;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        white-space: nowrap;
-    }  
-  @media screen and (max-width: 768px) {
-
-  /* Container collapse */
-  .container {
-    grid-template-columns: 1fr; /* hide sidebar, full width */
-    padding: 0 1rem;
+      /* Style disabled buttons to look visually distinct */
+  .demo-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: #ccc;
+      color: #666;
+      border-color: #aaa;
   }
 
-  /* Header adjustments */
-  .header-bar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 1rem;
-    margin-bottom: 1rem;
+  .demo-btn[title] {
+      position: relative;
   }
 
-  .top-bar {
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
+  /* Optional: small tooltip effect */
+  .demo-btn[title]:hover::after {
+      content: attr(title);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+  }  
+@media screen and (max-width: 768px) {
 
-  /* Main content vertical stack */
-  main {
-    margin-top: 1rem;
-    padding: 0 0.5rem;
-  }
-
-  /* Maintenance card stack */
-  .maintenance-card {
-    padding: 0.8rem;
-  }
-
-  .maintenance-row {
-    flex-direction: column;
-    gap: 6px;
-    align-items: stretch;
-  }
-
-  .maintenance-row input[type="number"] {
-    width: 100%;
-  }
-
-  /* Tables scroll horizontally */
-  .table-wrapper,
-  .table-container,
-  #auditTable {
-    overflow-x: auto;
-  }
-
-  #auditTable thead, 
-  #auditTable tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed;
-  }
-
-  #auditTable tbody {
-    display: block;
-    max-height: 250px;
-    overflow-y: auto;
-  }
-
-  #auditTable tbody td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Pagination wraps */
-  .pagination {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  .pagination button {
-    padding: 5px 10px;
-    font-size: 0.75rem;
-  }
-
-  /* Modal full width */
-  .modal-content {
-    width: 95%;
-    max-width: 400px;
-    padding: 1rem;
-  }
-
-  .modal-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .modal-actions {
-    flex-direction: column-reverse;
-    gap: 6px;
-  }
-
-  /* Form grid stacks vertically */
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .form-group.full-width {
-    grid-column: 1 / -1;
-  }
-
-  .modal-content input,
-  .modal-content select {
-    width: 100%;
-  }
-
-  /* Buttons full width for touch targets */
-  .btn,
-  .btn-danger,
-  .demo-btn,
-  #migrateBtn {
-    width: 100%;
-    margin-bottom: 8px;
-  }
-
-  /* Slider adjustments for vertical orientation */
-  .vertical-range {
-    width: 100%; /* full width slider */
-    height: 24px;
-    transform: rotate(0deg); /* horizontal on mobile */
-    margin: 8px 0;
-  }
-
-  input[type="range"] {
-    width: 100%;
-    height: 32px;
-  }
-
-  /* Optional: reduce font sizes for small screens */
-  .modal-content h3 {
-    font-size: 16px;
-  }
-
-  .modal-content p,
-  .modal-content ul li,
-  .muted {
-    font-size: 13px;
-  }
-
-  /* Slider container adjust */
-  .slider-container {
-    width: 100%;
-    justify-content: flex-start;
-    padding-top: 4px;
-  }
+/* Container collapse */
+.container {
+  grid-template-columns: 1fr; /* hide sidebar, full width */
+  padding: 0 1rem;
 }
 
-  </style>
+/* Header adjustments */
+.header-bar {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  margin-bottom: 1rem;
+}
+
+.top-bar {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Main content vertical stack */
+main {
+  margin-top: 1rem;
+  padding: 0 0.5rem;
+}
+
+/* Maintenance card stack */
+.maintenance-card {
+  padding: 0.8rem;
+}
+
+.maintenance-row {
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.maintenance-row input[type="number"] {
+  width: 100%;
+}
+
+/* Tables scroll horizontally */
+.table-wrapper,
+.table-container,
+#auditTable {
+  overflow-x: auto;
+}
+
+#auditTable thead, 
+#auditTable tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+#auditTable tbody {
+  display: block;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+#auditTable tbody td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pagination wraps */
+.pagination {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+}
+
+/* Modal full width */
+.modal-content {
+  width: 95%;
+  max-width: 400px;
+  padding: 1rem;
+}
+
+.modal-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.modal-actions {
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+/* Form grid stacks vertically */
+.form-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+}
+
+/* Buttons full width for touch targets */
+.btn,
+.btn-danger,
+.demo-btn,
+#migrateBtn {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Slider adjustments for vertical orientation */
+.vertical-range {
+  width: 100%; /* full width slider */
+  height: 24px;
+  transform: rotate(0deg); /* horizontal on mobile */
+  margin: 8px 0;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 32px;
+}
+
+/* Optional: reduce font sizes for small screens */
+.modal-content h3 {
+  font-size: 16px;
+}
+
+.modal-content p,
+.modal-content ul li,
+.muted {
+  font-size: 13px;
+}
+
+/* Slider container adjust */
+.slider-container {
+  width: 100%;
+  justify-content: flex-start;
+  padding-top: 4px;
+}
+}
+
+</style>
 </head>
 <body>
   <div class="container">
@@ -242,6 +242,7 @@
     <!-- <button class="demo-btn" onclick="openModal('statusModal')">Change Status</button> -->
     <button class="demo-btn" onclick="openModal('passwordModal')">Change Employee Password</button>
     <button class="demo-btn" onclick="openModal('changeAdminPasswordModal')">Change Your Password</button>
+    <button class="demo-btn" onclick="openModal('profileModal')">Edit Profile</button>
     <!-- <button class="demo-btn" onclick="openModal('migrateModal')">Migration</button> -->
 </div>
 
@@ -430,6 +431,31 @@
 </div>
 
 
+<!-- Profile modal -->
+<div id="profileModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Profile</h2>
+      <span class="close" onclick="closeModal('profileModal')">&times;</span>
+    </div>
+    <div class="modal-body">
+      <label>First Name</label>
+      <input type="text" id="firstname">
+      <label>Last Name</label>
+      <input type="text" id="lastname">
+      <label>Email</label>
+      <input type="email" id="email">
+      <div id="contactField" style="display:none;">
+        <label>Contact Number</label>
+        <input type="text" id="contact_number">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="save-btn" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <section class="maintenance-card" aria-labelledby="maintenance-title">
   <h2 id="maintenance-title">Delete Old Transactions</h2>
   <p class="muted">Preview what would be deleted before confirming. Minimum allowed value: <strong>5</strong> years.</p>
@@ -477,7 +503,8 @@
       </ul>
     </div>
 
-    <div id="confirmCutoff" class="muted" style="margin-top:8px;">Cutoff date: <span id="confirmCutoffDate">—</span></div>
+    <div id="confirmCutoff" class="muted" style="margin-top:8px;">This will archive as a CSV file.</div>
+    <div id="confirmCutoff" class="muted">Cutoff date: <span id="confirmCutoffDate">—</span></div>
 
     <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
       <button id="cancelDeleteBtn" class="btn" type="button">Decline</button>
@@ -520,9 +547,7 @@
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <script>
-/* ---------- Employee autocomplete for password modal (input + hidden + dropdown) ---------- */
 (function() {
-  // debounce helper
   function debounce(fn, wait) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
@@ -742,7 +767,6 @@ function showError(message) {
     text: message,
     width: 400,
     padding: "1rem",
-    html: message.replace(/\n/g, "<br>"),
     backdrop: true,
     scrollbarPadding: false,
     customClass: {
@@ -756,13 +780,12 @@ function showSuccess(message) {
   return Swal.fire({
     icon: "success",
     title: "Success!",
-    html: message.replace(/\n/g, "<br>"), 
+    text: message,
     width: 400,
     padding: "1rem",
-    showConfirmButton: true,  
-    confirmButtonText: "OK",
-    timer: undefined,         
+    timer: 2000,
     scrollbarPadding: false,
+    showConfirmButton: false,
     backdrop: true,
     customClass: {
       popup: "small-swal",
@@ -771,7 +794,7 @@ function showSuccess(message) {
   });
 }
 </script>
-
+<!-- Employee Password Change -->
 <script>
 (function() {
   const passwordForm = document.getElementById('passwordForm');
@@ -888,7 +911,7 @@ function showSuccess(message) {
   });
 </script>
 
-
+<!-- Add Accounts-->>
 <script>
 async function postData(url = '', data = {}) {
   const res = await fetch(url, {
@@ -1003,6 +1026,7 @@ document.getElementById('migrateBtn')?.addEventListener('click', async () => {
 });
 </script>
 
+<!-- Delete Old Transactions -->
 <script>
 const API_BASE = '/api';
 
@@ -1141,7 +1165,7 @@ cancelDeleteBtn.addEventListener('click', () => {
   closeModal('deleteConfirmModal');
 });
 
-/* Confirm delete (perform destructive action) */
+
 confirmDeleteBtn.addEventListener('click', async () => {
   // disable the button once clicked to avoid double submissions
   confirmDeleteBtn.disabled = true;
@@ -1149,7 +1173,35 @@ confirmDeleteBtn.addEventListener('click', async () => {
 
   const years = Number(yearsInput.value || 0);
   try {
-    const res = await fetchJson(deleteUrl(years), { method: 'DELETE' });
+const resp = await fetch(deleteUrl(years), {
+  method: 'DELETE',
+  credentials: 'include'
+});
+
+if (!resp.ok) {
+  const text = await resp.text();
+  throw new Error(text || 'Delete failed');
+}
+
+const blob = await resp.blob();
+const url = window.URL.createObjectURL(blob);
+
+const contentDisposition = resp.headers.get("Content-Disposition");
+let filename = "download.csv";
+
+if (contentDisposition && contentDisposition.includes("filename=")) {
+  filename = contentDisposition
+    .split("filename=")[1]
+    .replace(/"/g, '');
+}
+
+const a = document.createElement("a");
+a.href = url;
+a.download = filename;
+document.body.appendChild(a);
+a.click();
+a.remove();
+window.URL.revokeObjectURL(url);
 
     // close modal after a short delay
     setTimeout(() => {
@@ -1159,7 +1211,7 @@ confirmDeleteBtn.addEventListener('click', async () => {
       // disable Delete button now (nothing left to delete)
       deleteBtn.disabled = true;
     }, 1200);
-
+    
   window.location.reload();
   } catch (err) {
     console.error(err);
@@ -1320,6 +1372,77 @@ document.addEventListener('DOMContentLoaded', init);
 /* End of maintenance JS */
 </script>
 
+<!-- Admin Profile Modal-->
+<script>
+window.onload = () => {
+    const modalId = 'profileModal';
+    const modal = document.getElementById(modalId);
+    const saveBtn = document.getElementById("saveBtn");
+
+    // Generic open/close modal
+    window.openModal = function(id) {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.style.display = "block";
+        if (id === modalId) fetchAdminInfo();
+    }
+    window.closeModal = function(id) {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.style.display = "none";
+    }
+
+    // Fetch profile info
+    async function fetchAdminInfo() {
+        try {
+            const res = await fetch("/api/profile", { credentials: "include" });
+            if (!res.ok) throw new Error("Failed to fetch profile info");
+            const data = await res.json();
+            document.getElementById("firstname").value = data.firstname;
+            document.getElementById("lastname").value = data.lastname;
+            document.getElementById("email").value = data.email;
+            if (data.contact_number !== undefined && data.contact_number !== null) {
+                document.getElementById("contactField").style.display = "block";
+                document.getElementById("contact_number").value = data.contact_number;
+            } else {
+                document.getElementById("contactField").style.display = "none";
+            }
+        } catch(err) {
+            alert(err.message);
+            closeModal(modalId);
+        }
+    }
+
+    // Save updated profile
+    saveBtn.onclick = async () => {
+        const payload = {
+            firstname: document.getElementById("firstname").value,
+            lastname: document.getElementById("lastname").value,
+            email: document.getElementById("email").value,
+            contact_number: document.getElementById("contact_number").value
+        };
+        try {
+            const res = await fetch("/api/profile/update", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Failed to update profile");
+            await showSuccess("Profile updated successfully!");
+            closeModal(modalId);
+            window.location.reload();
+        } catch(err) {
+            showError(err.message);
+        }
+    }
+
+    // Close modal if clicking outside
+    window.onclick = (event) => {
+        if (event.target === modal) closeModal(modalId);
+    }
+};
+</script>
 
 <script>
     // Modal functions
@@ -1378,17 +1501,24 @@ async function checkUserRole() {
 
         if (user.role !== "admin") {
             buttons.forEach(btn => {
-                btn.disabled = true;
-                btn.title = "Only admins can use this feature";
+                // Exclude change password and edit profile buttons
+                const modalId = btn.getAttribute("onclick")?.match(/openModal\('(.+?)'\)/)?.[1];
+                if (modalId !== "changeAdminPasswordModal" && modalId !== "profileModal") {
+                    btn.disabled = true;
+                    btn.title = "Only admins can use this feature";
+                }
             });
         }
 
     } catch (err) {
         console.warn("Error checking role:", err);
-        // If user not logged in, also disable buttons
+        // If user not logged in, disable all admin buttons except personal actions
         document.querySelectorAll("#adminButtons .demo-btn").forEach(btn => {
-            btn.disabled = true;
-            btn.title = "Please log in as an admin to use this feature";
+            const modalId = btn.getAttribute("onclick")?.match(/openModal\('(.+?)'\)/)?.[1];
+            if (modalId !== "changeAdminPasswordModal" && modalId !== "profileModal") {
+                btn.disabled = true;
+                btn.title = "Please log in as an admin to use this feature";
+            }
         });
     }
 }

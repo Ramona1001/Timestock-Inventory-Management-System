@@ -11,7 +11,6 @@
   <link rel="stylesheet" href="../css/product.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
-        /* ---------- MOBILE LAYOUT ---------- */
 .small-swal {
   min-height: 160px;
 }
@@ -671,6 +670,13 @@ async function fetchProducts() {
   }
 }
 
+function displayValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+  return value;
+}
+
 function renderTablePage(type, page) {
   let data, tbodyId;
 
@@ -694,15 +700,17 @@ function renderTablePage(type, page) {
     const statusClass = product.status === "Available" ? "success" : "danger";
 
   row.innerHTML = `
-    <td>${product.product_id}</td>
-    <td>${product.item_name}</td>
-    <td>${product.item_description}</td>
-    <td>${product.item_category_name}</td>
-    <td>${product.unit_price}</td>
-    <td>${product.materials_cost}</td>
+    <td>${displayValue(product.product_id)}</td>
+    <td>${displayValue(product.item_name)}</td>
+    <td>${displayValue(product.item_description)}</td>
+    <td>${displayValue(product.item_category_name)}</td>
+    <td>${displayValue(product.unit_price)}</td>
+    <td>${displayValue(product.materials_cost)}</td>
     <td>${formatDate(product.date_created)}</td>
     <td>
-      ${product.width && product.height ? product.width + "x" + product.height : ""}
+      ${product.width && product.height
+        ? `${product.width}x${product.height}`
+      :  `<span style="color:#999; font-style:italic;">N/A</span>`}
     </td>
     <td class="${statusClass}">${product.status}</td>
     {% if request.session['user']['role'] == 'admin' %}

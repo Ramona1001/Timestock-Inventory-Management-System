@@ -1,6 +1,6 @@
 from typing import List, Any, Optional
 from argon2 import PasswordHasher
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from fastapi import APIRouter, Depends, HTTPException, Header,Request,Form
 from fastapi.responses import JSONResponse, FileResponse
 from tempfile import NamedTemporaryFile
@@ -18,7 +18,7 @@ from .app_schemas import (
     CustomerCreate, CustomerUpdate, ReceiptRequest, QuotationRequest,
     ProductCreate, ProductUpdate,StockTransactionCreate,ProductMaterialBulkCreate,
     SupplierCreate, SupplierUpdate, ProductMaterialCreate, OrderTransactionCreate,
-    AdminCreate, AdminRead
+    AdminCreate, AdminRead, ProfileInfo, ProfileUpdate
 )
 
 from backend import database, receipt, graphs, analytics
@@ -77,7 +77,87 @@ def update_material_api(request: Request, material: MaterialUpdate) -> Any:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Internal server error: " + str(e))
-    
+
+@router.get("/profile", response_model=ProfileInfo)
+def read_profile(request: Request):
+    user = request.session.get("user")
+    if not user or "id" not in user or "role" not in user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+
+    user_id = user["id"]
+    role = user["role"]
+
+    if role == "admin":
+        profile = database.get_admin_info(user_id)
+        return {
+            "firstname": profile["firstname"],
+            "lastname": profile["lastname"],
+            "email": profile["email"],
+            "contact_number": None
+        }
+    elif role == "employee":
+        profile = database.get_employee_info(user_id)
+        return {
+            "firstname": profile["firstname"],
+            "lastname": profile["lastname"],
+            "email": profile["email"],
+            "contact_number": profile["contact_number"]
+        }
+    else:
+        raise HTTPException(status_code=403, detail="Unknown role")
+
+
+@router.put("/profile/update", response_model=ProfileInfo)
+def update_profile(update: ProfileUpdate, request: Request):
+    user = request.session.get("user")
+    if not user or "id" not in user or "role" not in user:
+        raise HTTPException(status_code=401, detail="Not logged in")
+
+    user_id = user["id"]
+    role = user["role"]
+
+    # Update DB
+    if role == "admin":
+        success = database.update_admin_info(
+            user_id,
+            firstname=update.firstname,
+            lastname=update.lastname,
+            email=update.email
+        )
+    elif role == "employee":
+        success = database.update_employee_info(
+            user_id,
+            firstname=update.firstname,
+            lastname=update.lastname,
+            email=update.email,
+            contact_number=update.contact_number
+        )
+    else:
+        raise HTTPException(status_code=403, detail="Unknown role")
+
+    if not success:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    # 🔹 Sync session with updated info
+    if role == "admin":
+        updated = database.get_admin_info(user_id)
+        request.session["user"]["firstname"] = updated["firstname"]
+        request.session["user"]["lastname"] = updated["lastname"]
+        request.session["user"]["email"] = updated["email"]
+    else:
+        updated = database.get_employee_info(user_id)
+        request.session["user"]["firstname"] = updated["firstname"]
+        request.session["user"]["lastname"] = updated["lastname"]
+        request.session["user"]["email"] = updated["email"]
+        request.session["user"]["contact_number"] = updated["contact_number"]
+
+    # Return updated profile
+    return {
+        "firstname": updated["firstname"],
+        "lastname": updated["lastname"],
+        "email": updated["email"],
+        "contact_number": updated.get("contact_number")
+    }
 # ---- Alerts ---
 CACHE_FILE = "alert_cache.json"
 
@@ -728,12 +808,7 @@ def stock_flow_summary():
 @router.post("/generate-receipt")
 def generate_receipt(req: ReceiptRequest):
     print("Received company name:", req.company_name) 
-    print("Received logo_data:", "Yes" if req.logo_data else "No")  # Debug check
-
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "pdf_container")
-    os.makedirs(output_dir, exist_ok=True)
-
-    receipt.cleanup_old_pdfs(output_dir, max_age_minutes=10)
+    print("Received logo_data:", "Yes" if req.logo_data else "No")
 
     grand_total = sum(item.quantity * item.unit_price for item in req.items)
     if req.down_payment > grand_total:
@@ -741,7 +816,7 @@ def generate_receipt(req: ReceiptRequest):
 
     company_name = req.company_name.strip() if req.company_name and req.company_name.strip() else "Times Stock Aluminum & Glass"
 
-    filename = os.path.join(output_dir, f"receipt_{uuid.uuid4().hex}.pdf")
+    filename = os.path.join(f"receipt_{uuid.uuid4().hex}.pdf")
 
     # Pass logo_data here
     receipt.generate_unofficial_receipt(
@@ -928,12 +1003,32 @@ def preview_transactions_to_delete(years: int, current_admin = Depends(database.
         return {"message": f"Data still hasn't reached {years} years old", "cutoff_date": result.get("cutoff_date")}
     return result
 
-@router.delete("/maintenance/delete-old-transactions/{years}") #  
+@router.delete("/maintenance/delete-old-transactions/{years}")
 def perform_delete_old_transactions(years: int, current_admin = Depends(database.get_current_admin)):
     try:
         admin_id = current_admin["id"]
-        result = database.delete_old_transactions(years, admin_id=admin_id, dry_run=False)
-        return result
+
+        #Create cursor manually
+        cur = database.con.cursor()
+        cutoff_date = datetime.now() - timedelta(days=years*365)
+        cutoff_param = cutoff_date.isoformat()
+
+        #Export data BEFORE deleting
+        csv_file = database.export_deleted_transactions_to_csv(cutoff_param, cur)
+
+        #Perform deletion
+        database.delete_old_transactions(years, admin_id=admin_id, dry_run=False)
+
+        filename = f"deleted_transactions_{cutoff_date.strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+
+        return StreamingResponse(
+            csv_file,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -960,9 +1055,22 @@ VERIFICATION_CODES = {}
 
 @router.post("/forgot-password/send-code")
 async def send_reset_code(email: str = Form(...)):
-    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
 
-    if not user:
+    # Check admins first
+    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+    table = None
+
+    if user:
+        table = "admin"
+    else:
+        # Check employees
+        user = database.con.execute("SELECT id FROM employees WHERE email = ?", [email]).fetchone()
+        if user:
+            table = "employees"
+
+    if not user or not table:
         raise HTTPException(status_code=404, detail="Email not found")
 
     # Generate 6-digit verification code
@@ -974,11 +1082,11 @@ async def send_reset_code(email: str = Form(...)):
         database.send_email(
             email,
             f"""
-                <p>Hello Admin,</p>
-                <p>Your password reset verification code is:</p>
-                <h2>{code}</h2>
-                <p>This 6-Digit Code is use to verify that its you.</p>
-                <p>- TimeStock IMS Dev Team</p>
+            <p>Hello {table.capitalize()},</p>
+            <p>Your password reset verification code is:</p>
+            <h2>{code}</h2>
+            <p>This 6-digit code is used to verify your identity.</p>
+            <p>- TimeStock IMS Dev Team</p>
             """
         )
     except Exception as e:
@@ -1000,27 +1108,39 @@ async def verify_reset_code(email: str = Form(...), code: str = Form(...)):
     # Remove code after successful verification
     del VERIFICATION_CODES[email]
 
+    # Determine which table the email belongs to
+    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+    table = "admin" if user else None
+
+    if not table:
+        user = database.con.execute("SELECT id FROM employees WHERE email = ?", [email]).fetchone()
+        if user:
+            table = "employees"
+
+    if not user or not table:
+        raise HTTPException(status_code=404, detail="Email not found")
+
     # Generate new password
     new_password = database.generate_new_password()
     hashed_password = ph.hash(new_password)
 
-    # Update DB
+    # Update password in the correct table
     database.con.execute(
-        "UPDATE admin SET password = ? WHERE email = ?",
+        f"UPDATE {table} SET password = ? WHERE email = ?",
         [hashed_password, email]
     )
 
-    # Email new password using your resend function
+    # Send email
     try:
         database.send_email(
             email,
             f"""
-                <p>Hello Admin,</p>
-                <p>Your password has been successfully reset.</p>
-                <p>Your new password is:</p>
-                <h2>{new_password}</h2>
-                <p>Please log in and change it immediately.</p>
-                <p>- TimeStock IMS Dev Team</p>
+            <p>Hello {table.capitalize()},</p>
+            <p>Your password has been successfully reset.</p>
+            <p>Your new password is:</p>
+            <h2>{new_password}</h2>
+            <p>Please log in and change it immediately.</p>
+            <p>- TimeStock IMS Dev Team</p>
             """
         )
     except Exception as e:
@@ -1028,24 +1148,30 @@ async def verify_reset_code(email: str = Form(...), code: str = Form(...)):
 
     return {"success": True, "message": "New password sent to your email"}
 
-
 @router.post("/change-password")
 async def change_password(
     request: Request,
     current_password: str = Form(...),
     new_password: str = Form(...)
 ):
-    # Get logged-in user (must be stored in session from login)
+    # Get logged-in user from session
     session_user = request.session.get("user")
-
-    if not session_user:
+    if not session_user or "id" not in session_user or "role" not in session_user:
         raise HTTPException(status_code=401, detail="Not logged in")
 
     user_id = session_user["id"]
+    role = session_user["role"]
 
-    # Fetch current password hash from DB
-    user_record = database.con.execute("SELECT password FROM admin WHERE id = ?", [user_id]).fetchone()
+    # Determine table based on role
+    if role == "admin":
+        table = "admin"
+    elif role == "employee":
+        table = "employees"
+    else:
+        return JSONResponse({"success": False, "message": "Unknown role"}, status_code=403)
 
+    # Fetch current password hash
+    user_record = database.con.execute(f"SELECT password FROM {table} WHERE id = ?", [user_id]).fetchone()
     if not user_record:
         return JSONResponse({"success": False, "message": "User not found"}, status_code=404)
 
@@ -1057,11 +1183,11 @@ async def change_password(
     except Exception:
         return JSONResponse({"success": False, "message": "Incorrect current password"}, status_code=400)
 
-    # Hash the new password
+    # Hash new password
     new_hashed = ph.hash(new_password)
 
-    # Update DB
-    database.con.execute("UPDATE admin SET password = ? WHERE id = ?", [new_hashed, user_id])
+    # Update password in DB
+    database.con.execute(f"UPDATE {table} SET password = ? WHERE id = ?", [new_hashed, user_id])
 
     return JSONResponse({"success": True, "message": "Password updated successfully"})
 
@@ -1070,18 +1196,30 @@ async def forgot_password(request: Request):
     form = await request.form()
     email = form.get("email")
 
-    # Check if email exists
-    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+    if not email:
+        return JSONResponse({"success": False, "message": "Email is required"}, status_code=400)
 
-    if not user:
+    # First check admins
+    user = database.con.execute("SELECT id FROM admin WHERE email = ?", [email]).fetchone()
+    table = None
+
+    if user:
+        table = "admin"
+    else:
+        # Check employees
+        user = database.con.execute("SELECT id FROM employees WHERE email = ?", [email]).fetchone()
+        if user:
+            table = "employees"
+
+    if not user or not table:
         return JSONResponse({"success": False, "message": "Email not found"}, status_code=404)
 
-    # Generate and hash new password
+    # Generate a new password
     new_password = database.generate_new_password()
     hashed_password = ph.hash(new_password)
 
-    # Update the password in the database
-    database.con.execute("UPDATE admin SET password = ? WHERE email = ?", [hashed_password, email])
+    # Update password in the correct table
+    database.con.execute(f"UPDATE {table} SET password = ? WHERE email = ?", [hashed_password, email])
 
     # Send the email
     try:

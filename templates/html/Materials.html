@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="../css/Materials.css?v=7">
-<style> 
+<style>
 .small-swal {
   min-height: 160px;
 }
@@ -871,6 +871,13 @@ function clearMaterialFilters() {
     renderPagination();
   }
 
+  function displayValue(value) {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+  return value;
+}
+
   function renderTablePage(page) {
     const tableBody = document.getElementById("materialTableBody");
     tableBody.innerHTML = "";
@@ -888,12 +895,12 @@ function clearMaterialFilters() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${material.material_id}</td>
-        <td>${material.item_name}</td>
-        <td>${material.item_category_name || "N/A"}</td>
-        <td>${material.item_description || ""}</td>
-        <td>${material.current_stock}</td>
-        <td>${material.unit_measurement}</td>
+        <td>${displayValue(material.material_id)}</td>
+        <td>${displayValue(material.item_name)}</td>
+        <td>${displayValue(material.item_category_name || "N/A")}</td>
+        <td>${displayValue(material.item_description || "")}</td>
+        <td>${displayValue(material.current_stock)}</td>
+        <td>${displayValue(material.unit_measurement)}</td>
         <td>₱${parseFloat(material.material_cost).toLocaleString()}</td>
         <td>
           <div class="rating-bar-wrapper">
