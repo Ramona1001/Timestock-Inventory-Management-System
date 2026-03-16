@@ -19,13 +19,13 @@ import os, io, csv
 #     raise RuntimeError("MOTHERDUCK_TOKEN not set")
 
 # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-REPO_DB_PATH = "backend/rdb_timestock_2"
+REPO_DB_PATH = "backend/rdb_timestock_3"
 
 # If running locally, use a local file
 if os.environ.get("RAILWAY") == "1":
-    DB_PATH = "/data/rdb_timestock_2"
+    DB_PATH = "/data/rdb_timestock_3"
 else:
-    DB_PATH = "backend/rdb_timestock_2"
+    DB_PATH = "backend/rdb_timestock_3"
 
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
@@ -2801,10 +2801,6 @@ def get_user_by_email(email: str):
 
 
 def authenticate_user(email: str, password: str):
-    """
-    Authenticates a user from either table using Argon2 password hashing.
-    Returns dict with user details if correct, else None.
-    """
     user = get_user_by_email(email)
     if not user:
         return None
@@ -3450,9 +3446,6 @@ def migrate_plaintext_passwords_to_hash():
         "updated_employee_passwords": updated["employees"]
     }
 
-#====================================================================================
-# This part is new:
-#====================================================================================
 # Role-aware list for the login dropdown
 def list_active_users_by_role(conn, role: str = "employee", q: str = None, limit: int = 50):
     """
