@@ -36,7 +36,8 @@
 
   /* ---------- CONTAINERS ---------- */
   .container, main, header, .header-bar {
-    width: 1000px;    
+    width: 100%;                 /* prevent horizontal scroll */
+    max-width: 100%;
     margin: 0 auto;
     box-sizing: border-box;
   }
@@ -48,7 +49,7 @@
 
   main {
     margin: 0 auto;
-    padding: 1rem 1rem 2rem 1rem;
+    padding: 1rem;
   }
 
   /* ---------- BURGER BUTTON ---------- */
@@ -79,10 +80,27 @@
     padding-left: 3.8rem;
   }
 
-  .header-bar h1,
-  .header-bar h2 {
-    font-size: 1.2rem;
-  }
+.header-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding-left:3.8rem;   /* space for burger button */
+  width:100%;
+}
+
+/* Title */
+.header-bar h1{
+  font-size:1.2rem;
+  margin:0;
+  line-height:1.2;
+}
+
+/* Right side icons */
+.top-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 
   /* ---------- SUMMARY CARDS ---------- */
   #summary-cards,
@@ -100,37 +118,50 @@
   .summary-card {
     width: 100%;
     padding: 1rem;
-    font-size: 1rem;
-  }
-
-  /* ---------- CRUD & MODAL BUTTONS ---------- */
-  .crud-buttons,
-  .modal-actions {
-    display: flex;
-    flex-wrap: nowrap;       /* single row */
-    gap: 0.5rem;             /* spacing between buttons */
-    justify-content: space-between;
-  }
-
-  .crud-buttons button,
-  .modal-actions button {
-    flex: 1 1 0;             /* stretch evenly */
-    text-align: center;
-    min-width: 0;
-    padding: 0.8rem 0;       /* tap-friendly height */
     font-size: 0.95rem;
+  }
+
+  #summary-cards h1 {
+    font-size: 1.5rem;
+  }
+
+  /* ---------- CRUD BUTTONS ---------- */
+  .crud-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .crud-buttons button {
+    flex: 1 1 calc(50% - 0.5rem);
+    padding: 0.6rem;
+    font-size: 0.85rem;
   }
 
   /* ---------- FILTER BAR ---------- */
   .filters {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
-  .filter-group,
-  .range-group .range-inputs {
+  .filter-left,
+  .filter-right {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-group {
     width: 100%;
-    flex-wrap: nowrap;
+  }
+
+  #searchInput {
+    width: 100%;
+  }
+
+  .range-group .range-inputs {
+    display: flex;
+    gap: 6px;
   }
 
   .range-group input {
@@ -138,48 +169,199 @@
   }
 
   /* ---------- TABLE ---------- */
+
   .table-scroll {
-    height: calc(100vh - 250px); /* adjust for header + filters */
+    width: 100%;
+    overflow-x: auto;
+    height: calc(100vh - 320px);
+  }
+
+  #productTable {
+    min-width: 600px; /* keeps table readable */
+  }
+
+  #productTable th,
+  #productTable td {
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  /* HIDE LESS IMPORTANT COLUMNS */
+
+  /* ITEM ID */
+  #productTable th:nth-child(1),
+  #productTable td:nth-child(1){
+    display:none;
+  }
+
+  /* DESCRIPTION */
+  #productTable th:nth-child(4),
+  #productTable td:nth-child(4){
+    display:none;
+  }
+
+  /* MOVEMENT RATING */
+  #productTable th:nth-child(8),
+  #productTable td:nth-child(8){
+    display:none;
+  }
+
+  /* ---------- ACTION BUTTONS ---------- */
+
+  .action-buttons {
+    display:flex;
+    flex-wrap:nowrap;
+    gap:4px;
+  }
+
+  .action-buttons button {
+    flex:1;
+    font-size:10px;
+    padding:4px 6px;
   }
 
   #productTable th:last-child,
   #productTable td:last-child {
-    min-width: 140px;   /* ensures buttons fit */
+    min-width: 130px;
     white-space: nowrap;
   }
 
-  .action-buttons {
-    flex-wrap: nowrap;
-    gap: 0.5rem;
+  /* ---------- PAGINATION ---------- */
+
+  .pagination {
+    justify-content:center;
+    flex-wrap:wrap;
   }
 
-  .action-buttons button {
-    flex: 1 1 0;
-    min-width: 0;
+  .pagination button {
+    padding:5px 10px;
+    font-size:11px;
   }
 
   /* ---------- MODALS ---------- */
+
   .modal-content,
   #productMaterialModal .modal-box {
     width: 95%;
     max-width: 95%;
-    margin: 5% auto;
-    padding: 20px;
+    margin: 10% auto;
+    padding: 18px;
   }
 
   .form-grid {
-    grid-template-columns: 1fr; /* stack form fields */
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .stock-info-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+
+
+/* ===============================
+   MOBILE CARD VIEW
+================================ */
+
+@media (max-width:768px){
+
+  /* Hide table header */
+  #productTable thead{
+    display:none;
+  }
+
+  /* Table becomes vertical list */
+  #productTable,
+  #productTable tbody,
+  #productTable tr,
+  #productTable td{
+    display:block;
+    width:100%;
+  }
+
+  /* Card container */
+  #productTable tr{
+    background:white;
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  /* Each row field */
+  #productTable td{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 0;
+    border:none;
+    font-size:13px;
+  }
+
+  /* Label styling */
+  #productTable td::before{
+    font-weight:600;
+    color:#555;
+  }
+
+  /* Labels for each column */
+  #productTable td:nth-child(2)::before{ content:"Material"; }
+  #productTable td:nth-child(3)::before{ content:"Category"; }
+  #productTable td:nth-child(5)::before{ content:"Stock"; }
+  #productTable td:nth-child(6)::before{ content:"Measurement"; }
+  #productTable td:nth-child(7)::before{ content:"Cost"; }
+  #productTable td:nth-child(9)::before{ content:"Status"; }
+
+  /* Hide unused fields */
+  #productTable td:nth-child(1),
+  #productTable td:nth-child(4),
+  #productTable td:nth-child(8){
+    display:none;
+  }
+
+  /* Action buttons row */
+  #productTable td:nth-child(10){
+    margin-top:10px;
+  }
+
+  .action-buttons{
+    display:flex;
+    gap:6px;
+  }
+
+  .action-buttons button{
+    flex:1;
+    font-size:12px;
+    padding:6px;
+  }
+
+}
+/* ---------- ALIGN SECTIONS WITH SUMMARY CARDS ---------- */
+
+.products-header,
+.filters,
+.table-scroll,
+.pagination {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* match Bootstrap row spacing */
+.products-header,
+.filters {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* table container */
+.table-scroll {
+  padding-left: 12px;
+  padding-right: 12px;
+}
 }
 </style>
 
-</style>
 </head>
 <body>
   <div class="container">

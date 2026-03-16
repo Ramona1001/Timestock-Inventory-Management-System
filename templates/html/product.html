@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../css/product.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
+/* ---------- SWAL STYLING ---------- */
 .small-swal {
   min-height: 160px;
 }
@@ -27,114 +28,327 @@
 .swal-on-top {
   z-index: 10000 !important;
 }
-  @media screen and (max-width: 768px) {
 
-    .container, main, header, .header-bar {
-      width: 100%;        
-      max-width: 900px;   
-      margin: 0 auto;
-      box-sizing: border-box;
-    }
+#editModal {
+  z-index: 1050;
+}
 
-    .container {
-      display: block;
-      width: 900px;  
-      padding: 0;
-      margin: 0 auto;     
-      box-sizing: border-box;
-    }
+/* ---------- MOBILE LAYOUT ---------- */
+@media screen and (max-width: 768px) {
 
-    main {
-      width: 900px;
-      margin: 0 auto;
-      padding: 1rem 1rem 2rem 1rem;
-      box-sizing: border-box;
-    }
+  /* ---------- CONTAINERS ---------- */
+  .container, main, header, .header-bar {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
 
-    header,
-    .header-bar {
-      padding: 0 1rem;
-      width: 900px;
-      margin-left: auto;
-      margin-right: auto;
-      box-sizing: border-box;
-    }
+  .container {
+    display: block;
+    padding: 0;
+  }
 
-    /* ---------- BURGER BUTTON ---------- */
-    .mobile-menu-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: white;
-      border: none;
-      cursor: pointer;
-      position: fixed;
-      top: 0.8rem;
-      left: 1rem;
-      z-index: 300;
-      width: 3rem;
-      height: 3rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
+  main {
+    margin: 0 auto;
+    padding: 1rem;
+  }
 
-    .mobile-menu-btn span {
-      font-size: 2rem;
-      color: var(--color-primary);
-    }
+  /* ---------- BURGER BUTTON ---------- */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: none;
+    cursor: pointer;
+    position: fixed;
+    top: 0.8rem;
+    left: 1rem;
+    z-index: 300;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
 
-    /* ---------- HEADER AREA ---------- */
-    .top {
-      padding-left: 3.8rem;
-    }
+  .mobile-menu-btn span {
+    font-size: 2rem;
+    color: var(--color-primary);
+  }
 
-    .header-bar h1,
-    .header-bar h2 {
-      font-size: 1.2rem;
-    }
+  /* ---------- HEADER AREA ---------- */
+  .header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 3.8rem; /* space for burger button */
+    width: 100%;
+    box-sizing: border-box;
+  }
 
-    /* ---------- SUMMARY CARDS ---------- */
-    #summary-cards,
-    .insights,
-    .cards-container {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 1rem;
-      width: 100%;
-      margin-top: 1rem;
-    }
+  .header-bar h1 {
+    font-size: 1.2rem;
+    margin: 0;
+    line-height: 1.2;
+  }
 
-    #summary-cards > div,
-    .insights > div,
-    .summary-card {
-      width: 100%;
-      padding: 1rem;
-      font-size: 1rem;
-    }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-      /* CRUD buttons side by side, evenly stretched */
+  /* ---------- SUMMARY CARDS ---------- */
+  #summary-cards,
+  .insights,
+  .cards-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  #summary-cards > div,
+  .insights > div,
+  .summary-card {
+    width: 100%;
+    padding: 1rem;
+    font-size: 0.95rem;
+  }
+
+  #summary-cards h1 {
+    font-size: 1.5rem;
+  }
+
+  /* ---------- CRUD BUTTONS ---------- */
   .crud-buttons,
   .modal-actions {
     display: flex;
-    flex-wrap: nowrap;        /* keep buttons in a single row */
-    gap: 0.5rem;              /* space between buttons */
+    flex-wrap: nowrap;  /* keep buttons in one row */
+    gap: 0.5rem;
     justify-content: space-between;
   }
 
   .crud-buttons button,
   .modal-actions button {
-    flex: 1 1 0;              /* stretch buttons evenly */
+    flex: 1 1 0;       /* stretch evenly */
     text-align: center;
-    min-width: 0;             /* remove minimum width restriction */
-    padding: 0.8rem 0;        /* increase tappable area */
-    font-size: 0.95rem;       /* adjust font size for mobile */
-  }
-    
-
+    min-width: 0;
+    padding: 0.8rem 0;
+    font-size: 0.95rem;
   }
 
+  /* ---------- FILTERS ---------- */
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-left,
+  .filter-right {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  #searchInput,
+  #categoryFilter,
+  #sortFilter,
+  #minPrice,
+  #maxPrice {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .range-group .range-inputs {
+    display: flex;
+    gap: 6px;
+  }
+
+  .range-group input {
+    flex: 1;
+  }
+
+  /* ---------- TABLE ---------- */
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    height: calc(100vh - 320px);
+    box-sizing: border-box;
+  }
+
+  #productTable {
+    min-width: 600px;
+  }
+
+  #productTable th,
+  #productTable td {
+    font-size: 11px;
+    padding: 6px;
+  }
+
+  /* HIDE LESS IMPORTANT COLUMNS */
+  #productTable th:nth-child(1),
+  #productTable td:nth-child(1),
+  #productTable th:nth-child(3),
+  #productTable td:nth-child(3),
+  #productTable th:nth-child(6),
+  #productTable td:nth-child(6) {
+    display: none;
+  }
+
+  /* ---------- ACTION BUTTONS ---------- */
+  .action-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .action-buttons button {
+    flex: 1;
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+
+  #productTable th:last-child,
+  #productTable td:last-child {
+    min-width: 130px;
+    white-space: nowrap;
+  }
+
+  /* ---------- PAGINATION ---------- */
+  .pagination {
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0.5rem 0;
+  }
+
+  .pagination button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  /* ---------- MODALS ---------- */
+  .modal-content,
+  #productMaterialModal .modal-box {
+    width: 95%;
+    max-width: 95%;
+    margin: 10% auto;
+    padding: 18px;
+  }
+
+  .form-grid,
+  .stock-info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* ===============================
+     MOBILE CARD VIEW FOR TABLE
+  ================================= */
+  #productTable thead,
+  #unavalTableProducts thead {
+    display: none;
+  }
+
+  #productTable,
+  #productTable tbody,
+  #productTable tr,
+  #productTable td,
+  #unavalTableProducts,
+  #unavalTableProducts tbody,
+  #unavalTableProducts tr,
+  #unavalTableProducts td {
+    display: block;
+    width: 100%;
+  }
+
+  #productTable tr,
+  #unavalTableProducts tr {
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  #productTable td,
+  #unavalTableProducts td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border: none;
+    font-size: 13px;
+  }
+
+  #productTable td::before,
+  #unavalTableProducts td::before {
+    font-weight: 600;
+    color: #555;
+  }
+
+  /* Column labels */
+  #productTable td:nth-child(2)::before,
+  #unavalTableProducts td:nth-child(2)::before { content: "Product Name"; }
+  #productTable td:nth-child(4)::before,
+  #unavalTableProducts td:nth-child(4)::before { content: "Category"; }
+  #productTable td:nth-child(5)::before,
+  #unavalTableProducts td:nth-child(5)::before { content: "Price"; }
+  #productTable td:nth-child(7)::before,
+  #unavalTableProducts td:nth-child(7)::before { content: "Date Added"; }
+  #productTable td:nth-child(8)::before,
+  #unavalTableProducts td:nth-child(8)::before { content: "Dimensions"; }
+  #productTable td:nth-child(9)::before,
+  #unavalTableProducts td:nth-child(9)::before { content: "Status"; }
+
+  /* Hide unused fields */
+  #productTable td:nth-child(1),
+  #productTable td:nth-child(3),
+  #productTable td:nth-child(6),
+  #unavalTableProducts td:nth-child(1),
+  #unavalTableProducts td:nth-child(3),
+  #unavalTableProducts td:nth-child(6) {
+    display: none;
+  }
+
+  #productTable td:last-child,
+  #unavalTableProducts td:last-child {
+    margin-top: 10px;
+  }
+
+  /* Buttons in mobile table rows */
+  .action-buttons {
+    display: flex;
+    gap: 6px;
+  }
+
+  .action-buttons button {
+    flex: 1;
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  /* Align sections like summary cards */
+  .products-header,
+  .filters,
+  .table-scroll,
+  .pagination {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+}
 </style>
-
 
 </head>
 <body>
@@ -631,14 +845,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const toggleUnavailableBtn = document.getElementById("toggleUnavailableBtn");
   const unavailableSection = document.getElementById("unavailableSection");
+  const availableSection = document.querySelector(".table-scroll");
   let isUnavailableVisible = false;
 
   toggleUnavailableBtn.addEventListener("click", () => {
     isUnavailableVisible = !isUnavailableVisible;
-    unavailableSection.style.display = isUnavailableVisible ? "block" : "none";
-    toggleUnavailableBtn.textContent = isUnavailableVisible
-      ? "Hide Unavailable Products"
-      : "Show Unavailable Products";
+
+    if (isUnavailableVisible) {
+      unavailableSection.style.display = "block";
+      availableSection.style.display = "none";
+      toggleUnavailableBtn.textContent = "Show Available Products";
+    } else {
+      unavailableSection.style.display = "none";
+      availableSection.style.display = "block";
+      toggleUnavailableBtn.textContent = "Show Unavailable Products";
+    }
   });
 });
 
