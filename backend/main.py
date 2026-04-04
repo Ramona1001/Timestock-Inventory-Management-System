@@ -14,21 +14,39 @@ import asyncio
 from backend import graphs
 
 app = FastAPI(title="TimeStock Inventory API")
+
+ENV = os.getenv("APP_ENV", "development").lower()
+SESSION_SECRET = os.getenv("SESSION_SECRET")
+if not SESSION_SECRET:
+    raise RuntimeError("SESSION_SECRET is not set")
+
+if ENV == "production":
+    allowed_origins = [
+        "https://timestock-ims.online",
+    ]
+    https_only = True
+else:
+    allowed_origins = [
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ]
+    https_only = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key="SKQ2x3IVvY3Dqnr8QXoLfnc1F9-zTj0Zu1-vO6F2b7c",
+    secret_key=SESSION_SECRET,
     session_cookie="session",
     same_site="lax",
-    https_only=False,   # Keep True if using HTTPS, False for local HTTP
-    max_age=3600 * 24, # 1 day
+    https_only=https_only,
+    max_age=60 * 60 * 8,
 )
 
 app.include_router(api_router, prefix="/api")
@@ -51,35 +69,19 @@ app.mount("/images", StaticFiles(directory=os.path.join(BASE_DIR, "../templates/
 
 # Home route
 @app.get("/", response_class=HTMLResponse)
+@app.get("/Home.html", response_class=HTMLResponse, include_in_schema=False)
 def index(request: Request, user: dict = Depends(get_current_user)):
     if not user:
-        return RedirectResponse(url="/login")
-    
-    fastest_moving_html = graphs.get_fastest_moving_materials_chart()
-    reorder_point_html = graphs.get_reorder_point_chart()
-    
-    return templates.TemplateResponse("index.html", {
+        return RedirectResponse(url="/login", status_code=302)
+
+    context = {
         "request": request,
         "user": user,
-        "fastest_moving_html": fastest_moving_html,
-        "reorder_point_html": reorder_point_html
-    })
+        "fastest_moving_html": graphs.get_fastest_moving_materials_chart(),
+        "reorder_point_html": graphs.get_reorder_point_chart(),
+    }
 
-
-@app.get("/index.html", response_class=HTMLResponse)
-def index_page(request: Request, user: dict = Depends(get_current_user)):
-    if not user:
-        return RedirectResponse(url="/login")
-
-    fastest_moving_html = graphs.get_fastest_moving_materials_chart()
-    reorder_point_html = graphs.get_reorder_point_chart()
-
-    return templates.TemplateResponse("index.html", {
-        "request": request,
-        "user": user,
-        "fastest_moving_html": fastest_moving_html,
-        "reorder_point_html": reorder_point_html
-    })
+    return templates.TemplateResponse("Home.html", context)
 
 
 @app.get("/product.html", response_class=HTMLResponse)
