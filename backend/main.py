@@ -81,20 +81,31 @@ def index(request: Request, user: dict = Depends(get_current_user)):
         "reorder_point_html": graphs.get_reorder_point_chart(),
     }
 
-    return templates.TemplateResponse("Home.html", context)
-
+    return templates.TemplateResponse(
+        request,
+        "Home.html",  
+        context,
+    )
 
 @app.get("/product.html", response_class=HTMLResponse)
 def product_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("product.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "product.html",
+        {"request": request, "user": user}
+    )
 
 @app.get("/Materials.html", response_class=HTMLResponse)
 def materials_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Materials.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "Materials.html",
+        {"request": request, "user": user}
+    )
 
 async def get_all_graphs():
     tasks = [
@@ -127,12 +138,15 @@ def analytics_page(request: Request, user: dict = Depends(get_current_user)):
     ma_report = graphs.generate_sales_moving_average_report(ma_df)
     ma_recommendation = graphs.generate_moving_average_recommendations(ma_df) 
 
-    return templates.TemplateResponse("Analytics.html", {
-        "request": request,
-        "user": user,
-        "chart_html": chart_html,
-        "chart_report": chart_report,
-        "turnover_combined_html": turnover_combined_html,
+    return templates.TemplateResponse(
+        request,
+        "Analytics.html",
+        {
+            "request": request,
+            "user": user,
+            "chart_html": chart_html,
+            "chart_report": chart_report,
+            "turnover_combined_html": turnover_combined_html,
         "summary": summary_html,
 
         "stl_html": stl_html,
@@ -152,33 +166,53 @@ def analytics_page(request: Request, user: dict = Depends(get_current_user)):
 def order_quotation_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Order_and_Quotation.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "Order_and_Quotation.html",
+        {"request": request, "user": user}
+    )
 
 @app.get("/Settings.html", response_class=HTMLResponse)
 def settings_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Settings.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "Settings.html",
+        {"request": request, "user": user}
+    )
 
 @app.get("/Supplier.html", response_class=HTMLResponse)
 def supplier_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Supplier.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "Supplier.html",
+        {"request": request, "user": user}
+    )
 
 
 @app.get("/profile_management.html", response_class=HTMLResponse)
 def profile_management_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("profile_management.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "profile_management.html",
+        {"request": request, "user": user}
+    )
 
 
 @app.get("/Transactions.html", response_class=HTMLResponse)
 def transactions_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Transactions.html", {"request": request, "user": user})
+    return templates.TemplateResponse(
+        request,
+        "Transactions.html",
+        {"request": request, "user": user}
+    )
 
 @app.get("/Reports.html", response_class=HTMLResponse)
 def reports_page(request: Request, user: dict = Depends(get_current_user), month: int = None, year: int = None):
@@ -199,7 +233,7 @@ def reports_page(request: Request, user: dict = Depends(get_current_user), month
             raise ValueError("Selected month/year is in the future.")
     except ValueError as ve:
         # Return template with error message
-        return templates.TemplateResponse("Reports.html", {
+        return templates.TemplateResponse(request,"Reports.html", {
             "request": request,
             "user": user,
             "error_message": f"Invalid month/year: {ve}",
@@ -216,7 +250,7 @@ def reports_page(request: Request, user: dict = Depends(get_current_user), month
         stock_movement_report = graphs.get_stock_movement_report_for_month(year, month)
         products_sold_report = graphs.get_products_sold_for_month(year, month)
     except Exception as e:
-        return templates.TemplateResponse("Reports.html", {
+        return templates.TemplateResponse(request,"Reports.html", {
             "request": request,
             "user": user,
             "error_message": f"No data found or an error occurred for {month}/{year}: {e}",
@@ -224,7 +258,7 @@ def reports_page(request: Request, user: dict = Depends(get_current_user), month
             "month": month
         })
 
-    return templates.TemplateResponse("Reports.html", {
+    return templates.TemplateResponse(request,"Reports.html", {
         "request": request,
         "user": user,
         "report_text": report_text,
@@ -242,7 +276,7 @@ def reports_page(request: Request, user: dict = Depends(get_current_user), month
 def customer_page(request: Request, user: dict = Depends(get_current_user)):
     if not user:
         return RedirectResponse(url="/login")
-    return templates.TemplateResponse("Customer.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request,"Customer.html", {"request": request, "user": user})
 
 @app.get("/download-db")
 def download_duckdb(user: dict = Depends(get_current_user)):

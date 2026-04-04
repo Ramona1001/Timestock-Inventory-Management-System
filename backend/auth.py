@@ -16,26 +16,40 @@ from .app_schemas import UserListItem
 router = APIRouter()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "../templates/html"))
+
+TEMPLATES_DIR = os.path.abspath(
+    os.path.join(BASE_DIR, "..", "templates", "html")
+)
+
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
+print("TEMPLATES DIR:", TEMPLATES_DIR)
+print("FILES:", os.listdir(TEMPLATES_DIR))
 
 @router.get("/login", response_class=HTMLResponse)
 def login_page(request: Request):
-    return templates.TemplateResponse("Login.html", {"request": request, "error": None})
+    return templates.TemplateResponse(
+        request,
+        "Login.html",
+        {"request": request, "error": None},
+    )
 
 @router.post("/login")
 async def login_user(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
-    accept: Optional[str] = Header(default="application/json")
+    accept: str = Header(default="")
 ):
     user = database.authenticate_user(email, password)
+
     if not user:
         if "text/html" in accept:
-            return templates.TemplateResponse("Login.html", {
-                "request": request,
-                "error": "Invalid email or password"
-            })
+            return templates.TemplateResponse(
+                request,
+                "Login.html",
+                {"request": request, "error": "Invalid email or password"},
+                status_code=401,
+            )
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     role = user["role"]
@@ -43,9 +57,9 @@ async def login_user(
     if "text/html" in accept:
         request.session["user"] = {**user, "role": role}
         return RedirectResponse(url="/", status_code=302)
-    else:
-        token = create_access_token({"id": user["id"], "role": role})
-        return {"access_token": token, "token_type": "bearer"}
+
+    token = create_access_token({"id": user["id"], "role": role})
+    return {"access_token": token, "token_type": "bearer"}
 
 #MOBILE APP
 SECRET_KEY = "your-secret-key"
