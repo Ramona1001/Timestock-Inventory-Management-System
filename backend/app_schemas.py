@@ -242,24 +242,24 @@ class UserListItem(BaseModel):
     id: str
     display_name: str
 
-# --- Base model (shared fields) ---
+# --- Base model ---
 class AdminBase(BaseModel):
     firstname: str = Field(..., min_length=2, max_length=50)
     lastname: str = Field(..., min_length=2, max_length=50)
     email: EmailStr
 
-# --- Creation model (client input) ---
+# --- Creation model ---
 class AdminCreate(AdminBase):
     password: str = Field(..., min_length=8, max_length=128, description="Plaintext password to be hashed")
 
-# --- Response model (what you send back) ---
+# --- Response model ---
 class AdminRead(AdminBase):
     id: str
     date_created: datetime
     last_login: Optional[datetime] = None
 
     class Config:
-        orm_mode = True  # allows returning ORM/dict-like objects directly
+        orm_mode = True
 
 class ProfileUpdate(BaseModel):
     firstname: str | None = None
