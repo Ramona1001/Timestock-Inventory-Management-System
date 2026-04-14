@@ -296,7 +296,19 @@ document.addEventListener("DOMContentLoaded", function () {
       const tbody = document.getElementById("recent-transactions-body");
       tbody.innerHTML = ""; // Clear current content
 
-      data.transactions.forEach(tx => {
+      const transactions = data.transactions || [];
+
+      if (transactions.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center; padding: 20px; color: #888;">
+              No recent transactions found
+            </td>
+          </tr>
+        `;
+        return;
+      }
+      transactions.forEach(tx => {
         const row = document.createElement("tr");
 
         const statusClass = tx.status_code.toLowerCase();
@@ -317,6 +329,14 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(error => {
       console.error("Error loading recent transactions:", error);
+      const tbody = document.getElementById("recent-transactions-body");
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align:center; padding: 20px; color: red;">
+            Failed to load transactions
+          </td>
+        </tr>
+      `;
     });
 });
 </script>

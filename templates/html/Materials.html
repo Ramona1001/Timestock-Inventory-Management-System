@@ -1068,6 +1068,17 @@ function clearMaterialFilters() {
     const end = start + rowsPerPage;
     const pageData = filteredData.slice(start, end);
 
+
+  if (pageData.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="9" style="text-align:center; padding: 20px; color: #888;">
+          No materials found
+        </td>
+      </tr>
+    `;
+    return;
+  }
     pageData.forEach(material => {
       const statusData = material.current_stock === 0
         ? { status: "Out of Stock", class: "danger" }
