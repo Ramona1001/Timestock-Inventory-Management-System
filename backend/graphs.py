@@ -612,7 +612,11 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
     if result is None or df.empty or 'total_quantity' not in df.columns:
         flat = ["⚠️ No valid data available for STL Decomposition Recommendations."]
         grouped = [{'month': 'N/A', 'recs': ["⚠️ No valid data available."]}]
-        return flat, grouped
+        confidence = {
+            "score": 0.0,
+            "label": "⚪ No Confidence Data"
+        }
+        return flat, grouped, confidence
 
     flat_recs = []
     grouped = []

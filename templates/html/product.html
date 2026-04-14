@@ -916,31 +916,42 @@ function renderTablePage(type, page) {
   const end = start + rowsPerPage;
   const pageData = data.slice(start, end);
 
+  if (pageData.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align:center; padding: 20px; color: #888;">
+          No products found
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
   pageData.forEach(product => {
     const row = document.createElement("tr");
     const statusClass = product.status === "Available" ? "success" : "danger";
 
-  row.innerHTML = `
-    <td>${displayValue(product.product_id)}</td>
-    <td>${displayValue(product.item_name)}</td>
-    <td>${displayValue(product.item_description)}</td>
-    <td>${displayValue(product.item_category_name)}</td>
-    <td>${displayValue(product.unit_price)}</td>
-    <td>${displayValue(product.materials_cost)}</td>
-    <td>${formatDate(product.date_created)}</td>
-    <td>
-      ${product.width && product.height
-        ? `${product.width}x${product.height}`
-      :  `<span style="color:#999; font-style:italic;">N/A</span>`}
-    </td>
-    <td class="${statusClass}">${product.status}</td>
-    {% if request.session['user']['role'] == 'admin' %}
-    <td>
-      <button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button>
-      <button class="delete-btn" onclick="deleteProduct('${product.product_id}')">Delete</button>
-    </td>
-    {% endif %}
-  `;
+    row.innerHTML = `
+      <td>${displayValue(product.product_id)}</td>
+      <td>${displayValue(product.item_name)}</td>
+      <td>${displayValue(product.item_description)}</td>
+      <td>${displayValue(product.item_category_name)}</td>
+      <td>${displayValue(product.unit_price)}</td>
+      <td>${displayValue(product.materials_cost)}</td>
+      <td>${formatDate(product.date_created)}</td>
+      <td>
+        ${product.width && product.height
+          ? `${product.width}x${product.height}`
+          : `<span style="color:#999; font-style:italic;">N/A</span>`}
+      </td>
+      <td class="${statusClass}">${product.status}</td>
+      {% if request.session['user']['role'] == 'admin' %}
+      <td>
+        <button class="edit-btn" onclick='openEditModal(${JSON.stringify(product)})'>Edit</button>
+        <button class="delete-btn" onclick="deleteProduct('${product.product_id}')">Delete</button>
+      </td>
+      {% endif %}
+    `;
 
     tbody.appendChild(row);
   });

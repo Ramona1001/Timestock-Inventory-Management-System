@@ -32,7 +32,7 @@ function createWindow() {
   });
 }
 
-function waitForServer(url, retries = 20, interval = 500) {
+function waitForServer(url, retries = 30, interval = 500) {
   return new Promise((resolve, reject) => {
     const attempt = (remaining) => {
       http.get(url, (res) => {
@@ -51,18 +51,43 @@ function waitForServer(url, retries = 20, interval = 500) {
   });
 }
 
-function startFastAPIServer() {
-  // Development example only:
-  // Better for production: use a bundled python/backend executable.
-  serverProcess = spawn(
-    'python',
-    ['-m', 'uvicorn', 'backend.main:app', '--host', HOST, '--port', String(PORT)],
-    {
+function getBackendCommand() {
+  if (app.isPackaged) {
+    return {
+      command: path.join(process.resourcesPath, 'backend.exe'),
+      args: [],
+      options: {
+        windowsHide: true,
+        stdio: 'inherit'
+      }
+    };
+  }
+
+  return {
+    command: 'python',
+    args: [
+      '-m',
+      'uvicorn',
+      'backend.main:app',
+      '--host',
+      HOST,
+      '--port',
+      String(PORT)
+    ],
+    options: {
       shell: true,
       stdio: 'inherit',
       cwd: app.getAppPath()
     }
-  );
+  };
+}
+
+function startFastAPIServer() {
+  const { command, args, options } = getBackendCommand();
+
+  console.log('Starting backend with:', command, args);
+
+  serverProcess = spawn(command, args, options);
 
   serverProcess.on('close', (code) => {
     console.log(`FastAPI server exited with code ${code}`);
@@ -70,6 +95,7 @@ function startFastAPIServer() {
 
   serverProcess.on('error', (err) => {
     console.error('Failed to start FastAPI server:', err);
+    dialog.showErrorBox('Backend Error', err.message);
   });
 }
 
