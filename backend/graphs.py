@@ -11,31 +11,7 @@ import numpy as np
 import json
 import shutil
 import os
-
-REPO_DB_PATH = "backend/rdb_timestock_3"
-
-# If running locally, use a local file
-if os.environ.get("RAILWAY") == "1":
-    # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/rdb_timestock_3"
-else:
-    # Local path
-    DB_PATH = "backend/rdb_timestock_3"
-
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-# Copy starter DB if it doesn't exist yet
-if not os.path.exists(DB_PATH):
-    if os.path.exists(REPO_DB_PATH):
-        shutil.copy(REPO_DB_PATH, DB_PATH)
-        print(f"Copied starter DB to {DB_PATH}")
-    else:
-        print(f"No starter DB found at {REPO_DB_PATH}. A new DB will be created.")
-
-
-# Connect to DuckDB
-con = duckdb.connect(DB_PATH)
-print(f"Connected to DB at {DB_PATH}")
+from backend.db_connection import con, DB_PATH
 
 def get_graph_html(period='month'):
     con = duckdb.connect(DB_PATH)
@@ -404,9 +380,7 @@ def get_reorder_point_chart(return_df=False):
 
 def get_stl_decomposition_graph():
     con = duckdb.connect(DB_PATH)
-    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-
-    # Monthly order quantity
+    # Gets Monthly order quantity
     query = """
     SELECT 
         DATE_TRUNC('month', ot.date_created) AS order_month,
@@ -417,90 +391,153 @@ def get_stl_decomposition_graph():
     ORDER BY order_month
     """
     df = con.execute(query).fetchdf()
-    df['order_month'] = pd.to_datetime(df['order_month'])
+    df["order_month"] = pd.to_datetime(df["order_month"])
+    df.set_index("order_month", inplace=True)
 
-    df.set_index('order_month', inplace=True)
-    df = df.asfreq('MS')
-    df['total_quantity'] = df['total_quantity'].fillna(0)
+    # Ensure continuous monthly frequency
+    df = df.asfreq("MS")
+    df["total_quantity"] = pd.to_numeric(df["total_quantity"], errors="coerce").fillna(0)
 
-    if df.empty or df['total_quantity'].sum() == 0 or len(df) < 12:
-        return "<p>Insufficient data for STL decomposition.</p>", "<p>No recommendations available.</p>", df, None, None
+    if df.empty or df["total_quantity"].sum() == 0 or len(df) < 12:
+        return (
+            "<p>Insufficient data for STL decomposition.</p>",
+            "<p>No recommendations available.</p>",
+            df,
+            None,
+            None,
+        )
 
-    stl = STL(df['total_quantity'], period=12)
+    # STL decomposition
+    stl = STL(df["total_quantity"], period=12)
     result = stl.fit()
 
-    # Top-selling product per month
+    # Convert STL outputs into aligned Series
+    trend = pd.Series(result.trend, index=df.index, name="trend")
+    seasonal = pd.Series(result.seasonal, index=df.index, name="seasonal")
+    resid = pd.Series(result.resid, index=df.index, name="resid")
+
+    # Gets Top-selling product per month
     top_products_df = con.execute("""
         SELECT month, product_name FROM (
             SELECT 
                 DATE_TRUNC('month', ot.date_created) AS month,
                 i.item_name AS product_name,
                 SUM(oi.quantity) AS total_qty,
-                RANK() OVER (
-                    PARTITION BY DATE_TRUNC('month', ot.date_created) 
-                    ORDER BY SUM(oi.quantity) DESC
-                ) AS rnk
+                ROW_NUMBER() OVER (
+                    PARTITION BY DATE_TRUNC('month', ot.date_created)
+                    ORDER BY SUM(oi.quantity) DESC, i.item_name ASC
+                ) AS rn
             FROM order_transactions ot
             JOIN order_items oi ON ot.id = oi.order_id
             JOIN products p ON oi.product_id = p.id
             JOIN items i ON p.item_id = i.id
             GROUP BY month, product_name
-        ) 
-        WHERE rnk = 1
+        )
+        WHERE rn = 1
+        ORDER BY month
     """).fetchdf()
 
-    top_products_df['month'] = pd.to_datetime(top_products_df['month'])
-    top_products_df.rename(columns={'month': 'order_month', 'product_name': 'top_product'}, inplace=True)
+    top_products_df["month"] = pd.to_datetime(top_products_df["month"])
+    top_products_df.rename(
+        columns={"month": "order_month", "product_name": "top_product"},
+        inplace=True,
+    )
 
-    
-    # Merge for hover info
-    merged = result.trend.to_frame(name='trend').reset_index()
-    merged = merged.merge(top_products_df, how='left', on='order_month')
+    # No duplicate top products per month, but ensure it's sorted and aligned with main df
+    top_products_df = (
+        top_products_df.sort_values(["order_month", "top_product"])
+        .drop_duplicates(subset=["order_month"])
+        .reset_index(drop=True)
+    )
+
+    # One clean plotting dataframe to make sure everything is aligned and we can easily add hover info
+    plot_df = pd.DataFrame({
+        "order_month": df.index,
+        "trend": trend.values,
+        "seasonal": seasonal.values,
+        "resid": resid.values,
+    }).sort_values("order_month")
+
+    plot_df = plot_df.merge(
+        top_products_df[["order_month", "top_product"]],
+        how="left",
+        on="order_month",
+    )
+
     hover_text = [
         f"{m.strftime('%B %Y')}<br>Top Product: {p if pd.notna(p) else 'N/A'}"
-        for m, p in zip(merged['order_month'], merged['top_product'])
+        for m, p in zip(plot_df["order_month"], plot_df["top_product"])
     ]
 
     seasonal_hover = [
-        f"{m.strftime('%B')}<br>Top Seasonal Product: {p if pd.notna(p) else 'N/A'}"
-        for m, p in zip(result.seasonal.index, merged['top_product']) 
+        f"{m.strftime('%B %Y')}<br>Top Seasonal Product: {p if pd.notna(p) else 'N/A'}"
+        for m, p in zip(plot_df["order_month"], plot_df["top_product"])
     ]
 
+    # Plotly subplots for STL components
+    fig = sp.make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        subplot_titles=("Trend", "Seasonal", "Residual"),
+        vertical_spacing=0.10
+    )
 
-    fig = sp.make_subplots(rows=3, cols=1, shared_xaxes=True, subplot_titles=("Trend", "Seasonal", "Residual"))
+    fig.add_trace(
+        go.Scatter(
+            x=plot_df["order_month"].tolist(),
+            y=plot_df["trend"].tolist(),
+            mode="lines",
+            name="Trend",
+            line=dict(color="blue"),
+            text=hover_text,
+            hovertemplate="%{text}<br>Value: %{y}<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
 
-    fig.add_trace(go.Scatter(
-        x=merged['order_month'], y=merged['trend'],
-        name='Trend',
-        line=dict(color='blue'),
-        text=hover_text,
-        hoverinfo='text+y'
-    ), row=1, col=1)
+    fig.add_trace(
+        go.Scatter(
+            x=plot_df["order_month"].tolist(),
+            y=plot_df["seasonal"].tolist(),
+            mode="lines",
+            name="Seasonal",
+            line=dict(color="green"),
+            text=seasonal_hover,
+            hovertemplate="%{text}<br>Value: %{y}<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
 
-    fig.add_trace(go.Scatter(
-        x=merged['order_month'], y=result.seasonal,
-        name='Seasonal',
-        line=dict(color='green'),
-        text=seasonal_hover,
-        hoverinfo='text+y'
-    ), row=2, col=1)
+    fig.add_trace(
+        go.Scatter(
+            x=plot_df["order_month"].tolist(),
+            y=plot_df["resid"].tolist(),
+            mode="lines",
+            name="Residual",
+            line=dict(color="red"),
+            hovertemplate="Month: %{x|%B %Y}<br>Value: %{y}<extra></extra>",
+        ),
+        row=3,
+        col=1,
+    )
 
-
-    fig.add_trace(go.Scatter(
-        x=result.resid.index, y=result.resid,
-        name='Residual',
-        line=dict(color='red')
-    ), row=3, col=1)
+    fig.update_xaxes(
+        type="date",
+        range=[plot_df["order_month"].min(), plot_df["order_month"].max()]
+    )
 
     fig.update_layout(
         width=610,
         height=410,
         title_text="STL Decomposition of Monthly Orders",
         template="plotly_white",
-        legend=dict(orientation='h', x=0, y=1.20)
+        legend=dict(orientation="h", x=0, y=1.20),
     )
 
-    # 📌 Recommendations section
+    # Recommendations based on STL results and top products
     recommendations = generate_recommendations_from_stl(df, result, top_products_df)
     recommendation_html = "<ul>" + "".join(f"<li>{r}</li>" for r in recommendations) + "</ul>"
     report_html = "<hr><h4>📌 Recommendations</h4>" + recommendation_html
@@ -649,20 +686,20 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
     current_month_flat = []
     if trend_change > TREND_THRESHOLD:
         current_month_flat.append(
-            f"🟢 {current_month_str} Trend Increasing (forecasted): Consider stocking more materials of <strong>{top_product}</strong>."
+            f"🟢 {current_month_str} Trend Increasing: Consider stocking more materials of <strong>{top_product}</strong>."
         )
     elif trend_change < -TREND_THRESHOLD:
         if slope < -TREND_THRESHOLD:
             current_month_flat.append(
-                f"🔴 {current_month_str} Sustained Trend Decrease (forecasted): Monitor demand and consider reducing stock of <strong>{top_product}</strong>."
+                f"🔴 {current_month_str} Sustained Trend Decrease: Monitor demand and consider reducing stock of <strong>{top_product}</strong>."
             )
         else:
             current_month_flat.append(
-                f"🟡 {current_month_str} Minor Decline (forecasted): <strong>{top_product}</strong> still sells well — monitor but don’t reduce stock yet."
+                f"🟡 {current_month_str} Minor Decline: <strong>{top_product}</strong> still sells well — monitor but don’t reduce stock yet."
             )
     else:
         current_month_flat.append(
-            f"⚪ {current_month_str} Trend Stable (forecasted): No major change in demand for <strong>{top_product}</strong>."
+            f"⚪ {current_month_str} Trend Stable: No major change in demand for <strong>{top_product}</strong>."
         )
 
     if seasonal_effect == seasonal_effect:  # not NaN
@@ -692,20 +729,20 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
     # replicate same logic but omit month in text
     if trend_change > TREND_THRESHOLD:
         current_month_grouped.append(
-            f"🟢 Trend Increasing (forecasted): Consider stocking more materials of <strong>{top_product}</strong>."
+            f"🟢 Trend Increasing : Consider stocking more materials of <strong>{top_product}</strong>."
         )
     elif trend_change < -TREND_THRESHOLD:
         if slope < -TREND_THRESHOLD:
             current_month_grouped.append(
-                f"🔴 Sustained Trend Decrease (forecasted): Monitor demand and consider reducing stock of <strong>{top_product}</strong>."
+                f"🔴 Sustained Trend Decrease : Monitor demand and consider reducing stock of <strong>{top_product}</strong>."
             )
         else:
             current_month_grouped.append(
-                f"🟡 Minor Decline (forecasted): <strong>{top_product}</strong> still sells well — monitor but don’t reduce stock yet."
+                f"🟡 Minor Decline : <strong>{top_product}</strong> still sells well — monitor but don’t reduce stock yet."
             )
     else:
         current_month_grouped.append(
-            f"⚪ Trend Stable (forecasted): No major change in demand for <strong>{top_product}</strong>."
+            f"⚪ Trend Stable : No major change in demand for <strong>{top_product}</strong>."
         )
 
     if seasonal_effect == seasonal_effect:
@@ -749,15 +786,15 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
         # Build flat messages (month included) — same style as original
         if slope > TREND_THRESHOLD:
             flat_recs.append(
-                f"🟢 {forecast_month_str} Trend Increasing (forecasted): Consider stocking more materials of <strong>{top_product_future}</strong>."
+                f"🟢 {forecast_month_str} Trend Increasing : Consider stocking more materials of <strong>{top_product_future}</strong>."
             )
         elif slope < -TREND_THRESHOLD:
             flat_recs.append(
-                f"🔴 {forecast_month_str} Sustained Trend Decrease (forecasted): Monitor demand and consider reducing stock of <strong>{top_product_future}</strong>."
+                f"🔴 {forecast_month_str} Sustained Trend Decrease : Monitor demand and consider reducing stock of <strong>{top_product_future}</strong>."
             )
         else:
             flat_recs.append(
-                f"⚪ {forecast_month_str} Trend Stable (forecasted): No major change in demand for <strong>{top_product_future}</strong>."
+                f"⚪ {forecast_month_str} Trend Stable: No major change in demand for <strong>{top_product_future}</strong>."
             )
 
         if seasonal_effect_future == seasonal_effect_future:
@@ -818,8 +855,6 @@ def generate_recommendations_from_stl(df: pd.DataFrame, result, top_products_df:
 
 def get_sales_moving_average_chart():
     con = duckdb.connect(DB_PATH)
-    # con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-
     # Total monthly sales
     df = con.execute("""
         SELECT

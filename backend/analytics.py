@@ -2,34 +2,7 @@ import duckdb
 from datetime import datetime
 import os
 import shutil
-
-# con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-# con = duckdb.connect('backend/db_timestock')
-
-REPO_DB_PATH = "backend/rdb_timestock_3"
-
-# If running locally, use a local file
-if os.environ.get("RAILWAY") == "1":
-    # Production (Railway) path: the mounted volume
-    DB_PATH = "/data/rdb_timestock_3"
-else:
-    # Local path
-    DB_PATH = "backend/rdb_timestock_3"
-
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-# Copy starter DB if it doesn't exist yet
-if not os.path.exists(DB_PATH):
-    if os.path.exists(REPO_DB_PATH):
-        shutil.copy(REPO_DB_PATH, DB_PATH)
-        print(f"Copied starter DB to {DB_PATH}")
-    else:
-        print(f"No starter DB found at {REPO_DB_PATH}. A new DB will be created.")
-
-
-# Connect to DuckDB
-con = duckdb.connect(DB_PATH)
-print(f"Connected to DB at {DB_PATH}")
+from backend.db_connection import con, DB_PATH
 
 # Alerts
 def get_minimum_stock_alerts():

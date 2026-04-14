@@ -462,7 +462,7 @@ input[type="range"] {
 
   <div class="maintenance-row" style="margin-top:0.8rem;">
     <label for="yearsToKeep">Years to keep</label>
-    <input id="yearsToKeep" type="number" min="2" value="2" aria-describedby="yearsHelp" />
+    <input id="yearsToKeep" type="number" min="5" value="5" aria-describedby="yearsHelp" />
     <div id="yearsHelp" class="muted">Records older than <em>now − years</em> will be affected.</div>
 
     <div style="margin-left:auto; display:flex; gap:0.5rem;">
@@ -1096,7 +1096,7 @@ function totalFromResult(res) {
 /* Preview flow */
 previewBtn.addEventListener('click', async () => {
   const years = Number(yearsInput.value || 0);
-  if (!years || years < 2) {
+  if (!years || years < 5) {
     alert('Please enter a number >= 5 for years.');
     return;
   }

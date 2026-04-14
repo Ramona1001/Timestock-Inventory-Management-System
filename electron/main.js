@@ -1,64 +1,68 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+const { app, BrowserWindow, dialog } = require('electron');
 const { spawn } = require('child_process');
+const path = require('path');
 const http = require('http');
-const os = require('os');
 
 let serverProcess = null;
 let mainWindow = null;
 
-// Get local IP address dynamically
-function getLocalIPAddress() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return '127.0.0.1';
-}
+const HOST = '127.0.0.1';
+const PORT = 8000;
+const BASE_URL = `http://${HOST}:${PORT}`;
 
-// Wait until the server is ready before creating the Electron window
-function waitForServer(url, callback, retries = 20, interval = 500) {
-  const check = () => {
-    http.get(url, () => {
-      console.log("✅ FastAPI server is up!");
-      callback();
-    }).on('error', err => {
-      if (retries === 0) {
-        console.error("❌ FastAPI server did not start in time.");
-      } else {
-        setTimeout(() => waitForServer(url, callback, retries - 1, interval), interval);
-      }
-    });
-  };
-  check();
-}
-
-function createWindow(baseUrl) {
+function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
     }
   });
 
-  mainWindow.loadURL(`${baseUrl}/`);
+  mainWindow.loadURL(BASE_URL);
 
-  mainWindow.on('closed', function () {
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
-function startFastAPIServer(ip) {
-  serverProcess = spawn('uvicorn', ['backend.main:app', '--host', '0.0.0.0', '--port', '8000'], {
-    shell: true,
-    stdio: 'inherit',
+function waitForServer(url, retries = 20, interval = 500) {
+  return new Promise((resolve, reject) => {
+    const attempt = (remaining) => {
+      http.get(url, (res) => {
+        res.resume();
+        resolve();
+      }).on('error', () => {
+        if (remaining <= 0) {
+          reject(new Error('FastAPI server did not start in time.'));
+          return;
+        }
+        setTimeout(() => attempt(remaining - 1), interval);
+      });
+    };
+
+    attempt(retries);
   });
+}
+
+function startFastAPIServer() {
+  // Development example only:
+  // Better for production: use a bundled python/backend executable.
+  serverProcess = spawn(
+    'python',
+    ['-m', 'uvicorn', 'backend.main:app', '--host', HOST, '--port', String(PORT)],
+    {
+      shell: true,
+      stdio: 'inherit',
+      cwd: app.getAppPath()
+    }
+  );
 
   serverProcess.on('close', (code) => {
     console.log(`FastAPI server exited with code ${code}`);
@@ -69,25 +73,40 @@ function startFastAPIServer(ip) {
   });
 }
 
-app.whenReady().then(() => {
-  const localIP = getLocalIPAddress();
-  const baseUrl = `http://${localIP}:8000`;
+function stopFastAPIServer() {
+  if (serverProcess && !serverProcess.killed) {
+    serverProcess.kill();
+    serverProcess = null;
+  }
+}
 
-  startFastAPIServer(localIP);
+app.whenReady().then(async () => {
+  try {
+    startFastAPIServer();
+    await waitForServer(BASE_URL);
+    createWindow();
 
-  waitForServer(baseUrl, () => {
-    createWindow(baseUrl);
-  });
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(baseUrl);
-  });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    dialog.showErrorBox(
+      'Startup Error',
+      'The backend server failed to start.'
+    );
+    app.quit();
+  }
 });
 
-// Gracefully kill FastAPI when Electron exits
-app.on('window-all-closed', function () {
+app.on('before-quit', () => {
+  stopFastAPIServer();
+});
+
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    if (serverProcess) serverProcess.kill();
     app.quit();
   }
 });

@@ -13,34 +13,7 @@ import smtplib
 import shutil
 from email.mime.text import MIMEText
 import os, io, csv
-
-# MOTHERDUCK_TOKEN = os.getenv("MOTHERDUCK_TOKEN")
-# if not MOTHERDUCK_TOKEN:
-#     raise RuntimeError("MOTHERDUCK_TOKEN not set")
-
-# con = duckdb.connect('md:mdb_timestock', config={"motherduck_token": MOTHERDUCK_TOKEN})
-REPO_DB_PATH = "backend/rdb_timestock_3"
-
-# If running locally, use a local file
-if os.environ.get("RAILWAY") == "1":
-    DB_PATH = "/data/rdb_timestock_3"
-else:
-    DB_PATH = "backend/rdb_timestock_3"
-
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-# Copy starter DB if it doesn't exist yet
-if not os.path.exists(DB_PATH):
-    if os.path.exists(REPO_DB_PATH):
-        shutil.copy(REPO_DB_PATH, DB_PATH)
-        print(f"Copied starter DB to {DB_PATH}")
-    else:
-        print(f"No starter DB found at {REPO_DB_PATH}. A new DB will be created.")
-
-
-# Connect to DuckDB
-con = duckdb.connect(DB_PATH)
-print(f"Connected to DB at {DB_PATH}")
+from backend.db_connection import con, DB_PATH
 
 # con = duckdb.connect('backend/db_timestock')
 
@@ -1014,26 +987,28 @@ def delete_material_category(
 
 #Materials CRUDS
 def get_material():
-    return con.execute("""
-       SELECT 
-            i.id AS item_id,
-            i.item_name,
-            i.item_description,
-            i.category_id,  -- <-- include this
-            mc.category_name AS item_category_name,
-            m.id AS material_id,
-            m.unit_measurement,
-            m.material_cost,
-            m.current_stock,
-            m.minimum_stock,
-            m.maximum_stock,
-            m.supplier_id,  -- <-- include this
-            s.contact_name AS supplier_name
-        FROM items i
-        JOIN materials m ON i.id = m.item_id
-        JOIN material_categories mc ON i.category_id = mc.id
-        JOIN suppliers s ON m.supplier_id = s.id
-    """).fetchdf()
+    with duckdb.connect(str(DB_PATH)) as conn:
+
+        return conn.execute("""
+        SELECT 
+                i.id AS item_id,
+                i.item_name,
+                i.item_description,
+                i.category_id,  -- <-- include this
+                mc.category_name AS item_category_name,
+                m.id AS material_id,
+                m.unit_measurement,
+                m.material_cost,
+                m.current_stock,
+                m.minimum_stock,
+                m.maximum_stock,
+                m.supplier_id,  -- <-- include this
+                s.contact_name AS supplier_name
+            FROM items i
+            JOIN materials m ON i.id = m.item_id
+            JOIN material_categories mc ON i.category_id = mc.id
+            JOIN suppliers s ON m.supplier_id = s.id
+        """).fetchdf()
 
 def get_stock_type():
     return con.execute("""

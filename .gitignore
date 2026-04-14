@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 backend/__pycache__
+backend/rdb_timestock_3 copy
+backend/rdb_timestock_3
+backend/alert_cache.json
+
 # Builds
 dist/
 out/
